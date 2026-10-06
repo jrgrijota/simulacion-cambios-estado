@@ -374,6 +374,98 @@ input[type="range"]:disabled { cursor: not-allowed; }
 }
 
 
+.card-estado h3 { text-align: center; }
+.estado-value { font-size: 0.95rem; }
+
+/* Colores de estado (los mismos que en el canvas) */
+.estado-value.st-solid  { color: #8aa8ff; }
+.estado-value.st-liquid { color: #3ccf9a; }
+.estado-value.st-gas    { color: #ff9a4a; }
+.estado-value.st-change { color: #ffd24a; }
+
+.metric-text {
+    font-size: 0.92rem;
+    font-family: system-ui, sans-serif;
+    padding-top: 3px;
+}
+.metric-text.hot  { color: #ff7a5a; }
+.metric-text.cold { color: #6ab8ff; }
+
+/* ════════════════════════════════════════════════════
+   DESLIZADOR DE POTENCIA (centrado en 0)
+════════════════════════════════════════════════════ */
+input[type="range"].power-slider {
+    --track: #1e1e1e;
+    background: linear-gradient(
+        to right,
+        var(--track) 0%,
+        var(--track) var(--from, 50%),
+        var(--pc, #ff5a5a) var(--from, 50%),
+        var(--pc, #ff5a5a) var(--to, 75%),
+        var(--track) var(--to, 75%)
+    );
+}
+.bound-cold { color: #6ab8ff; }
+.bound-hot  { color: #ff7a5a; }
+
+/* ════════════════════════════════════════════════════
+   CONTROL SEGMENTADO (velocidad)
+════════════════════════════════════════════════════ */
+.seg-control {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    background: #141414;
+    padding: 3px;
+    border: 1px solid #272727;
+    border-radius: 8px;
+}
+.seg-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #888;
+    padding: 5px 0;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.seg-btn:hover { color: #c0c0c0; }
+.seg-btn.active {
+    background: #0e2230;
+    border-color: #00c8ff55;
+    color: #00c8ff;
+}
+
+body.theme-light input[type="range"].power-slider { --track: #c8d0dc; }
+body.theme-light .bound-cold { color: #1a6ab0; }
+body.theme-light .bound-hot  { color: #c0402a; }
+body.theme-light .metric-text.hot  { color: #c0402a; }
+body.theme-light .metric-text.cold { color: #1a6ab0; }
+body.theme-light .estado-value.st-solid  { color: #2a4ab0; }
+body.theme-light .estado-value.st-liquid { color: #137a55; }
+body.theme-light .estado-value.st-gas    { color: #b05a10; }
+body.theme-light .estado-value.st-change { color: #8a6000; }
+body.theme-light .seg-control { background: #e8ecf4; border-color: #c8d0dc; }
+body.theme-light .seg-btn { color: #5a6a7a; }
+body.theme-light .seg-btn.active { background: #c8dcee; border-color: #006ea044; color: #006ea0; }
+
+body.theme-contrast input[type="range"].power-slider { --track: #111111; }
+body.theme-contrast .bound-cold { color: #66ccff; }
+body.theme-contrast .bound-hot  { color: #ff6644; }
+body.theme-contrast .metric-text.hot  { color: #ff6644; }
+body.theme-contrast .metric-text.cold { color: #66ccff; }
+body.theme-contrast .estado-value.st-solid  { color: #88aaff; }
+body.theme-contrast .estado-value.st-liquid { color: #00ff88; }
+body.theme-contrast .estado-value.st-gas    { color: #ffaa00; }
+body.theme-contrast .estado-value.st-change { color: #ffff00; }
+body.theme-contrast .seg-control { background: #000; border: 1.5px solid #ffff00; }
+body.theme-contrast .seg-btn { color: #cccccc; }
+body.theme-contrast .seg-btn.active { background: #001a1a; border-color: #00ffff; color: #00ffff; }
+
+
 /* ════════════════════════════════════════════════════
    BOTÓN DE TEMA (ENGRANAJE) Y PANEL
 ════════════════════════════════════════════════════ */

@@ -70,10 +70,81 @@
 
             <hr class="divider">
 
+            <!-- ═══ MODO CURVA DE CALENTAMIENTO ═══ -->
+            <section class="control-group only-curva">
+                <h2>Sustancia</h2>
+                <div class="input-wrapper">
+                    <label for="select-sustancia">Sustancia del recipiente</label>
+                    <select id="select-sustancia" class="custom-select">
+                        <option value="agua" selected>Agua</option>
+                        <option value="alcohol">Alcohol (etanol)</option>
+                        <option value="nitrogeno">Nitrógeno</option>
+                        <option value="hierro">Hierro</option>
+                    </select>
+                    <p id="sustancia-hint" class="field-hint"></p>
+                </div>
+            </section>
+
+            <hr class="divider only-curva">
+
+            <section class="control-group only-curva">
+                <h2>Placa: calentar o enfriar</h2>
+                <div class="input-wrapper">
+                    <div class="label-container">
+                        <label for="slider-potencia">Potencia <span class="label-hint">(energía por segundo)</span></label>
+                        <span id="val-potencia" class="value-badge">+50 %</span>
+                    </div>
+                    <input type="range" id="slider-potencia" class="power-slider" min="-100" max="100" value="50" step="5">
+                    <div class="slider-bounds"><span class="bound-cold">❄ Enfriar</span><span>Apagada</span><span class="bound-hot">Calentar 🔥</span></div>
+                </div>
+
+                <div class="input-wrapper">
+                    <label>Velocidad de la simulación</label>
+                    <div class="seg-control" role="radiogroup" aria-label="Velocidad de la simulación">
+                        <button type="button" class="seg-btn active" data-speed="1" role="radio" aria-checked="true">×1</button>
+                        <button type="button" class="seg-btn" data-speed="2" role="radio" aria-checked="false">×2</button>
+                        <button type="button" class="seg-btn" data-speed="4" role="radio" aria-checked="false">×4</button>
+                    </div>
+                </div>
+                <p class="field-hint">El recipiente está cerrado y aislado: no se escapa materia ni energía. Si apagas la placa, todo se queda como está.</p>
+            </section>
+
+            <hr class="divider only-curva">
+
+            <!-- MÉTRICAS EN TIEMPO REAL (plegable) -->
+            <details class="custom-details only-curva" open>
+                <summary>Monitorización en tiempo real</summary>
+                <div class="details-content metrics-content">
+                    <div class="metrics-grid">
+                        <div class="card card-data">
+                            <h3>Temperatura</h3>
+                            <div class="metric"><span id="metric-temp">−20</span> <small>°C</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Tiempo</h3>
+                            <div class="metric"><span id="metric-tiempo">0.0</span> <small>min</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Placa</h3>
+                            <div class="metric metric-text"><span id="metric-placa">Calienta</span></div>
+                        </div>
+                    </div>
+                    <div class="card card-estado">
+                        <h3>Estado de la sustancia</h3>
+                        <span id="metric-estado" class="estado-value">Sólido</span>
+                    </div>
+                </div>
+            </details>
+
         </aside>
 
         <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
         <main class="simulation-panel">
+
+            <div class="canvas-toolbar">
+                <button id="btn-pausa" type="button" class="canvas-btn" aria-pressed="false">⏸ Pausar</button>
+                <button id="btn-reiniciar" type="button" class="canvas-btn">↺ Reiniciar</button>
+            </div>
 
             <!-- Botón de tema -->
             <button id="theme-btn" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema" aria-expanded="false">
