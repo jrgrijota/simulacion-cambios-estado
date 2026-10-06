@@ -25,7 +25,7 @@ const LEGEND = { x: 810, y: 100, w: 206, h: 314 };
 
 // Gráfica temperatura–tiempo
 const GRAPH = { x: 20, y: 442, w: 1010, h: 246 };
-const PLOT  = { x0: 84, x1: 1008, y0: 494, y1: 654 };
+const PLOT  = { x0: 84, x1: 932, y0: 494, y1: 654 };
 
 // Partículas: red de 8 × 8 en el sólido
 const P_COLS = 8, P_ROWS = 8, P_N = P_COLS * P_ROWS;
@@ -93,6 +93,9 @@ let THEME = {};
 function setup() {
     const canvas = createCanvas(CV_W, CV_H);
     canvas.parent('canvas-container');
+    canvas.elt.setAttribute('role', 'img');
+    canvas.elt.setAttribute('aria-label', 'Simulación de cambios de estado: recipiente, partículas y gráfica. Los mensajes de la simulación se leen en voz alta.');
+    fitCanvas();
     frameRate(60);
     textFont('monospace');
 
@@ -357,6 +360,7 @@ function mensajeDidactico() {
 }
 
 function drawBanner(m) {
+    anunciar(m);
     const { x, y, w, h } = BANNER;
     const borde = color(m.col);
     stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
@@ -999,8 +1003,8 @@ function drawGraph() {
     text('tiempo (min)', x1, y1 + 20);
 
     // Temperaturas de fusión y ebullición
-    lineaReferencia(yOf(sus.tf),  `punto de fusión · ${fmtT(sus.tf)} °C`,      THEME.solid);
-    lineaReferencia(yOf(sus.teb), `punto de ebullición · ${fmtT(sus.teb)} °C`, THEME.gas);
+    lineaReferencia(yOf(sus.tf),  'fusión',     fmtT(sus.tf) + ' °C',  THEME.solid);
+    lineaReferencia(yOf(sus.teb), 'ebullición', fmtT(sus.teb) + ' °C', THEME.gas);
 
     if (historial.length < 2) return;
 
@@ -1055,13 +1059,15 @@ function drawGraph() {
     circle(xOf(u.t), yOf(u.T), 9);
 }
 
-function lineaReferencia(y, etiqueta, col) {
+// Línea discontinua con su rótulo a la derecha, fuera del área de la curva.
+function lineaReferencia(y, etiqueta, valor, col) {
     stroke(col); strokeWeight(1);
     drawingContext.setLineDash([5, 5]);
-    line(PLOT.x0, y, PLOT.x1, y);
+    line(PLOT.x0, y, PLOT.x1 + 4, y);
     drawingContext.setLineDash([]);
-    noStroke(); fill(col); textSize(10); textAlign(RIGHT, BOTTOM);
-    text(etiqueta, PLOT.x1 - 4, y - 3);
+    noStroke(); fill(col); textSize(11); textAlign(LEFT, CENTER);
+    text(etiqueta, PLOT.x1 + 8, y - 7);
+    text(valor, PLOT.x1 + 8, y + 7);
 }
 
 
@@ -1128,6 +1134,37 @@ function fmtT(t) {
 
 
 // ═══════════════════════════════════════════════════════════════════
+//  TAMAÑO DEL CANVAS Y ACCESIBILIDAD
+// ═══════════════════════════════════════════════════════════════════
+
+// Ajusta el canvas al hueco disponible sin deformarlo (proporción 3:2).
+// En pantallas estrechas el panel va encima y el canvas ocupa todo el ancho.
+function fitCanvas() {
+    const cont = document.getElementById('canvas-container');
+    const cv = cont.querySelector('canvas');
+    if (!cv) return;
+    const cs = getComputedStyle(cont);
+    const w = cont.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const apilado = window.matchMedia('(max-width: 1100px)').matches;
+    const h = apilado ? Infinity : cont.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const s = Math.max(0.1, Math.min(w / CV_W, h / CV_H));
+    cv.style.width  = Math.floor(CV_W * s) + 'px';
+    cv.style.height = Math.floor(CV_H * s) + 'px';
+}
+
+function windowResized() { fitCanvas(); }
+
+// Los lectores de pantalla anuncian el mensaje de la franja cuando cambia
+// de estado o de cambio de estado (no en cada fotograma).
+let ultimoAnuncio = '';
+function anunciar(m) {
+    if (m.tag === ultimoAnuncio) return;
+    ultimoAnuncio = m.tag;
+    document.getElementById('anuncio').textContent = `${m.tag}. ${m.txt}`;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
 //  MODOS
 // ═══════════════════════════════════════════════════════════════════
 function setMode(mode) {
@@ -1140,6 +1177,8 @@ function setMode(mode) {
         btn.setAttribute('aria-selected', String(m === mode));
     });
     cursor(ARROW);
+
+    fitCanvas();
 
     // Cada modo tiene su ventana de partículas
     if (mode === 'fases') {

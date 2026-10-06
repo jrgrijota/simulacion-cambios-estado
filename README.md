@@ -22,4 +22,13 @@ de la curva se vea con claridad en el aula. El diagrama de fases es esquemático
 ## Uso
 
 Abre `index.html` en un navegador. No necesita instalación: usa [p5.js](https://p5js.org/)
-desde CDN.
+desde CDN. Incluye temas oscuro, claro y alto contraste (botón del engranaje).
+
+## Estructura
+
+| Archivo | Contenido |
+|---|---|
+| `index.html` | Panel de controles de los dos modos |
+| `css/style.css` | Estilos y temas (mismo sistema visual que el resto de simulaciones) |
+| `js/sketch.js` | Modo calentar y enfriar: modelo de energía, recipiente, partículas, gráfica y mensajes |
+| `js/fases.js` | Modo diagrama de fases: curvas, interacción y mensajes |

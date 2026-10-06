@@ -991,10 +991,38 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
 #canvas-container canvas {
     box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px #252525;
     border-radius: 10px;
-    width: 100%;
-    height: auto;
-    max-width: 100%;
-    max-height: 100%;
+    /* El tamaño lo calcula fitCanvas() manteniendo la proporción 3:2 */
+}
+
+/* Hueco para los botones de pausa y reinicio (solo en el modo curva) */
+body.mode-curva #canvas-container { padding-top: 58px; }
+
+/* Foco visible para quien navega con teclado */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+    outline: 2px solid #00c8ff;
+    outline-offset: 2px;
+}
+body.theme-light button:focus-visible,
+body.theme-light select:focus-visible,
+body.theme-light input:focus-visible,
+body.theme-light summary:focus-visible { outline-color: #0077a0; }
+body.theme-contrast button:focus-visible,
+body.theme-contrast select:focus-visible,
+body.theme-contrast input:focus-visible,
+body.theme-contrast summary:focus-visible { outline-color: #ffff00; }
+
+/* Texto solo para lectores de pantalla */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ════════════════════════════════════════════════════
@@ -1085,10 +1113,11 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
    RESPONSIVE
 ════════════════════════════════════════════════════ */
 @media (max-width: 1100px) {
-    .app-container { grid-template-columns: 1fr; }
+    .app-container { grid-template-columns: 1fr; height: auto; }
     body { overflow: auto; }
     .control-panel { height: auto; width: 100%; }
-    .simulation-panel { height: 60vh; }
+    .simulation-panel { height: auto; }
+    #canvas-container { height: auto; padding-bottom: 62px; }
 }
 
 @media (max-width: 500px) {
