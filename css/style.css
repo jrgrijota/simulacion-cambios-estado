@@ -394,8 +394,9 @@ input[type="range"]:disabled { cursor: not-allowed; }
 /* ════════════════════════════════════════════════════
    DESLIZADOR DE POTENCIA (centrado en 0)
 ════════════════════════════════════════════════════ */
-input[type="range"].power-slider {
-    --track: #1e1e1e;
+input[type="range"].power-slider,
+body.theme-light input[type="range"].power-slider,
+body.theme-contrast input[type="range"].power-slider {
     background: linear-gradient(
         to right,
         var(--track) 0%,
@@ -405,6 +406,7 @@ input[type="range"].power-slider {
         var(--track) var(--to, 75%)
     );
 }
+input[type="range"].power-slider { --track: #1e1e1e; }
 .bound-cold { color: #6ab8ff; }
 .bound-hot  { color: #ff7a5a; }
 
