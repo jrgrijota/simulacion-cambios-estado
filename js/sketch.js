@@ -22,6 +22,10 @@ const MICRO  = { x: 458, y: 72, w: 572, h: 358 };
 const LENS   = { x: 474, y: 100, w: 322, h: 314 };
 const LEGEND = { x: 810, y: 100, w: 206, h: 314 };
 
+// Gráfica temperatura–tiempo
+const GRAPH = { x: 20, y: 442, w: 1010, h: 246 };
+const PLOT  = { x0: 84, x1: 1008, y0: 494, y1: 654 };
+
 // Partículas: red de 8 × 8 en el sólido
 const P_COLS = 8, P_ROWS = 8, P_N = P_COLS * P_ROWS;
 const P_R    = 9;          // radio
@@ -105,6 +109,7 @@ function draw() {
         drawMacroView();
         updateParticles();
         drawMicroView();
+        drawGraph();
         if (frameCount % 4 === 0) updateCurvaUI();
     } else {
         noStroke(); fill(THEME.textDim); textAlign(CENTER, CENTER); textSize(16);
@@ -161,11 +166,13 @@ function actualizarModelo() {
         energia = constrain(energia + potencia * POT_MAX * dt, 0, E_TOT);
     }
     estado = estadoDesdeEnergia(energia, sus);
+    if (enMarcha) registrarMuestra();
 }
 
 function reiniciar() {
     energia = energiaSolido(sus.tIni, sus);
     tiempo = 0;
+    historial = [];
     burbujas = [];
     gotas = [];
     initParticles();
@@ -772,6 +779,142 @@ function drawLeyendaEstados() {
 
 
 // ═══════════════════════════════════════════════════════════════════
+//  GRÁFICA TEMPERATURA–TIEMPO
+// ═══════════════════════════════════════════════════════════════════
+let historial = [];             // muestras { t, T, tramo, signo }
+const MUESTRA_DT = 0.1;         // min entre muestras
+const MAX_MUESTRAS = 2400;
+
+function registrarMuestra() {
+    const ult = historial[historial.length - 1];
+    if (ult && tiempo - ult.t < MUESTRA_DT) return;
+    historial.push({ t: tiempo, T: estado.T, tramo: estado.tramo, signo: Math.sign(potencia) });
+    if (historial.length > MAX_MUESTRAS) historial = historial.filter((_, i) => i % 2 === 0);
+}
+
+// Eje de tiempo que crece a saltos para que la gráfica no "baile".
+function ejeTiempoMax() {
+    const tUlt = historial.length ? historial[historial.length - 1].t : 0;
+    const saltos = [20, 40, 60, 80, 100, 150, 200, 300, 400, 600, 800, 1200];
+    return saltos.find(s => s >= tUlt * 1.08) || Math.ceil(tUlt * 1.1 / 100) * 100;
+}
+
+// Agrupa las muestras en tramos seguidos del mismo estado (y mismo sentido en las mesetas).
+function tramosHistorial() {
+    const tramos = [];
+    historial.forEach((m, i) => {
+        const meseta = m.tramo === 'fusion' || m.tramo === 'vaporizacion';
+        const clave = meseta ? m.tramo + m.signo : m.tramo;
+        const ult = tramos[tramos.length - 1];
+        if (ult && ult.clave === clave) { ult.fin = m; ult.iFin = i; }
+        else tramos.push({ clave, tramo: m.tramo, signo: m.signo, ini: m, fin: m, iIni: i, iFin: i, meseta });
+    });
+    return tramos;
+}
+
+function colorTramo(tramo) {
+    return { solido: THEME.solid, liquido: THEME.liquid, gas: THEME.gas,
+             fusion: THEME.change, vaporizacion: THEME.change }[tramo];
+}
+
+function nombreMeseta(tr) {
+    if (tr.tramo === 'fusion') {
+        return tr.signo > 0 ? 'FUSIÓN' : tr.signo < 0 ? 'SOLIDIFICACIÓN' : 'SÓLIDO + LÍQUIDO';
+    }
+    return tr.signo > 0 ? 'VAPORIZACIÓN' : tr.signo < 0 ? 'CONDENSACIÓN' : 'LÍQUIDO + GAS';
+}
+
+function drawGraph() {
+    drawPanelFrame(GRAPH, 'LA GRÁFICA', 'temperatura de la sustancia a lo largo del tiempo');
+    const { x0, x1, y0, y1 } = PLOT;
+    const tMax = ejeTiempoMax();
+    const xOf = (t) => map(t, 0, tMax, x0, x1);
+    const yOf = (T) => map(T, sus.tMin, sus.tMax, y1, y0);
+
+    // Rejilla y ejes
+    textSize(11);
+    const pasoT = escalaPaso(sus.tMax - sus.tMin);
+    for (let T = Math.ceil(sus.tMin / pasoT) * pasoT; T <= sus.tMax; T += pasoT) {
+        stroke(THEME.grid); strokeWeight(1);
+        line(x0, yOf(T), x1, yOf(T));
+        noStroke(); fill(THEME.textDim); textAlign(RIGHT, CENTER);
+        text(fmtT(T), x0 - 8, yOf(T));
+    }
+    const pasoX = tMax / 10;
+    for (let t = 0; t <= tMax + 1e-6; t += pasoX) {
+        stroke(THEME.grid); strokeWeight(1);
+        line(xOf(t), y0, xOf(t), y1);
+        noStroke(); fill(THEME.textDim); textAlign(CENTER, TOP);
+        text(Math.round(t), xOf(t), y1 + 6);
+    }
+    stroke(THEME.axis); strokeWeight(1.5);
+    line(x0, y0, x0, y1); line(x0, y1, x1, y1);
+
+    noStroke(); fill(THEME.textDim); textAlign(LEFT, CENTER);
+    text('T (°C)', GRAPH.x + 14, y0 - 13);
+    textAlign(RIGHT, TOP);
+    text('tiempo (min)', x1, y1 + 20);
+
+    // Temperaturas de fusión y ebullición
+    lineaReferencia(yOf(sus.tf),  `punto de fusión · ${fmtT(sus.tf)} °C`,      THEME.solid);
+    lineaReferencia(yOf(sus.teb), `punto de ebullición · ${fmtT(sus.teb)} °C`, THEME.gas);
+
+    if (historial.length < 2) return;
+
+    // Curva coloreada por tramos
+    strokeWeight(3.5); noFill(); strokeJoin(ROUND);
+    const tramos = tramosHistorial();
+    let prev = null;
+    for (const tr of tramos) {
+        stroke(colorTramo(tr.tramo));
+        beginShape();
+        if (prev) vertex(xOf(prev.t), yOf(prev.T));     // continuidad entre tramos
+        for (let i = tr.iIni; i <= tr.iFin; i++) {
+            vertex(xOf(historial[i].t), yOf(historial[i].T));
+        }
+        endShape();
+        prev = tr.fin;
+    }
+
+    // Rótulos: nombre del cambio sobre cada meseta y del estado en cada rampa
+    for (const tr of tramos) {
+        const dur = tr.fin.t - tr.ini.t;
+        const xm = xOf((tr.ini.t + tr.fin.t) / 2);
+        if (tr.meseta && xOf(tr.fin.t) - xOf(tr.ini.t) > 40) {
+            const y = yOf(tr.ini.T);
+            noStroke(); textAlign(CENTER, BOTTOM);
+            fill(THEME.change); textStyle(BOLD); textSize(12);
+            text(nombreMeseta(tr), xm, y - 16);
+            textStyle(NORMAL); textSize(10); fill(THEME.textDim);
+            text('temperatura constante', xm, y - 5);
+        } else if (!tr.meseta && dur > tMax * 0.06 && abs(tr.fin.T - tr.ini.T) > 0) {
+            const nombre = { solido: 'sólido', liquido: 'líquido', gas: 'gas' }[tr.tramo];
+            const ym = yOf((tr.ini.T + tr.fin.T) / 2);
+            noStroke(); fill(colorTramo(tr.tramo)); textSize(11); textAlign(LEFT, CENTER);
+            text(nombre, xm + 8, ym + 10);
+        }
+    }
+
+    // Punto actual
+    const u = historial[historial.length - 1];
+    const c = color(colorTramo(u.tramo));
+    c.setAlpha(70); noStroke(); fill(c);
+    circle(xOf(u.t), yOf(u.T), 18);
+    fill(colorTramo(u.tramo)); stroke(THEME.canvasBg); strokeWeight(2);
+    circle(xOf(u.t), yOf(u.T), 9);
+}
+
+function lineaReferencia(y, etiqueta, col) {
+    stroke(col); strokeWeight(1);
+    drawingContext.setLineDash([5, 5]);
+    line(PLOT.x0, y, PLOT.x1, y);
+    drawingContext.setLineDash([]);
+    noStroke(); fill(col); textSize(10); textAlign(RIGHT, BOTTOM);
+    text(etiqueta, PLOT.x1 - 4, y - 3);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
 //  TERMÓMETRO
 // ═══════════════════════════════════════════════════════════════════
 function drawThermometer(T) {
@@ -918,6 +1061,8 @@ function updateTheme() {
             heat:       '#e0401e',
             cold:       '#1a72d0',
             lensBg:     '#dfe6f0',
+            grid:       '#b4c0d2',
+            axis:       '#5a6a80',
             particle:   '#3a4c66',
             particleEdge:'#1a2638',
             bond:       'rgba(0,110,160,0.75)',
@@ -947,6 +1092,8 @@ function updateTheme() {
             heat:       '#ff5533',
             cold:       '#33aaff',
             lensBg:     '#000000',
+            grid:       '#333300',
+            axis:       '#ffffff',
             particle:   '#ffffff',
             particleEdge:'#000000',
             bond:       '#00ffff',
@@ -976,6 +1123,8 @@ function updateTheme() {
             heat:       '#ff5a3a',
             cold:       '#3a9cff',
             lensBg:     '#0b1016',
+            grid:       '#1e2630',
+            axis:       '#4a5868',
             particle:   '#dde6f0',
             particleEdge:'#6a7a8c',
             bond:       'rgba(0,200,255,0.6)',
