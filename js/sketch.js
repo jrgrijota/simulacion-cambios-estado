@@ -676,6 +676,41 @@ function colocarParticulas(st) {
     });
 }
 
+// Equilibrio dinámico: una partícula pasa del estado a al b y otra del b al a
+// a la vez, así que las cantidades no cambian. Ambas se resaltan un momento.
+function intercambiarEstados(a, b) {
+    const tiene = (st) => particulas.some(p => p.st === st);
+    if (!tiene(a) || !tiene(b)) return;
+    const par = [a, b].sort().join('+');     // 'gas+liquid', 'liquid+solid', 'gas+solid'
+    const ahora = millis();
+
+    if (par === 'gas+liquid') {
+        const liq = particulas.filter(p => p.st === 'liquid').reduce((m, p) => (p.y < m.y ? p : m));
+        const gas = particulas.filter(p => p.st === 'gas').reduce((m, p) => (p.y > m.y ? p : m));
+        liq.st = 'gas'; liq.vy = -3; liq.vx = random(-2, 2);
+        gas.st = 'liquid';
+        liq.flash = gas.flash = ahora;
+        return;
+    }
+    // Con sólido: se suelta la partícula más exterior de la red y la partícula
+    // libre (líquido o gas) más cercana ocupa su hueco
+    const otro = par === 'liquid+solid' ? 'liquid' : 'gas';
+    const cS = particulas.filter(p => p.st === 'solid').length;
+    const s = sitiosPorOrden[P_N - cS];
+    const sale = particulas[s.ocupa];
+    let entra = null, dMin = Infinity;
+    for (const p of particulas) {
+        if (p.st !== otro) continue;
+        const d = dist(p.x, p.y, s.x, s.y);
+        if (d < dMin) { dMin = d; entra = p; }
+    }
+    sale.st = otro; sale.sitio = null;
+    if (otro === 'gas') { sale.vy = -3; sale.vx = random(-2, 2); }
+    else                { sale.vy = -0.8; sale.vx = random(-0.8, 0.8); }
+    entra.st = 'solid'; entra.sitio = s; s.ocupa = particulas.indexOf(entra);
+    sale.flash = entra.flash = ahora;
+}
+
 // Ajusta cuántas partículas hay en cada estado según las fracciones del modelo.
 function asignarEstados(est) {
     const nS = Math.round(est.fs * P_N);
@@ -856,6 +891,17 @@ function drawParticleWindow() {
     for (const p of particulas) circle(p.x, p.y, P_R * 2 - 3);
     noStroke(); fill(255, 255, 255, 110);
     for (const p of particulas) circle(p.x - 2.5, p.y - 2.5, 5);
+
+    // Anillo en las partículas que acaban de cambiar de estado (equilibrio dinámico)
+    noFill(); strokeWeight(2.5);
+    const ahora = millis();
+    for (const p of particulas) {
+        const edad = ahora - (p.flash || -1e9);
+        if (edad > 1100) continue;
+        const c = color(THEME[p.st]); c.setAlpha(255 * (1 - edad / 1100));
+        stroke(c);
+        circle(p.x, p.y, P_R * 2 + 6 + edad * 0.012);
+    }
 
     drawingContext.restore();
 }

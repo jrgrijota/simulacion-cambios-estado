@@ -1,10 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════
 //  MODO DIAGRAMA DE FASES (presión y temperatura)
 //
-//  Diagrama esquemático para la ESO. Las curvas se calculan con una
-//  aproximación sencilla (tipo Clausius-Clapeyron) ajustada a valores
-//  reales conocidos: punto triple, 100 °C a 1 atm, 70 °C en el Everest,
-//  −78 °C para el hielo seco… La escala de presión es logarítmica
+//  Diagrama esquemático para la ESO. Las curvas se calculan con
+//  aproximaciones sencillas (ecuación de Antoine para la vaporización del
+//  agua, tipo Clausius-Clapeyron para el resto) ajustadas a valores reales
+//  conocidos: punto triple, 100 °C a 1 atm, 72 °C en el Everest, −78 °C
+//  para el hielo seco… La escala de presión es logarítmica
 //  ("comprimida") para que quepan valores muy pequeños y muy grandes.
 // ═══════════════════════════════════════════════════════════════════
 
@@ -13,7 +14,9 @@ const DIAGRAMAS = {
         nombre: 'agua',
         tMin: -40, tMax: 160, pMin: 0.003, pMax: 5,
         tt: 0.01,                          // temperatura del punto triple (°C)
-        vap: { T: 100, P: 1, k: 4900 },    // curva de vaporización: pasa por (100 °C, 1 atm)
+        // Curva de vaporización con la ecuación de Antoine (P en mmHg):
+        // da 0.006 atm en el punto triple, 100 °C a 1 atm y 72 °C en el Everest
+        vap: { A: 8.07131, B: 1730.63, C: 233.426 },
         kSub: 6140,                        // pendiente de la curva de sublimación
         pendFus: -0.0075,                  // °C por atm de la línea de fusión
         rotuloSub: null,                   // la curva de sublimación apenas se ve: sin rótulo
@@ -53,7 +56,7 @@ const DPLOT = { x0: 100, x1: 612, y0: 108, y1: 624 };
 
 // Columna derecha: partículas y retos
 const FMICRO     = { x: 646, y: 72, w: 384, h: 380 };
-const LENS_FASES = { x: 660, y: 100, w: 356, h: 290 };
+const LENS_FASES = { x: 660, y: 100, w: 356, h: 276 };
 const RETOS      = { x: 646, y: 464, w: 384, h: 224 };
 
 let dg = DIAGRAMAS.agua;   // diagrama actual
@@ -70,13 +73,19 @@ let ultimoCambio = null;   // { de, a, causa, t }
 
 // ─── Curvas del diagrama ─────────────────────────────────────────
 const K0 = 273.15;
-function pVap(T, d = dg) { return d.vap.P * Math.exp(d.vap.k * (1 / (d.vap.T + K0) - 1 / (T + K0))); }
+function pVap(T, d = dg) {
+    if (d.vap.A !== undefined) return Math.pow(10, d.vap.A - d.vap.B / (d.vap.C + T)) / 760;
+    return d.vap.P * Math.exp(d.vap.k * (1 / (d.vap.T + K0) - 1 / (T + K0)));
+}
 function pTriple(d = dg) { return pVap(d.tt, d); }
 function pSub(T, d = dg) { return pTriple(d) * Math.exp(d.kSub * (1 / (d.tt + K0) - 1 / (T + K0))); }
 function tFus(P, d = dg) { return d.tt + d.pendFus * (P - pTriple(d)); }
 
 // Inversas: temperatura de ebullición / sublimación a una presión dada
-function tVap(P, d = dg) { return 1 / (1 / (d.vap.T + K0) - Math.log(P / d.vap.P) / d.vap.k) - K0; }
+function tVap(P, d = dg) {
+    if (d.vap.A !== undefined) return d.vap.B / (d.vap.A - Math.log10(P * 760)) - d.vap.C;
+    return 1 / (1 / (d.vap.T + K0) - Math.log(P / d.vap.P) / d.vap.k) - K0;
+}
 function tSub(P, d = dg) { return 1 / (1 / (d.tt + K0) - Math.log(P / pTriple(d)) / d.kSub) - K0; }
 
 function faseEn(T, P, d = dg) {
@@ -91,6 +100,51 @@ function dy(P) { return map(Math.log(P), Math.log(dg.pMin), Math.log(dg.pMax), D
 function dyc(P) { return constrain(dy(P), DPLOT.y0, DPLOT.y1); }
 function tDeX(x) { return map(x, DPLOT.x0, DPLOT.x1, dg.tMin, dg.tMax); }
 function pDeY(y) { return Math.exp(map(y, DPLOT.y1, DPLOT.y0, Math.log(dg.pMin), Math.log(dg.pMax))); }
+
+// ─── Coexistencia: punto triple y líneas ─────────────────────────
+// Una línea del diagrama es justo donde conviven dos estados, y el punto
+// triple, donde conviven los tres. Como son líneas y puntos (sin grosor),
+// se considera que el punto está sobre ellos si queda a pocos píxeles.
+const TRIPLE_PX = 12;
+const LINEA_PX  = 5;
+
+// Distancia (px) del punto (T, P) a cada frontera, solo en su tramo válido.
+function distanciasFronteras(T, P) {
+    const pt = pTriple();
+    const d = { fusion: Infinity, vaporizacion: Infinity, sublimacion: Infinity };
+    if (P >= pt) d.fusion = abs(dx(T) - dx(tFus(P)));
+    if (T >= dg.tt && P >= pt) d.vaporizacion = min(abs(dy(P) - dy(pVap(T))), abs(dx(T) - dx(tVap(P))));
+    if (T <= dg.tt && P <= pt) d.sublimacion = min(abs(dy(P) - dy(pSub(T))), abs(dx(T) - dx(tSub(P))));
+    return d;
+}
+
+const FASES_LINEA = {
+    fusion:       ['solid', 'liquid'],
+    vaporizacion: ['liquid', 'gas'],
+    sublimacion:  ['solid', 'gas'],
+};
+
+// Devuelve qué estados hay en el punto: { tipo, fases }.
+// tipo: 'triple', 'fusion', 'vaporizacion', 'sublimacion' o null (un solo estado).
+function situacion(T = fT, P = fP) {
+    if (dist(dx(T), dy(P), dx(dg.tt), dy(pTriple())) < TRIPLE_PX) {
+        return { tipo: 'triple', fases: ['solid', 'liquid', 'gas'] };
+    }
+    const d = distanciasFronteras(T, P);
+    const linea = Object.keys(d).reduce((a, b) => (d[b] < d[a] ? b : a));
+    if (d[linea] < LINEA_PX) return { tipo: linea, fases: FASES_LINEA[linea] };
+    return { tipo: null, fases: [faseEn(T, P)] };
+}
+
+// Fracciones objetivo: a partes iguales entre los estados que conviven.
+function fraccionesObjetivo(sit) {
+    const n = sit.fases.length;
+    return {
+        fs: sit.fases.includes('solid')  ? 1 / n : 0,
+        fl: sit.fases.includes('liquid') ? 1 / n : 0,
+        fg: sit.fases.includes('gas')    ? 1 / n : 0,
+    };
+}
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -180,10 +234,17 @@ function updateFasesUI() {
     document.getElementById('metric-fases-T').textContent = fmtT(fT);
     document.getElementById('metric-fases-P').textContent = fmtP(fP);
 
-    const f = faseEn(fT, fP);
+    const sit = situacion();
     const el = document.getElementById('metric-fases-estado');
-    el.textContent = { solid: 'Sólido', liquid: 'Líquido', gas: 'Gas' }[f];
-    el.className = 'estado-value st-' + f;
+    if (sit.tipo) {
+        const txt = sit.fases.map(f => NOMBRE_ESTADO[f]).join(' + ');
+        el.textContent = txt[0].toUpperCase() + txt.slice(1) + (sit.tipo === 'triple' ? ' (punto triple)' : '');
+        el.className = 'estado-value st-change';
+    } else {
+        const f = sit.fases[0];
+        el.textContent = { solid: 'Sólido', liquid: 'Líquido', gas: 'Gas' }[f];
+        el.className = 'estado-value st-' + f;
+    }
 
     document.getElementById('fases-a-esta-presion').innerHTML = textoAEstaPresion();
 }
@@ -192,7 +253,7 @@ function updateFasesUI() {
 function textoAEstaPresion() {
     const pt = pTriple();
     const P = fmtP(fP) + ' atm';
-    if (Math.abs(Math.log(fP / pt)) < 0.03) {
+    if (situacion().tipo === 'triple') {
         return `A ${P} estás en el <strong>punto triple</strong>: a ${fmtT(dg.tt)} °C pueden existir a la vez sólido, líquido y gas.`;
     }
     if (fP < pt) {
@@ -226,15 +287,18 @@ const NOMBRE_CAMBIO = {
 const NOMBRE_ESTADO = { solid: 'sólido', liquid: 'líquido', gas: 'gas' };
 
 function entrarFases() {
-    const f = faseEn(fT, fP);
-    fasesFr = { fs: +(f === 'solid'), fl: +(f === 'liquid'), fg: +(f === 'gas') };
-    faseAnterior = f;
+    const sit = situacion();
+    fasesFr = fraccionesObjetivo(sit);
+    faseAnterior = faseEn(fT, fP);
     ultimoCambio = null;
-    colocarParticulas(f);
+    colocarParticulas(sit.fases[0]);
 }
 
-// Detecta si el punto ha cruzado una frontera y si ha sido por la temperatura o por la presión.
+// Detecta si el punto ha cruzado una frontera y si ha sido por la temperatura o
+// por la presión. Mientras está sobre una línea no cuenta: el cambio se anuncia
+// al salir al otro lado (y no se anuncia si vuelve al mismo estado).
 function detectarCambio() {
+    if (situacion().tipo) return;
     const f = faseEn(fT, fP);
     if (faseAnterior && f !== faseAnterior) {
         const dT = abs(fT - prevT) / (dg.tMax - dg.tMin);
@@ -248,14 +312,28 @@ function detectarCambio() {
     prevT = fT; prevP = fP;
 }
 
-// Las fracciones avanzan a ritmo constante hacia el estado del punto.
-function avanzarFracciones() {
-    const f = faseEn(fT, fP);
-    const obj = { fs: +(f === 'solid'), fl: +(f === 'liquid'), fg: +(f === 'gas') };
+// Las fracciones avanzan a ritmo constante hacia el estado (o estados) del punto.
+// Devuelve true cuando ya han llegado.
+function avanzarFracciones(sit) {
+    const obj = fraccionesObjetivo(sit);
     const dif = max(abs(obj.fs - fasesFr.fs), abs(obj.fl - fasesFr.fl), abs(obj.fg - fasesFr.fg));
-    if (dif === 0) return;
+    if (dif === 0) return true;
     const k = min(1, 0.018 / dif);
     for (const c of ['fs', 'fl', 'fg']) fasesFr[c] = lerp(fasesFr[c], obj[c], k);
+    return false;
+}
+
+// Equilibrio dinámico: cada cierto tiempo dos partículas intercambian su estado
+// entre dos de los estados que conviven. La sublimación, más rara, sale menos.
+let ultimoIntercambio = 0;
+function equilibrioDinamico(sit) {
+    if (!sit.tipo || millis() - ultimoIntercambio < 650) return;
+    ultimoIntercambio = millis();
+    let par = sit.fases;
+    if (sit.tipo === 'triple') {
+        par = random() < 0.2 ? ['solid', 'gas'] : random([['solid', 'liquid'], ['liquid', 'gas']]);
+    }
+    intercambiarEstados(par[0], par[1]);
 }
 
 function agitacionFases() {
@@ -268,9 +346,22 @@ function agitacionFases() {
 
 function textoPlano(html) { return html.replace(/<[^>]+>/g, ''); }
 
+const TXT_COEXISTENCIA = {
+    triple: (T, P) => `A ${T} y ${P} conviven sólido, líquido y gas. Las partículas pasan continuamente de un estado a otro, pero las cantidades no cambian: es un equilibrio dinámico.`,
+    fusion: (T, P) => `Estás sobre la línea de fusión: a ${T} y ${P} el sólido y el líquido conviven. Unas partículas se sueltan de la red y otras se ordenan, al mismo ritmo.`,
+    vaporizacion: (T, P) => `Estás sobre la línea de vaporización: a ${T} y ${P} el líquido y el gas conviven. Unas partículas escapan del líquido y otras vuelven a él, al mismo ritmo.`,
+    sublimacion: (T, P) => `Estás sobre la línea de sublimación: a ${T} y ${P} el sólido y el gas conviven. Unas partículas escapan del sólido y otras se depositan en él, al mismo ritmo.`,
+};
+
 function mensajeFases() {
     const f = faseEn(fT, fP);
     const P = fmtP(fP) + ' atm';
+    const sit = situacion();
+    if (sit.tipo) {
+        const tag = sit.tipo === 'triple' ? 'PUNTO TRIPLE'
+                  : sit.fases.map(s => NOMBRE_ESTADO[s].toUpperCase()).join(' + ');
+        return { tag, col: THEME.change, txt: TXT_COEXISTENCIA[sit.tipo](fmtT(fT) + ' °C', P) };
+    }
     if (ultimoCambio && millis() - ultimoCambio.t < 8000) {
         const { de, a, causa } = ultimoCambio;
         const clave = de + '>' + a;
@@ -325,15 +416,23 @@ function drawFasesParticulas() {
     drawPanelFrame(FMICRO, 'LAS PARTÍCULAS', 'qué ocurre por dentro');
     drawParticleWindow();
 
-    // Estado actual bajo la ventana
-    const f = faseEn(fT, fP);
-    const L = LEYENDA.find(l => l.st === f);
-    noStroke(); textAlign(LEFT, TOP);
-    fill(THEME[f]); textStyle(BOLD); textSize(13);
-    text(L.titulo, LENS.x, LENS.y + LENS.h + 12);
-    const w = textWidth(L.titulo);
+    // Estado actual bajo la ventana (varios nombres si conviven)
+    const sit = situacion();
+    const y = LENS.y + LENS.h + 12;
+    noStroke(); textAlign(LEFT, TOP); textStyle(BOLD); textSize(13);
+    let x = LENS.x;
+    sit.fases.forEach((f, i) => {
+        if (i > 0) { fill(THEME.textDim); text('+', x, y); x += textWidth('+ '); }
+        const titulo = LEYENDA.find(l => l.st === f).titulo;
+        fill(THEME[f]); text(titulo, x, y);
+        x += textWidth(titulo + ' ');
+    });
     textStyle(NORMAL); textSize(12); fill(THEME.text);
-    text(L.txt, LENS.x + w + 10, LENS.y + LENS.h + 12, LENS.w - w - 10, 40);
+    const desc = sit.tipo
+        ? 'Conviven a la vez. Los anillos marcan las partículas que cambian de estado.'
+        : LEYENDA.find(l => l.st === sit.fases[0]).txt;
+    if (sit.tipo) text(desc, LENS.x, y + 20, LENS.w, 40);
+    else          text(desc, x + 4, y, LENS.x + LENS.w - x - 4, 40);
 }
 
 function drawRetos() {
@@ -369,8 +468,23 @@ function fasesDragged() {
     if (arrastrando) moverPuntoAlRaton();
 }
 
+// Al arrastrar, el punto se "pega" al punto triple y a las líneas cuando pasa
+// cerca, para que sea fácil situarse justo donde conviven los estados.
 function moverPuntoAlRaton() {
-    fijarPunto(tDeX(mouseX), pDeY(mouseY), false);
+    let T = tDeX(mouseX), P = pDeY(mouseY);
+    const sit = situacion(T, P);
+    if (sit.tipo === 'triple') {
+        T = dg.tt; P = pTriple();
+    } else if (sit.tipo === 'fusion') {
+        T = tFus(P);
+    } else if (sit.tipo === 'vaporizacion' || sit.tipo === 'sublimacion') {
+        const pCurva = sit.tipo === 'vaporizacion' ? pVap(T) : pSub(T);
+        const tCurva = sit.tipo === 'vaporizacion' ? tVap(P) : tSub(P);
+        // Se ajusta la coordenada que menos hay que mover
+        if (abs(dy(P) - dy(pCurva)) <= abs(dx(T) - dx(tCurva))) P = pCurva;
+        else T = tCurva;
+    }
+    fijarPunto(T, P, false);
     marcarEjemplo(-1);
 }
 
@@ -426,7 +540,8 @@ function drawFasesMode() {
     drawRastroYPunto();
 
     detectarCambio();
-    avanzarFracciones();
+    const sit = situacion();
+    if (avanzarFracciones(sit)) equilibrioDinamico(sit);
     updateParticles(fasesFr, agitacionFases(), true);
     drawFasesParticulas();
     drawRetos();
@@ -543,7 +658,8 @@ function drawRastroYPunto() {
     drawingContext.setLineDash([]);
 
     // Punto
-    const col = THEME[faseEn(fT, fP)];
+    const sitP = situacion();
+    const col = sitP.tipo ? THEME.change : THEME[sitP.fases[0]];
     noStroke(); fill(conAlfa(col, 70));
     circle(x, y, 30);
     stroke(THEME.canvasBg); strokeWeight(2.5); fill(THEME.accent);
