@@ -19,7 +19,8 @@ const LIQ_MAX_H = 112;                              // altura del líquido con t
 
 // Vista microscópica: panel, ventana de partículas y leyenda de estados
 const MICRO  = { x: 458, y: 72, w: 572, h: 358 };
-const LENS   = { x: 474, y: 100, w: 322, h: 314 };
+const LENS_CURVA = { x: 474, y: 100, w: 322, h: 314 };
+let LENS = LENS_CURVA;     // ventana de partículas activa (cada modo tiene la suya)
 const LEGEND = { x: 810, y: 100, w: 206, h: 314 };
 
 // Gráfica temperatura–tiempo
@@ -112,10 +113,10 @@ function draw() {
     if (currentMode === 'curva') {
         actualizarModelo();
         drawMacroView();
-        updateParticles();
+        updateParticles(estado, agitacion(estado.T, sus.tMin, sus.tf, sus.teb, sus.tMax), enMarcha);
         drawMicroView();
         drawGraph();
-        drawBanner();
+        drawBanner(mensajeDidactico());
         if (frameCount % 4 === 0) updateCurvaUI();
     } else {
         drawFasesMode();
@@ -355,8 +356,7 @@ function mensajeDidactico() {
     }
 }
 
-function drawBanner() {
-    const m = mensajeDidactico();
+function drawBanner(m) {
     const { x, y, w, h } = BANNER;
     const borde = color(m.col);
     stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
@@ -650,10 +650,32 @@ function initParticles() {
     }));
 }
 
+// Coloca todas las partículas directamente en un estado (al cambiar de modo),
+// sin mostrar una transición que en realidad no ha ocurrido.
+function colocarParticulas(st) {
+    initParticles();
+    if (st === 'solid') return;
+    sitios.forEach(s => { s.ocupa = -1; });
+    const porFila = Math.floor((LENS.w - 6) / (2 * P_R));
+    particulas.forEach((p, i) => {
+        p.st = st; p.sitio = null;
+        if (st === 'liquid') {
+            p.x = LENS.x + 3 + P_R + (i % porFila) * 2 * P_R + random(-1, 1);
+            p.y = LENS.y + LENS.h - 3 - P_R - Math.floor(i / porFila) * 2 * P_R;
+            p.vx = random(-1, 1); p.vy = 0;
+        } else {
+            p.x = random(LENS.x + P_R, LENS.x + LENS.w - P_R);
+            p.y = random(LENS.y + P_R, LENS.y + LENS.h - P_R);
+            const a = random(TWO_PI);
+            p.vx = 3.5 * cos(a); p.vy = 3.5 * sin(a);
+        }
+    });
+}
+
 // Ajusta cuántas partículas hay en cada estado según las fracciones del modelo.
-function asignarEstados() {
-    const nS = Math.round(estado.fs * P_N);
-    const nG = Math.round(estado.fg * P_N);
+function asignarEstados(est) {
+    const nS = Math.round(est.fs * P_N);
+    const nG = Math.round(est.fg * P_N);
     let cS = particulas.filter(p => p.st === 'solid').length;
     let cG = particulas.filter(p => p.st === 'gas').length;
 
@@ -674,6 +696,7 @@ function asignarEstados() {
             const d = dist(p.x, p.y, s.x, s.y) + (p.st === 'gas' ? 1000 : 0);
             if (d < dMin) { dMin = d; mejor = i; }
         });
+        if (mejor < 0) break;
         const p = particulas[mejor];
         if (p.st === 'gas') cG--;
         p.st = 'solid'; p.sitio = s; s.ocupa = mejor;
@@ -696,15 +719,23 @@ function asignarEstados() {
     }
 }
 
-function updateParticles() {
-    asignarEstados();
-    if (!enMarcha) return;
+// Agitación de las partículas según la temperatura, dentro del rango de cada
+// estado (así se ve igual en todas las sustancias): amplitud de vibración del
+// sólido y rapidez del líquido y del gas.
+function agitacion(T, tMin, tFus, tEb, tMax) {
+    return {
+        ampSol: constrain(map(T, tMin, tFus, 0.8, 3.2), 0.8, 3.2),
+        vLiq:   constrain(map(T, tFus, tEb, 0.9, 1.9), 0.9, 1.9),
+        vGas:   constrain(map(T, tEb, tMax, 3.2, 4.6), 3.2, 4.6),
+    };
+}
 
-    // Agitación según la temperatura (igual para todas las sustancias)
-    const T = estado.T;
-    const ampSol = constrain(map(T, sus.tMin, sus.tf, 0.8, 3.2), 0.8, 3.2);
-    const vLiq   = constrain(map(T, sus.tf, sus.teb, 0.9, 1.9), 0.9, 1.9);
-    const vGas   = constrain(map(T, sus.teb, sus.tMax, 3.2, 4.6), 3.2, 4.6);
+// est: fracciones { fs, fl, fg } · ag: agitación · activo: si se mueven
+function updateParticles(est, ag, activo) {
+    asignarEstados(est);
+    if (!activo) return;
+
+    const { ampSol, vLiq, vGas } = ag;
     const t = millis() * 0.02;
 
     for (const p of particulas) {
@@ -793,7 +824,11 @@ function paredes() {
 
 function drawMicroView() {
     drawPanelFrame(MICRO, 'LO QUE NO VEMOS', 'las partículas de la sustancia');
+    drawParticleWindow();
+    drawLeyendaEstados();
+}
 
+function drawParticleWindow() {
     stroke(THEME.border); strokeWeight(1); fill(THEME.lensBg);
     rect(LENS.x, LENS.y, LENS.w, LENS.h, 8);
 
@@ -819,8 +854,6 @@ function drawMicroView() {
     for (const p of particulas) circle(p.x - 2.5, p.y - 2.5, 5);
 
     drawingContext.restore();
-
-    drawLeyendaEstados();
 }
 
 // Atracciones: fuertes y ordenadas en el sólido, débiles en el líquido, nulas en el gas.
@@ -1107,6 +1140,15 @@ function setMode(mode) {
         btn.setAttribute('aria-selected', String(m === mode));
     });
     cursor(ARROW);
+
+    // Cada modo tiene su ventana de partículas
+    if (mode === 'fases') {
+        LENS = LENS_FASES;
+        entrarFases();
+    } else {
+        LENS = LENS_CURVA;
+        colocarParticulas(estado.fs === 1 ? 'solid' : estado.fl === 1 ? 'liquid' : estado.fg === 1 ? 'gas' : 'solid');
+    }
     // En el diagrama se arrastra el punto: el canvas no debe desplazar la página
     document.querySelector('#canvas-container canvas').style.touchAction = mode === 'fases' ? 'none' : '';
 }

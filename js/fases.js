@@ -51,10 +51,21 @@ const DIAGRAMAS = {
 const DIAG = { x: 20, y: 72, w: 612, h: 616 };
 const DPLOT = { x0: 100, x1: 612, y0: 108, y1: 624 };
 
+// Columna derecha: partículas y retos
+const FMICRO     = { x: 646, y: 72, w: 384, h: 380 };
+const LENS_FASES = { x: 660, y: 100, w: 356, h: 290 };
+const RETOS      = { x: 646, y: 464, w: 384, h: 224 };
+
 let dg = DIAGRAMAS.agua;   // diagrama actual
 let fT = 20, fP = 1;       // punto actual
 let arrastrando = false;
 let rastro = [];           // camino recorrido por el punto
+
+// Las partículas cambian de estado poco a poco al cruzar una frontera
+let fasesFr = { fs: 0, fl: 1, fg: 0 };
+let faseAnterior = null;   // para detectar cuándo se cruza una frontera
+let prevT = 20, prevP = 1;
+let ultimoCambio = null;   // { de, a, causa, t }
 
 
 // ─── Curvas del diagrama ─────────────────────────────────────────
@@ -139,7 +150,12 @@ function marcarEjemplo(i) {
 function fijarPunto(T, P, salto) {
     fT = constrain(T, dg.tMin, dg.tMax);
     fP = constrain(P, dg.pMin, dg.pMax);
-    if (salto) rastro = [];
+    if (salto) {
+        // Un ejemplo o un cambio de sustancia no es "cruzar una línea"
+        rastro = [];
+        faseAnterior = faseEn(fT, fP);
+        ultimoCambio = null;
+    }
 
     const slT = document.getElementById('slider-fases-T');
     const slP = document.getElementById('slider-fases-P');
@@ -193,6 +209,146 @@ function fmtP(P) {
     if (P < 0.1)  return P.toFixed(3);
     if (P < 10)   return P.toFixed(2);
     return P.toFixed(0);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  PARTÍCULAS Y CAMBIOS DE ESTADO EN EL DIAGRAMA
+// ═══════════════════════════════════════════════════════════════════
+const NOMBRE_CAMBIO = {
+    'solid>liquid': 'FUSIÓN',
+    'liquid>solid': 'SOLIDIFICACIÓN',
+    'liquid>gas':   'VAPORIZACIÓN',
+    'gas>liquid':   'CONDENSACIÓN',
+    'solid>gas':    'SUBLIMACIÓN',
+    'gas>solid':    'SUBLIMACIÓN INVERSA',
+};
+const NOMBRE_ESTADO = { solid: 'sólido', liquid: 'líquido', gas: 'gas' };
+
+function entrarFases() {
+    const f = faseEn(fT, fP);
+    fasesFr = { fs: +(f === 'solid'), fl: +(f === 'liquid'), fg: +(f === 'gas') };
+    faseAnterior = f;
+    ultimoCambio = null;
+    colocarParticulas(f);
+}
+
+// Detecta si el punto ha cruzado una frontera y si ha sido por la temperatura o por la presión.
+function detectarCambio() {
+    const f = faseEn(fT, fP);
+    if (faseAnterior && f !== faseAnterior) {
+        const dT = abs(fT - prevT) / (dg.tMax - dg.tMin);
+        const dP = abs(Math.log(fP / prevP)) / Math.log(dg.pMax / dg.pMin);
+        ultimoCambio = {
+            de: faseAnterior, a: f, t: millis(),
+            causa: dT >= dP ? (fT > prevT ? 'calentar' : 'enfriar') : (fP > prevP ? 'comprimir' : 'descomprimir'),
+        };
+    }
+    faseAnterior = f;
+    prevT = fT; prevP = fP;
+}
+
+// Las fracciones avanzan a ritmo constante hacia el estado del punto.
+function avanzarFracciones() {
+    const f = faseEn(fT, fP);
+    const obj = { fs: +(f === 'solid'), fl: +(f === 'liquid'), fg: +(f === 'gas') };
+    const dif = max(abs(obj.fs - fasesFr.fs), abs(obj.fl - fasesFr.fl), abs(obj.fg - fasesFr.fg));
+    if (dif === 0) return;
+    const k = min(1, 0.018 / dif);
+    for (const c of ['fs', 'fl', 'fg']) fasesFr[c] = lerp(fasesFr[c], obj[c], k);
+}
+
+function agitacionFases() {
+    const pt = pTriple();
+    const tF = fP > pt ? tFus(fP) : tSub(fP);
+    let tE = fP > pt ? min(tVap(fP), dg.tMax - 1) : tSub(fP);
+    if (tE <= tF + 1) tE = tF + 1;            // sin líquido posible (sublimación)
+    return agitacion(fT, dg.tMin, tF, tE, dg.tMax);
+}
+
+function textoPlano(html) { return html.replace(/<[^>]+>/g, ''); }
+
+function mensajeFases() {
+    const f = faseEn(fT, fP);
+    const P = fmtP(fP) + ' atm';
+    if (ultimoCambio && millis() - ultimoCambio.t < 8000) {
+        const { de, a, causa } = ultimoCambio;
+        const clave = de + '>' + a;
+        let txt;
+        switch (clave) {
+            case 'liquid>gas':
+                txt = causa === 'descomprimir'
+                    ? `¡Al bajar la presión, el líquido hierve sin calentarlo! A ${P} hierve a solo ${fmtT(tVap(fP))} °C.`
+                    : `Al calentar, el líquido llega a su temperatura de ebullición, que a ${P} es ${fmtT(tVap(fP))} °C. Sus partículas se separan del todo.`;
+                break;
+            case 'gas>liquid':
+                txt = causa === 'comprimir'
+                    ? `Al comprimir el gas, sus partículas se juntan tanto que se convierte en líquido.`
+                    : `Al enfriar, las partículas del gas pierden energía, se juntan y forman un líquido.`;
+                break;
+            case 'solid>liquid':
+                txt = `Las partículas abandonan su red ordenada: el sólido se funde a ${fmtT(tFus(fP))} °C.`;
+                break;
+            case 'liquid>solid':
+                txt = `Las partículas pierden energía y se ordenan en una red: el líquido se solidifica a ${fmtT(tFus(fP))} °C.`;
+                break;
+            case 'solid>gas':
+                txt = `A ${P} no puede existir el líquido: el sólido pasa directamente a gas (como el hielo seco).`;
+                break;
+            case 'gas>solid':
+                txt = `El gas pasa directamente a sólido sin ser líquido (así se forma la escarcha).`;
+                break;
+        }
+        return { tag: NOMBRE_CAMBIO[clave], col: THEME.change, txt };
+    }
+    const sust = dg === DIAGRAMAS.agua ? 'El agua' : 'El CO₂';
+    return {
+        tag: NOMBRE_ESTADO[f].toUpperCase(), col: THEME[f],
+        txt: `${sust} está en estado ${NOMBRE_ESTADO[f]}. ${textoPlano(textoAEstaPresion())} Mueve el punto hasta cruzar una línea.`,
+    };
+}
+
+const RETOS_TXT = {
+    agua: [
+        '¿A qué temperatura hierve el agua en la cima del Everest? Pulsa el ejemplo y sube la temperatura.',
+        '¿Por qué en una olla a presión los alimentos se cocinan antes?',
+        '¿Puedes hacer que el agua hierva sin calentarla?',
+    ],
+    co2: [
+        '¿Por qué el hielo seco no deja charco cuando «se derrite»?',
+        '¿Qué hace falta para tener CO₂ líquido, como en un extintor?',
+        '¿Qué estados conviven en el punto triple?',
+    ],
+};
+
+function drawFasesParticulas() {
+    drawPanelFrame(FMICRO, 'LAS PARTÍCULAS', 'qué ocurre por dentro');
+    drawParticleWindow();
+
+    // Estado actual bajo la ventana
+    const f = faseEn(fT, fP);
+    const L = LEYENDA.find(l => l.st === f);
+    noStroke(); textAlign(LEFT, TOP);
+    fill(THEME[f]); textStyle(BOLD); textSize(13);
+    text(L.titulo, LENS.x, LENS.y + LENS.h + 12);
+    const w = textWidth(L.titulo);
+    textStyle(NORMAL); textSize(12); fill(THEME.text);
+    text(L.txt, LENS.x + w + 10, LENS.y + LENS.h + 12, LENS.w - w - 10, 40);
+}
+
+function drawRetos() {
+    drawPanelFrame(RETOS, 'PIENSA Y COMPRUEBA', 'usa el diagrama');
+    const lista = RETOS_TXT[dg === DIAGRAMAS.agua ? 'agua' : 'co2'];
+    let y = RETOS.y + 40;
+    lista.forEach((txt, i) => {
+        noStroke(); fill(THEME.accent); textStyle(BOLD); textSize(13); textAlign(CENTER, CENTER);
+        circle(RETOS.x + 26, y + 9, 22);
+        fill(THEME.canvasBg);
+        text(i + 1, RETOS.x + 26, y + 10);
+        textStyle(NORMAL); fill(THEME.text); textSize(12); textAlign(LEFT, TOP); textLeading(17);
+        text(txt, RETOS.x + 46, y, RETOS.w - 60, 54);
+        y += 58;
+    });
 }
 
 
@@ -268,6 +424,13 @@ function drawFasesMode() {
     drawRotulosFases();
     drawPuntosNotables();
     drawRastroYPunto();
+
+    detectarCambio();
+    avanzarFracciones();
+    updateParticles(fasesFr, agitacionFases(), true);
+    drawFasesParticulas();
+    drawRetos();
+    drawBanner(mensajeFases());
 }
 
 function drawEjesFases() {
