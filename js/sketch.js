@@ -12,10 +12,20 @@ const CV_W = 1050, CV_H = 700;
 
 // Vista macroscópica: panel, recipiente cerrado, placa y termómetro
 const MACRO = { x: 20, y: 72, w: 425, h: 358 };
-const JAR   = { x: 62, y: 140, w: 250, h: 205 };   // interior del recipiente
-const PLATE = { x: 44, y: 352, w: 286, h: 22 };
-const TH    = { x: 395, top: 118, bottom: 384 };
+const JAR   = { x: 54, y: 140, w: 236, h: 205 };   // interior del recipiente
+const PLATE = { x: 38, y: 352, w: 268, h: 22 };
+const TH    = { x: 352, top: 118, bottom: 384 };
 const LIQ_MAX_H = 112;                              // altura del líquido con todo fundido
+
+// Vista microscópica: panel, ventana de partículas y leyenda de estados
+const MICRO  = { x: 458, y: 72, w: 572, h: 358 };
+const LENS   = { x: 474, y: 100, w: 322, h: 314 };
+const LEGEND = { x: 810, y: 100, w: 206, h: 314 };
+
+// Partículas: red de 8 × 8 en el sólido
+const P_COLS = 8, P_ROWS = 8, P_N = P_COLS * P_ROWS;
+const P_R    = 9;          // radio
+const P_SEP  = 2 * P_R + 3; // separación en la red cristalina
 
 // --- SUSTANCIAS ---
 // tf / teb: temperaturas reales de fusión y ebullición (°C, a 1 atm).
@@ -93,6 +103,8 @@ function draw() {
     if (currentMode === 'curva') {
         actualizarModelo();
         drawMacroView();
+        updateParticles();
+        drawMicroView();
         if (frameCount % 4 === 0) updateCurvaUI();
     } else {
         noStroke(); fill(THEME.textDim); textAlign(CENTER, CENTER); textSize(16);
@@ -156,6 +168,7 @@ function reiniciar() {
     tiempo = 0;
     burbujas = [];
     gotas = [];
+    initParticles();
     estado = estadoDesdeEnergia(energia, sus);
 }
 
@@ -216,6 +229,11 @@ function setupCurvaControls() {
     });
 
     document.getElementById('btn-reiniciar').addEventListener('click', reiniciar);
+
+    const chkUniones = document.getElementById('check-uniones');
+    const chkEstelas = document.getElementById('check-estelas');
+    chkUniones.addEventListener('change', () => { verUniones = chkUniones.checked; });
+    chkEstelas.addEventListener('change', () => { verEstelas = chkEstelas.checked; });
 }
 
 function setPotencia(v) {
@@ -328,7 +346,7 @@ function drawLiquid(ySup, hLiq) {
 // El hielo flota en el agua; los demás sólidos se quedan en el fondo.
 function drawSolid(ySup, hLiq) {
     if (estado.fs <= 0) return;
-    const s = 46 * sqrt(estado.fs);
+    const s = 42 * sqrt(estado.fs);
     const fondo = JAR.y + JAR.h;
     const cx = JAR.x + JAR.w / 2;
     let base = fondo;
@@ -344,10 +362,10 @@ function drawSolid(ySup, hLiq) {
     const radio = 3 + (1 - estado.fs) * s * 0.35;
 
     const fila1 = [-2, -1, 0, 1, 2], fila2 = [-1, 0, 1];
-    const sep = 48;
+    const sep = 45;
     stroke(borde); strokeWeight(1.5); fill(c);
     for (const i of fila1) rect(cx + i * sep - s / 2, base - s, s, s, radio);
-    for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, 46) - 2, s, s, radio);
+    for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, 42) - 2, s, s, radio);
 
     // Reflejo
     noStroke(); fill(255, 255, 255, 80);
@@ -481,6 +499,275 @@ function drawComposicion() {
     textStyle(NORMAL);
     noFill(); stroke(THEME.border); strokeWeight(1);
     rect(x, y, w, h, 4);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  VISTA MICROSCÓPICA: "LO QUE NO VEMOS" (modelo de partículas)
+//
+//  Todas las partículas son iguales y tienen el mismo color en cualquier
+//  estado: lo que cambia es su orden, su separación y su movimiento.
+//  Cuántas hay en cada estado lo decide el modelo de energía.
+// ═══════════════════════════════════════════════════════════════════
+let particulas = [];
+let sitios = [];          // huecos de la red cristalina
+let sitiosPorOrden = [];  // ordenados: los primeros se funden antes (los de fuera)
+let verUniones = true;
+let verEstelas = true;
+
+function initParticles() {
+    const x0 = LENS.x + LENS.w / 2 - (P_COLS - 1) * P_SEP / 2;
+    const yb = LENS.y + LENS.h - P_R - 4;
+    sitios = [];
+    for (let i = 0; i < P_N; i++) {
+        const fila = Math.floor(i / P_COLS), col = i % P_COLS;   // fila 0 = abajo
+        // Se funden antes las partículas de arriba y de los bordes
+        const orden = fila + abs(col - (P_COLS - 1) / 2) * 0.9 + ((i * 7919) % 13) / 40;
+        sitios.push({ x: x0 + col * P_SEP, y: yb - fila * P_SEP, fila, col, orden, ocupa: i });
+    }
+    sitiosPorOrden = [...sitios].sort((a, b) => b.orden - a.orden);
+
+    particulas = sitios.map((s, i) => ({
+        x: s.x, y: s.y, vx: 0, vy: 0, st: 'solid', sitio: s,
+        f1: random(TWO_PI), f2: random(TWO_PI),
+    }));
+}
+
+// Ajusta cuántas partículas hay en cada estado según las fracciones del modelo.
+function asignarEstados() {
+    const nS = Math.round(estado.fs * P_N);
+    const nG = Math.round(estado.fg * P_N);
+    let cS = particulas.filter(p => p.st === 'solid').length;
+    let cG = particulas.filter(p => p.st === 'gas').length;
+
+    // Fusión: se suelta la partícula sólida más exterior
+    while (cS > nS) {
+        const s = sitiosPorOrden[P_N - cS];
+        const p = particulas[s.ocupa];
+        p.st = 'liquid'; p.sitio = null; s.ocupa = -1;
+        p.vy = -0.8; p.vx = random(-0.8, 0.8);
+        cS--;
+    }
+    // Solidificación: la partícula libre más cercana ocupa el siguiente hueco de la red
+    while (cS < nS) {
+        const s = sitiosPorOrden[P_N - cS - 1];
+        let mejor = -1, dMin = Infinity;
+        particulas.forEach((p, i) => {
+            if (p.st === 'solid') return;
+            const d = dist(p.x, p.y, s.x, s.y) + (p.st === 'gas' ? 1000 : 0);
+            if (d < dMin) { dMin = d; mejor = i; }
+        });
+        const p = particulas[mejor];
+        if (p.st === 'gas') cG--;
+        p.st = 'solid'; p.sitio = s; s.ocupa = mejor;
+        cS++;
+    }
+    // Vaporización: escapa la partícula de líquido más alta (la de la superficie)
+    while (cG < nG) {
+        const liq = particulas.filter(p => p.st === 'liquid');
+        if (liq.length === 0) break;
+        const p = liq.reduce((a, b) => (b.y < a.y ? b : a));
+        p.st = 'gas'; p.vy = -3; p.vx = random(-2, 2);
+        cG++;
+    }
+    // Condensación: la partícula de gas más baja vuelve al líquido
+    while (cG > nG) {
+        const gas = particulas.filter(p => p.st === 'gas');
+        const p = gas.reduce((a, b) => (b.y > a.y ? b : a));
+        p.st = 'liquid';
+        cG--;
+    }
+}
+
+function updateParticles() {
+    asignarEstados();
+    if (!enMarcha) return;
+
+    // Agitación según la temperatura (igual para todas las sustancias)
+    const T = estado.T;
+    const ampSol = constrain(map(T, sus.tMin, sus.tf, 0.8, 3.2), 0.8, 3.2);
+    const vLiq   = constrain(map(T, sus.tf, sus.teb, 0.9, 1.9), 0.9, 1.9);
+    const vGas   = constrain(map(T, sus.teb, sus.tMax, 3.2, 4.6), 3.2, 4.6);
+    const t = millis() * 0.02;
+
+    for (const p of particulas) {
+        if (p.st === 'solid') {
+            // Muelle hacia su hueco de la red + vibración
+            const tx = p.sitio.x + ampSol * sin(t * 1.7 + p.f1);
+            const ty = p.sitio.y + ampSol * cos(t * 1.3 + p.f2);
+            p.vx = p.vx * 0.7 + (tx - p.x) * 0.12;
+            p.vy = p.vy * 0.7 + (ty - p.y) * 0.12;
+            const v = Math.hypot(p.vx, p.vy);
+            if (v > 3) { p.vx *= 3 / v; p.vy *= 3 / v; }
+        } else if (p.st === 'liquid') {
+            p.vy += 0.16;                               // se quedan abajo
+            p.vx += random(-0.25, 0.25); p.vy += random(-0.25, 0.25);
+            termostato(p, vLiq);
+        } else {
+            p.vx += random(-0.05, 0.05); p.vy += random(-0.05, 0.05);
+            termostato(p, vGas);
+        }
+        p.x += p.vx; p.y += p.vy;
+    }
+
+    for (let k = 0; k < 2; k++) colisiones();
+    paredes();
+}
+
+// Lleva poco a poco la rapidez de la partícula hacia la que marca la temperatura.
+function termostato(p, objetivo) {
+    const v = Math.hypot(p.vx, p.vy);
+    if (v < 1e-4) { p.vx = random(-1, 1) * objetivo; p.vy = random(-1, 1) * objetivo; return; }
+    const f = lerp(1, objetivo / v, 0.08);
+    p.vx *= f; p.vy *= f;
+}
+
+function colisiones() {
+    const dMin = 2 * P_R;
+    for (let i = 0; i < P_N; i++) {
+        const a = particulas[i];
+        for (let j = i + 1; j < P_N; j++) {
+            const b = particulas[j];
+            if (a.st === 'solid' && b.st === 'solid') continue;
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const d = Math.hypot(dx, dy);
+            if (d === 0 || d > dMin * 1.35) continue;
+            const nx = dx / d, ny = dy / d;
+
+            if (d < dMin) {
+                const solape = dMin - d;
+                // Las partículas del sólido no se desplazan
+                const wa = a.st === 'solid' ? 0 : (b.st === 'solid' ? 1 : 0.5);
+                const wb = 1 - wa;
+                a.x -= nx * solape * wa; a.y -= ny * solape * wa;
+                b.x += nx * solape * wb; b.y += ny * solape * wb;
+
+                const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+                if (rel < 0) {
+                    if (wa > 0 && wb > 0) {           // choque elástico entre iguales
+                        a.vx += rel * nx; a.vy += rel * ny;
+                        b.vx -= rel * nx; b.vy -= rel * ny;
+                    } else {                          // rebote contra el sólido
+                        const p = wa > 0 ? a : b, s = wa > 0 ? -1 : 1;
+                        const vn = (p.vx * nx + p.vy * ny) * s;
+                        if (vn < 0) { p.vx -= 2 * vn * nx * s; p.vy -= 2 * vn * ny * s; }
+                    }
+                }
+            } else if (a.st === 'liquid' && b.st === 'liquid') {
+                // Atracción débil entre partículas del líquido: se mantienen juntas
+                a.vx += nx * 0.05; a.vy += ny * 0.05;
+                b.vx -= nx * 0.05; b.vy -= ny * 0.05;
+            }
+        }
+    }
+}
+
+function paredes() {
+    const x0 = LENS.x + P_R + 2, x1 = LENS.x + LENS.w - P_R - 2;
+    const y0 = LENS.y + P_R + 2, y1 = LENS.y + LENS.h - P_R - 2;
+    for (const p of particulas) {
+        if (p.st === 'solid') continue;
+        if (p.x < x0) { p.x = x0; p.vx = abs(p.vx); }
+        if (p.x > x1) { p.x = x1; p.vx = -abs(p.vx); }
+        if (p.y < y0) { p.y = y0; p.vy = abs(p.vy); }
+        if (p.y > y1) { p.y = y1; p.vy = -abs(p.vy) * (p.st === 'liquid' ? 0.5 : 1); }
+    }
+}
+
+function drawMicroView() {
+    drawPanelFrame(MICRO, 'LO QUE NO VEMOS', 'las partículas de la sustancia');
+
+    stroke(THEME.border); strokeWeight(1); fill(THEME.lensBg);
+    rect(LENS.x, LENS.y, LENS.w, LENS.h, 8);
+
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(LENS.x, LENS.y, LENS.w, LENS.h);
+    drawingContext.clip();
+
+    if (verUniones) drawUniones();
+
+    if (verEstelas) {
+        const c = color(THEME.particle); c.setAlpha(60);
+        stroke(c); strokeWeight(P_R * 0.8);
+        for (const p of particulas) {
+            if (p.st === 'solid') continue;
+            line(p.x, p.y, p.x - p.vx * 4, p.y - p.vy * 4);
+        }
+    }
+
+    stroke(THEME.particleEdge); strokeWeight(1.5); fill(THEME.particle);
+    for (const p of particulas) circle(p.x, p.y, P_R * 2 - 3);
+    noStroke(); fill(255, 255, 255, 110);
+    for (const p of particulas) circle(p.x - 2.5, p.y - 2.5, 5);
+
+    drawingContext.restore();
+
+    drawLeyendaEstados();
+}
+
+// Atracciones: fuertes y ordenadas en el sólido, débiles en el líquido, nulas en el gas.
+function drawUniones() {
+    // Una partícula que se está solidificando solo se une a la red al llegar a su hueco
+    const enSitio = (s) => s && s.ocupa >= 0 &&
+        dist(particulas[s.ocupa].x, particulas[s.ocupa].y, s.x, s.y) < 6;
+    stroke(THEME.bond); strokeWeight(3);
+    for (const s of sitios) {
+        if (!enSitio(s)) continue;
+        const a = particulas[s.ocupa];
+        for (const vecino of [s.col < P_COLS - 1 ? sitios[s.fila * P_COLS + s.col + 1] : null,
+                              s.fila < P_ROWS - 1 ? sitios[(s.fila + 1) * P_COLS + s.col] : null]) {
+            if (enSitio(vecino)) {
+                const b = particulas[vecino.ocupa];
+                line(a.x, a.y, b.x, b.y);
+            }
+        }
+    }
+    const c = color(THEME.bond); c.setAlpha(110);
+    stroke(c); strokeWeight(1.3);
+    const dMax = 2 * P_R * 1.3;
+    for (let i = 0; i < P_N; i++) {
+        const a = particulas[i];
+        if (a.st !== 'liquid') continue;
+        for (let j = i + 1; j < P_N; j++) {
+            const b = particulas[j];
+            if (b.st !== 'liquid') continue;
+            if (abs(a.x - b.x) < dMax && abs(a.y - b.y) < dMax && dist(a.x, a.y, b.x, b.y) < dMax) {
+                line(a.x, a.y, b.x, b.y);
+            }
+        }
+    }
+}
+
+const LEYENDA = [
+    { st: 'solid',  f: 'fs', titulo: 'SÓLIDO',  txt: 'Partículas muy juntas y ordenadas. Solo vibran en su sitio.' },
+    { st: 'liquid', f: 'fl', titulo: 'LÍQUIDO', txt: 'Partículas juntas pero desordenadas. Se deslizan unas sobre otras.' },
+    { st: 'gas',    f: 'fg', titulo: 'GAS',     txt: 'Partículas muy separadas. Se mueven libres y rápidas en todas direcciones.' },
+];
+
+function drawLeyendaEstados() {
+    const gap = 9;
+    const h = (LEGEND.h - 2 * gap) / 3;
+    LEYENDA.forEach((L, i) => {
+        const y = LEGEND.y + i * (h + gap);
+        const frac = estado[L.f];
+        const activo = frac > 0;
+        const col = color(THEME[L.st]);
+
+        const fondo = color(THEME[L.st]); fondo.setAlpha(activo ? 34 : 0);
+        stroke(activo ? col : THEME.border); strokeWeight(activo ? 2 : 1); fill(fondo);
+        rect(LEGEND.x, y, LEGEND.w, h, 8);
+
+        noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT, TOP);
+        fill(activo ? col : THEME.textDim);
+        text(L.titulo, LEGEND.x + 12, y + 10);
+        textAlign(RIGHT, TOP);
+        if (activo) text(Math.round(frac * 100) + ' %', LEGEND.x + LEGEND.w - 12, y + 10);
+        textStyle(NORMAL);
+
+        fill(activo ? THEME.text : THEME.textDim); textSize(12); textAlign(LEFT, TOP); textLeading(16);
+        text(L.txt, LEGEND.x + 12, y + 32, LEGEND.w - 24, h - 36);
+    });
 }
 
 
@@ -630,6 +917,10 @@ function updateTheme() {
             plateText:  '#f0f4f8',
             heat:       '#e0401e',
             cold:       '#1a72d0',
+            lensBg:     '#dfe6f0',
+            particle:   '#3a4c66',
+            particleEdge:'#1a2638',
+            bond:       'rgba(0,110,160,0.75)',
         };
     } else if (isContrast) {
         THEME = {
@@ -655,6 +946,10 @@ function updateTheme() {
             plateText:  '#ffffff',
             heat:       '#ff5533',
             cold:       '#33aaff',
+            lensBg:     '#000000',
+            particle:   '#ffffff',
+            particleEdge:'#000000',
+            bond:       '#00ffff',
         };
     } else {
         THEME = {
@@ -680,6 +975,10 @@ function updateTheme() {
             plateText:  '#c8c8c8',
             heat:       '#ff5a3a',
             cold:       '#3a9cff',
+            lensBg:     '#0b1016',
+            particle:   '#dde6f0',
+            particleEdge:'#6a7a8c',
+            bond:       'rgba(0,200,255,0.6)',
         };
     }
 }

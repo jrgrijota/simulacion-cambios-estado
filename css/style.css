@@ -345,6 +345,7 @@ input[type="range"]:disabled { cursor: not-allowed; }
     color: #e8e8e8;
     font-family: monospace;
     line-height: 1.1;
+    white-space: nowrap;
 }
 
 .metric small {
@@ -409,6 +410,26 @@ body.theme-contrast input[type="range"].power-slider {
 input[type="range"].power-slider { --track: #1e1e1e; }
 .bound-cold { color: #6ab8ff; }
 .bound-hot  { color: #ff7a5a; }
+
+/* ════════════════════════════════════════════════════
+   CASILLAS DE VERIFICACIÓN
+════════════════════════════════════════════════════ */
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    font-size: 0.83rem;
+}
+.check-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #00c8ff;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+body.theme-light .check-row input[type="checkbox"]    { accent-color: #0088bb; }
+body.theme-contrast .check-row input[type="checkbox"] { accent-color: #00ffff; }
 
 /* ════════════════════════════════════════════════════
    CONTROL SEGMENTADO (velocidad)
