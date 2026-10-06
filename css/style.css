@@ -478,6 +478,63 @@ body.theme-contrast .key-ideas li    { border-left-color: #00ffff; }
 body.theme-contrast .key-ideas strong { color: #ffff00; }
 
 /* ════════════════════════════════════════════════════
+   MODO DIAGRAMA DE FASES
+════════════════════════════════════════════════════ */
+.metrics-grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+.preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    background: #1c1c1c;
+    border: 1px solid #2e2e2e;
+    color: #d0d0d0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.80rem;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+    transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+.preset-btn small {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #707070;
+    font-family: monospace;
+}
+.preset-btn:hover { border-color: #00c8ff55; color: #ffffff; }
+.preset-btn.active { background: #0e2230; border-color: #00c8ff; color: #00c8ff; }
+
+.at-pressure p {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #c0c0c0;
+}
+.at-pressure strong { color: #ffffff; font-family: monospace; }
+
+body.theme-light .preset-btn { background: #f5f6fa; border-color: #c8d0dc; color: #1a2a3a; }
+body.theme-light .preset-btn small { color: #6a7a8a; }
+body.theme-light .preset-btn:hover { border-color: #0088bb88; }
+body.theme-light .preset-btn.active { background: #c8dcee; border-color: #0088bb; color: #005a88; }
+body.theme-light .at-pressure p { color: #2a3a4a; }
+body.theme-light .at-pressure strong { color: #0d1520; }
+
+body.theme-contrast .preset-btn { background: #000; border: 1.5px solid #ffff00; color: #ffffff; }
+body.theme-contrast .preset-btn small { color: #cccccc; }
+body.theme-contrast .preset-btn:hover { border-color: #00ffff; }
+body.theme-contrast .preset-btn.active { background: #001a1a; border-color: #00ffff; color: #00ffff; }
+body.theme-contrast .at-pressure p { color: #ffffff; }
+body.theme-contrast .at-pressure strong { color: #00ffff; }
+
+/* ════════════════════════════════════════════════════
    CASILLAS DE VERIFICACIÓN
 ════════════════════════════════════════════════════ */
 .check-row {

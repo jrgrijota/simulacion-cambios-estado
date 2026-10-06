@@ -99,6 +99,7 @@ function setup() {
     document.getElementById('mode-fases').addEventListener('click', () => setMode('fases'));
 
     setupCurvaControls();
+    setupFasesControls();
     setupThemeSelector();
 
     cambiarSustancia('agua');
@@ -117,10 +118,14 @@ function draw() {
         drawBanner();
         if (frameCount % 4 === 0) updateCurvaUI();
     } else {
-        noStroke(); fill(THEME.textDim); textAlign(CENTER, CENTER); textSize(16);
-        text('Presión y temperatura', CV_W / 2, CV_H / 2);
+        drawFasesMode();
     }
 }
+
+// Ratón y pantalla táctil (p5 traduce los toques a eventos de ratón)
+function mousePressed()  { if (currentMode === 'fases') fasesPressed(); }
+function mouseDragged()  { if (currentMode === 'fases') fasesDragged(); }
+function mouseReleased() { arrastrando = false; }
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1101,6 +1106,9 @@ function setMode(mode) {
         btn.classList.toggle('active', m === mode);
         btn.setAttribute('aria-selected', String(m === mode));
     });
+    cursor(ARROW);
+    // En el diagrama se arrastra el punto: el canvas no debe desplazar la página
+    document.querySelector('#canvas-container canvas').style.touchAction = mode === 'fases' ? 'none' : '';
 }
 
 

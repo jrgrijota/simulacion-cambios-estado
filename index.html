@@ -161,6 +161,88 @@
                 </div>
             </details>
 
+            <!-- ═══ MODO DIAGRAMA DE FASES ═══ -->
+            <section class="control-group only-fases">
+                <h2>Sustancia</h2>
+                <div class="input-wrapper">
+                    <label for="select-fases-sustancia">Diagrama de fases de…</label>
+                    <select id="select-fases-sustancia" class="custom-select">
+                        <option value="agua" selected>Agua</option>
+                        <option value="co2">Dióxido de carbono (CO₂)</option>
+                    </select>
+                    <p id="fases-hint" class="field-hint"></p>
+                </div>
+            </section>
+
+            <hr class="divider only-fases">
+
+            <section class="control-group only-fases">
+                <h2>Condiciones</h2>
+                <div class="input-wrapper">
+                    <div class="label-container">
+                        <label for="slider-fases-T">Temperatura</label>
+                        <span id="val-fases-T" class="value-badge">20 °C</span>
+                    </div>
+                    <input type="range" id="slider-fases-T" min="-40" max="160" value="20" step="1">
+                    <div class="slider-bounds"><span id="min-fases-T">−40 °C</span><span id="max-fases-T">160 °C</span></div>
+                </div>
+                <div class="input-wrapper">
+                    <div class="label-container">
+                        <label for="slider-fases-P">Presión</label>
+                        <span id="val-fases-P" class="value-badge">1.00 atm</span>
+                    </div>
+                    <input type="range" id="slider-fases-P" min="0" max="1000" value="500" step="1">
+                    <div class="slider-bounds"><span id="min-fases-P">0.003 atm</span><span id="max-fases-P">5 atm</span></div>
+                </div>
+                <p class="field-hint">También puedes arrastrar el punto sobre el diagrama.</p>
+            </section>
+
+            <hr class="divider only-fases">
+
+            <section class="control-group only-fases">
+                <h2>Ejemplos</h2>
+                <div id="fases-ejemplos" class="preset-grid"></div>
+            </section>
+
+            <hr class="divider only-fases">
+
+            <details class="custom-details only-fases" open>
+                <summary>Lectura del diagrama</summary>
+                <div class="details-content">
+                    <div class="metrics-grid metrics-grid-2">
+                        <div class="card card-data">
+                            <h3>Temperatura</h3>
+                            <div class="metric"><span id="metric-fases-T">20</span> <small>°C</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Presión</h3>
+                            <div class="metric"><span id="metric-fases-P">1.00</span> <small>atm</small></div>
+                        </div>
+                    </div>
+                    <div class="card card-estado">
+                        <h3>Estado</h3>
+                        <span id="metric-fases-estado" class="estado-value st-liquid">Líquido</span>
+                    </div>
+                    <div class="card at-pressure">
+                        <h3>A esta presión, la sustancia…</h3>
+                        <p id="fases-a-esta-presion"></p>
+                    </div>
+                </div>
+            </details>
+
+            <details class="custom-details only-fases">
+                <summary>Cómo leer un diagrama de fases</summary>
+                <div class="details-content">
+                    <ul class="key-ideas">
+                        <li>Cada <strong>región</strong> indica el estado de la sustancia para esa temperatura y esa presión.</li>
+                        <li>Las <strong>líneas</strong> son los cambios de estado: al cruzarlas, la sustancia cambia de estado.</li>
+                        <li>La temperatura de ebullición <strong>depende de la presión</strong>: con menos presión, el agua hierve antes.</li>
+                        <li>En el <strong>punto triple</strong> pueden existir a la vez sólido, líquido y gas.</li>
+                    </ul>
+                    <p class="field-hint">El diagrama es esquemático: la escala de presión está comprimida para que quepan a la vez valores muy pequeños y muy grandes.</p>
+                </div>
+            </details>
+
             <!-- CONCEPTOS CLAVE -->
             <details class="custom-details only-curva">
                 <summary>Conceptos clave</summary>
@@ -188,7 +270,7 @@
         <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
         <main class="simulation-panel">
 
-            <div class="canvas-toolbar">
+            <div class="canvas-toolbar only-curva">
                 <button id="btn-pausa" type="button" class="canvas-btn" aria-pressed="false">⏸ Pausar</button>
                 <button id="btn-reiniciar" type="button" class="canvas-btn">↺ Reiniciar</button>
             </div>
@@ -228,6 +310,7 @@
         </main>
 
     </div>
+    <script src="js/fases.js"></script>
     <script src="js/sketch.js"></script>
 </body>
 </html>
