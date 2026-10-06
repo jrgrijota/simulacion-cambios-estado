@@ -40,21 +40,25 @@ const SUSTANCIAS = {
         nombre: 'Agua', tf: 0, teb: 100, tMin: -40, tMax: 140, tIni: -20,
         nombres: { solid: 'hielo', liquid: 'agua líquida', gas: 'vapor de agua' },
         col: { solid: '#d6ecff', liquid: '#3a8ee6', gas: '#cfe0f0' }, flota: true,
+        curiosidad: 'El hielo flota porque es menos denso que el agua líquida: algo muy raro entre los sólidos.',
     },
     alcohol: {
         nombre: 'Alcohol', tf: -114, teb: 78, tMin: -160, tMax: 120, tIni: -140,
         nombres: { solid: 'alcohol sólido', liquid: 'alcohol líquido', gas: 'vapor de alcohol' },
         col: { solid: '#f2eed8', liquid: '#d9c46a', gas: '#efe6c0' }, flota: false,
+        curiosidad: 'Hierve antes que el agua: por eso el alcohol de las heridas se evapora tan rápido.',
     },
     nitrogeno: {
         nombre: 'Nitrógeno', tf: -210, teb: -196, tMin: -226, tMax: -180, tIni: -220,
         nombres: { solid: 'nitrógeno sólido', liquid: 'nitrógeno líquido', gas: 'nitrógeno gas' },
         col: { solid: '#eef6ff', liquid: '#9fd4ee', gas: '#d8eef8' }, flota: false,
+        curiosidad: 'A temperatura ambiente es un gas: forma el 78 % del aire que respiramos.',
     },
     hierro: {
         nombre: 'Hierro', tf: 1538, teb: 2862, tMin: 1000, tMax: 3300, tIni: 1200,
         nombres: { solid: 'hierro sólido', liquid: 'hierro fundido', gas: 'hierro gas' },
         col: { solid: '#8a6a5a', liquid: '#ff8a2a', gas: '#ffb070' }, flota: false,
+        curiosidad: 'Para fundirlo hacen falta hornos a más de 1500 °C, como los altos hornos de las acerías.',
     },
 };
 
@@ -110,6 +114,7 @@ function draw() {
         updateParticles();
         drawMicroView();
         drawGraph();
+        drawBanner();
         if (frameCount % 4 === 0) updateCurvaUI();
     } else {
         noStroke(); fill(THEME.textDim); textAlign(CENTER, CENTER); textSize(16);
@@ -182,7 +187,8 @@ function reiniciar() {
 function cambiarSustancia(clave) {
     sus = SUSTANCIAS[clave];
     document.getElementById('sustancia-hint').innerHTML =
-        `Funde a <strong>${fmtT(sus.tf)} °C</strong> · Hierve a <strong>${fmtT(sus.teb)} °C</strong>`;
+        `Funde a <strong>${fmtT(sus.tf)} °C</strong> · Hierve a <strong>${fmtT(sus.teb)} °C</strong><br>` +
+        `<em>¿Sabías que…?</em> ${sus.curiosidad}`;
     reiniciar();
     updateCurvaUI();
 }
@@ -267,6 +273,105 @@ function updateCurvaUI() {
     const el = document.getElementById('metric-estado');
     el.textContent = d.txt;
     el.className = 'estado-value ' + d.cls;
+
+    const { sensible, latente } = repartoEnergia(energia);
+    const total = sensible + latente;
+    const pS = total > 0 ? Math.round(100 * sensible / total) : 0;
+    const pL = total > 0 ? 100 - pS : 0;
+    document.getElementById('bar-sensible').style.width = pS + '%';
+    document.getElementById('bar-latente').style.width = pL + '%';
+    document.getElementById('pct-sensible').textContent = pS + ' %';
+    document.getElementById('pct-latente').textContent = pL + ' %';
+}
+
+// Reparte la energía almacenada entre la que subió la temperatura (tramos con
+// pendiente) y la que separó las partículas (mesetas de cambio de estado).
+function repartoEnergia(E) {
+    let sensible = 0, latente = 0, acum = 0;
+    SEG_E.forEach((e, i) => {
+        const parte = constrain(E - acum, 0, e);
+        if (i === 1 || i === 3) latente += parte; else sensible += parte;
+        acum += e;
+    });
+    return { sensible, latente };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  FRANJA DE MENSAJES: explica qué está pasando y por qué
+// ═══════════════════════════════════════════════════════════════════
+const BANNER = { x: 20, y: 12, w: 1010, h: 50 };
+
+function mensajeDidactico() {
+    const s = Math.sign(potencia);
+    const tf = fmtT(sus.tf) + ' °C', teb = fmtT(sus.teb) + ' °C';
+    const N = sus.nombres;
+
+    if (s < 0 && energia <= 0) return { tag: 'LÍMITE', col: THEME.textDim,
+        txt: `Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.` };
+    if (s > 0 && energia >= E_TOT) return { tag: 'LÍMITE', col: THEME.textDim,
+        txt: `Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.` };
+
+    switch (estado.tramo) {
+        case 'solido':
+            if (s > 0) return { tag: 'SÓLIDO', col: THEME.solid,
+                txt: `El ${N.solid} se calienta: sus partículas vibran cada vez más deprisa y la temperatura sube.` };
+            if (s < 0) return { tag: 'SÓLIDO', col: THEME.solid,
+                txt: `El ${N.solid} se enfría: sus partículas vibran cada vez más despacio y la temperatura baja.` };
+            return { tag: 'SÓLIDO', col: THEME.solid,
+                txt: `Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.` };
+        case 'fusion':
+            if (s > 0) return { tag: 'FUSIÓN', col: THEME.change,
+                txt: `La energía se usa para romper las uniones entre partículas, no para subir la temperatura. Por eso se queda en ${tf} hasta que todo se funde.` };
+            if (s < 0) return { tag: 'SOLIDIFICACIÓN', col: THEME.change,
+                txt: `Las partículas del líquido pierden energía y vuelven a ordenarse. La temperatura se mantiene en ${tf} hasta que todo es sólido.` };
+            return { tag: 'EQUILIBRIO', col: THEME.change,
+                txt: `Sólido y líquido conviven a ${tf}. Mientras no entre ni salga energía, la proporción no cambia.` };
+        case 'liquido':
+            if (s > 0) return { tag: 'LÍQUIDO', col: THEME.liquid,
+                txt: `El ${N.liquid} se calienta: sus partículas se mueven y se deslizan cada vez más rápido.` };
+            if (s < 0) return { tag: 'LÍQUIDO', col: THEME.liquid,
+                txt: `El ${N.liquid} se enfría: sus partículas se mueven cada vez más despacio.` };
+            return { tag: 'LÍQUIDO', col: THEME.liquid,
+                txt: `Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.` };
+        case 'vaporizacion':
+            if (s > 0) return { tag: 'EBULLICIÓN', col: THEME.change,
+                txt: `Las partículas se separan del todo y escapan como gas (por eso salen burbujas). La energía se gasta en separarlas: la temperatura no pasa de ${teb}.` };
+            if (s < 0) return { tag: 'CONDENSACIÓN', col: THEME.change,
+                txt: `Las partículas del gas pierden energía, se juntan y vuelven a ser líquido (gotas en la tapa). La temperatura se mantiene en ${teb}.` };
+            return { tag: 'EQUILIBRIO', col: THEME.change,
+                txt: `Líquido y gas conviven a ${teb}. Mientras no entre ni salga energía, la proporción no cambia.` };
+        case 'gas':
+            if (s > 0) return { tag: 'GAS', col: THEME.gas,
+                txt: `El ${N.gas} se calienta: sus partículas se mueven cada vez más rápido y ocupan todo el recipiente.` };
+            if (s < 0) return { tag: 'GAS', col: THEME.gas,
+                txt: `El ${N.gas} se enfría: sus partículas se mueven cada vez más despacio.` };
+            return { tag: 'GAS', col: THEME.gas,
+                txt: `Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.` };
+    }
+}
+
+function drawBanner() {
+    const m = mensajeDidactico();
+    const { x, y, w, h } = BANNER;
+    const borde = color(m.col);
+    stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
+    rect(x, y, w, h, 10);
+    noStroke(); fill(borde);
+    rect(x, y, 5, h, 10, 0, 0, 10);
+
+    // Etiqueta del estado o del cambio
+    textStyle(BOLD); textSize(13);
+    const tw = textWidth(m.tag) + 22;
+    const bg = color(m.col); bg.setAlpha(40);
+    fill(bg); stroke(m.col); strokeWeight(1.5);
+    rect(x + 16, y + h / 2 - 13, tw, 26, 13);
+    noStroke(); fill(m.col); textAlign(CENTER, CENTER);
+    text(m.tag, x + 16 + tw / 2, y + h / 2 + 1);
+    textStyle(NORMAL);
+
+    fill(THEME.text); textSize(13); textAlign(LEFT, CENTER); textLeading(17);
+    const tx = x + 16 + tw + 16;
+    text(m.txt, tx, y + 4, x + w - tx - 14, h - 8);
 }
 
 
@@ -876,17 +981,25 @@ function drawGraph() {
         prev = tr.fin;
     }
 
-    // Rótulos: nombre del cambio sobre cada meseta y del estado en cada rampa
+    // Rótulos: nombre del cambio sobre cada meseta y del estado en cada rampa.
+    // Si un rótulo de meseta choca con el anterior, sube un piso.
+    let finRotulo = -Infinity, pisoAnterior = 0;
     for (const tr of tramos) {
         const dur = tr.fin.t - tr.ini.t;
         const xm = xOf((tr.ini.t + tr.fin.t) / 2);
         if (tr.meseta && xOf(tr.fin.t) - xOf(tr.ini.t) > 40) {
-            const y = yOf(tr.ini.T);
+            const nombre = nombreMeseta(tr);
+            textStyle(BOLD); textSize(12);
+            const ancho = max(textWidth(nombre), 120);
+            const piso = (xm - ancho / 2 < finRotulo + 8) ? 1 - pisoAnterior : 0;
+            const y = yOf(tr.ini.T) - piso * 28;
             noStroke(); textAlign(CENTER, BOTTOM);
-            fill(THEME.change); textStyle(BOLD); textSize(12);
-            text(nombreMeseta(tr), xm, y - 16);
+            fill(THEME.change);
+            text(nombre, xm, y - 16);
             textStyle(NORMAL); textSize(10); fill(THEME.textDim);
             text('temperatura constante', xm, y - 5);
+            finRotulo = xm + ancho / 2;
+            pisoAnterior = piso;
         } else if (!tr.meseta && dur > tMax * 0.06 && abs(tr.fin.T - tr.ini.T) > 0) {
             const nombre = { solido: 'sólido', liquido: 'líquido', gas: 'gas' }[tr.tramo];
             const ym = yOf((tr.ini.T + tr.fin.T) / 2);

@@ -412,6 +412,72 @@ input[type="range"].power-slider { --track: #1e1e1e; }
 .bound-hot  { color: #ff7a5a; }
 
 /* ════════════════════════════════════════════════════
+   ENERGÍA: SUBIR LA TEMPERATURA / SEPARAR PARTÍCULAS
+════════════════════════════════════════════════════ */
+.energy-card h3 { margin-bottom: 8px; }
+.energy-bar {
+    display: flex;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: #151515;
+    border: 1px solid #2a2a2a;
+}
+.energy-seg { height: 100%; transition: width 0.25s ease; }
+.seg-sensible, .dot-sensible { background: #ff6a4a; }
+.seg-latente,  .dot-latente  { background: #ffd24a; }
+.energy-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 8px;
+    font-size: 0.76rem;
+    color: #a0a0a0;
+}
+.energy-legend b { font-family: monospace; color: #e0e0e0; margin-left: 4px; }
+.dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+/* Ideas clave */
+.key-ideas {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 0.80rem;
+    color: #a8a8a8;
+    line-height: 1.5;
+}
+.key-ideas li {
+    padding-left: 12px;
+    border-left: 2px solid #00c8ff55;
+}
+.key-ideas strong { color: #e0e0e0; }
+.formula .formula-name { min-width: 138px; }
+
+body.theme-light .energy-bar { background: #ccd4e0; border-color: #b0bcd0; }
+body.theme-light .seg-sensible, body.theme-light .dot-sensible { background: #d8482a; }
+body.theme-light .seg-latente,  body.theme-light .dot-latente  { background: #d8a200; }
+body.theme-light .energy-legend   { color: #4a5a6a; }
+body.theme-light .energy-legend b { color: #0d1520; }
+body.theme-light .key-ideas       { color: #3a4a5a; }
+body.theme-light .key-ideas li    { border-left-color: #0088bb66; }
+body.theme-light .key-ideas strong { color: #0d1520; }
+
+body.theme-contrast .energy-bar { background: #000; border: 1.5px solid #ffff00; }
+body.theme-contrast .seg-sensible, body.theme-contrast .dot-sensible { background: #ff5533; }
+body.theme-contrast .seg-latente,  body.theme-contrast .dot-latente  { background: #ffff00; }
+body.theme-contrast .energy-legend   { color: #ffffff; }
+body.theme-contrast .energy-legend b { color: #00ffff; }
+body.theme-contrast .key-ideas       { color: #ffffff; }
+body.theme-contrast .key-ideas li    { border-left-color: #00ffff; }
+body.theme-contrast .key-ideas strong { color: #ffff00; }
+
+/* ════════════════════════════════════════════════════
    CASILLAS DE VERIFICACIÓN
 ════════════════════════════════════════════════════ */
 .check-row {
