@@ -66,12 +66,25 @@ const SUSTANCIAS = {
 // --- MODELO DE ENERGÍA (didáctico) ---
 // Energía (unidades escaladas) que absorbe cada tramo de la curva:
 //   calentar sólido · fusión · calentar líquido · vaporización · calentar gas
-// Es igual para todas las sustancias: así la forma de la curva es comparable
-// y lo único que cambia son las temperaturas de fusión y ebullición.
-// La vaporización absorbe más energía que la fusión (como en la realidad).
-const SEG_E  = [10, 14, 16, 26, 10];
-const E_TOT  = SEG_E.reduce((a, b) => a + b, 0);
+// Las mesetas son iguales para todas las sustancias, y la vaporización absorbe
+// más energía que la fusión (como en la realidad). Los tres tramos de
+// calentamiento se reparten E_CALOR según ΔT × calor específico relativo:
+// el líquido necesita el doble de energía por grado que el sólido y el gas
+// (en el agua, 4,18 frente a unos 2 J/g·°C), así que su pendiente es menor.
+const E_FUSION = 14, E_VAPOR = 26, E_CALOR = 36;
+const C_REL = { solido: 1, liquido: 2, gas: 1 };
 const POT_MAX = 1.0;   // unidades de energía por "minuto" con la placa al 100 %
+
+// Energías de los cinco tramos de una sustancia (se calculan una vez).
+function calcularTramos(s) {
+    const pS = C_REL.solido  * (s.tf  - s.tMin);
+    const pL = C_REL.liquido * (s.teb - s.tf);
+    const pG = C_REL.gas     * (s.tMax - s.teb);
+    const k  = E_CALOR / (pS + pL + pG);
+    s.segE = [pS * k, E_FUSION, pL * k, E_VAPOR, pG * k];
+    s.eTot = s.segE.reduce((a, b) => a + b, 0);
+}
+Object.values(SUSTANCIAS).forEach(calcularTramos);
 
 // --- MODOS ---
 let currentMode = 'curva';   // 'curva' (calentar y enfriar) | 'fases' (diagrama de fases)
@@ -139,7 +152,7 @@ function mouseReleased() { arrastrando = false; }
 // A partir de la energía almacenada devuelve la temperatura, la fracción de
 // sustancia en cada estado y el tramo de la curva en el que estamos.
 function estadoDesdeEnergia(E, s) {
-    const [eS, eF, eL, eV, eG] = SEG_E;
+    const [eS, eF, eL, eV, eG] = s.segE;
     let T, fs = 0, fl = 0, fg = 0, tramo;
 
     if (E < eS) {
@@ -170,14 +183,14 @@ function estadoDesdeEnergia(E, s) {
 
 // Energía que corresponde a un sólido a temperatura T (para el estado inicial).
 function energiaSolido(T, s) {
-    return SEG_E[0] * constrain((T - s.tMin) / (s.tf - s.tMin), 0, 1);
+    return s.segE[0] * constrain((T - s.tMin) / (s.tf - s.tMin), 0, 1);
 }
 
 function actualizarModelo() {
     if (enMarcha) {
         const dt = min(deltaTime / 1000, 0.1) * velocidad;
         tiempo += dt;
-        energia = constrain(energia + potencia * POT_MAX * dt, 0, E_TOT);
+        energia = constrain(energia + potencia * POT_MAX * dt, 0, sus.eTot);
     }
     estado = estadoDesdeEnergia(energia, sus);
     if (enMarcha) registrarMuestra();
@@ -297,7 +310,7 @@ function updateCurvaUI() {
 // pendiente) y la que separó las partículas (mesetas de cambio de estado).
 function repartoEnergia(E) {
     let sensible = 0, latente = 0, acum = 0;
-    SEG_E.forEach((e, i) => {
+    sus.segE.forEach((e, i) => {
         const parte = constrain(E - acum, 0, e);
         if (i === 1 || i === 3) latente += parte; else sensible += parte;
         acum += e;
@@ -317,7 +330,7 @@ function mensajeDidactico() {
 
     if (s < 0 && energia <= 0) return { tag: 'LÍMITE', col: THEME.textDim,
         txt: `Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.` };
-    if (s > 0 && energia >= E_TOT) return { tag: 'LÍMITE', col: THEME.textDim,
+    if (s > 0 && energia >= sus.eTot) return { tag: 'LÍMITE', col: THEME.textDim,
         txt: `Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.` };
 
     switch (estado.tramo) {
