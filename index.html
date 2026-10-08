@@ -150,14 +150,14 @@
                         <span id="metric-estado" class="estado-value">Sólido</span>
                     </div>
                     <div class="card energy-card">
-                        <h3>¿En qué se ha gastado la energía aportada?</h3>
+                        <h3 id="energy-titulo">¿En qué se ha gastado la energía aportada?</h3>
                         <div class="energy-bar" aria-hidden="true">
-                            <div id="bar-sensible" class="energy-seg seg-sensible" style="width:100%"></div>
+                            <div id="bar-sensible" class="energy-seg seg-sensible" style="width:0%"></div>
                             <div id="bar-latente" class="energy-seg seg-latente" style="width:0%"></div>
                         </div>
                         <div class="energy-legend">
-                            <span><i class="dot dot-sensible"></i>Subir la temperatura <b id="pct-sensible">100 %</b></span>
-                            <span><i class="dot dot-latente"></i>Separar las partículas <b id="pct-latente">0 %</b></span>
+                            <span><i class="dot dot-sensible"></i><span id="txt-sensible">Subir la temperatura</span> <b id="pct-sensible">0 %</b></span>
+                            <span><i class="dot dot-latente"></i><span id="txt-latente">Separar las partículas</span> <b id="pct-latente">0 %</b></span>
                         </div>
                     </div>
                 </div>

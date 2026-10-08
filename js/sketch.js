@@ -92,6 +92,7 @@ let currentMode = 'curva';   // 'curva' (calentar y enfriar) | 'fases' (diagrama
 // --- ESTADO DE LA SIMULACIÓN ---
 let sus;                 // sustancia actual
 let energia = 0;         // energía almacenada (unidades didácticas)
+let energiaInicial = 0;  // energía al reiniciar (para contar solo la aportada)
 let tiempo  = 0;         // tiempo simulado (min)
 let potencia = 0.5;      // -1 (enfriar al máximo) … +1 (calentar al máximo)
 let velocidad = 1;       // multiplicador de tiempo
@@ -198,6 +199,7 @@ function actualizarModelo() {
 
 function reiniciar() {
     energia = energiaSolido(sus.tIni, sus);
+    energiaInicial = energia;
     tiempo = 0;
     historial = [];
     burbujas = [];
@@ -296,10 +298,22 @@ function updateCurvaUI() {
     el.textContent = d.txt;
     el.className = 'estado-value ' + d.cls;
 
-    const { sensible, latente } = repartoEnergia(energia);
+    // Solo cuenta la energía que ha entrado (o salido) desde el inicio: la que
+    // ya tenía la sustancia a su temperatura inicial no es «aportada».
+    const ahora = repartoEnergia(energia), antes = repartoEnergia(energiaInicial);
+    let sensible = ahora.sensible - antes.sensible;
+    let latente  = ahora.latente  - antes.latente;
+    const retirada = sensible + latente < 0;
+    if (retirada) { sensible = -sensible; latente = -latente; }
+    sensible = max(0, sensible); latente = max(0, latente);
     const total = sensible + latente;
-    const pS = total > 0 ? Math.round(100 * sensible / total) : 0;
-    const pL = total > 0 ? 100 - pS : 0;
+    const pS = total > 1e-6 ? Math.round(100 * sensible / total) : 0;
+    const pL = total > 1e-6 ? 100 - pS : 0;
+    document.getElementById('energy-titulo').textContent = retirada
+        ? '¿De dónde ha salido la energía retirada?'
+        : '¿En qué se ha gastado la energía aportada?';
+    document.getElementById('txt-sensible').textContent = retirada ? 'Bajar la temperatura' : 'Subir la temperatura';
+    document.getElementById('txt-latente').textContent  = retirada ? 'Unir las partículas'  : 'Separar las partículas';
     document.getElementById('bar-sensible').style.width = pS + '%';
     document.getElementById('bar-latente').style.width = pL + '%';
     document.getElementById('pct-sensible').textContent = pS + ' %';
