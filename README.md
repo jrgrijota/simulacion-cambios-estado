@@ -10,7 +10,7 @@ el **modelo de partículas**.
   a la vez, el recipiente, sus partículas y la gráfica temperatura–tiempo. Durante un cambio de
   estado la temperatura no varía: la energía se usa para separar (o unir) las partículas.
 - **Presión y temperatura (diagrama de fases):** mueve un punto por el diagrama de fases del agua
-  o del dióxido de carbono y descubre por qué el agua hierve a 70 °C en el Everest o por qué el
+  o del dióxido de carbono y descubre por qué el agua hierve a unos 72 °C en el Everest o por qué el
   hielo seco pasa directamente a gas.
 
 ## Criterio didáctico
@@ -21,8 +21,8 @@ de la curva se vea con claridad en el aula. El diagrama de fases es esquemático
 
 ## Uso
 
-Abre `index.html` en un navegador. No necesita instalación: usa [p5.js](https://p5js.org/)
-desde CDN. Incluye temas oscuro, claro y alto contraste (botón del engranaje).
+Abre `index.html` en un navegador. No necesita instalación ni conexión: incluye [p5.js](https://p5js.org/)
+en `js/vendor/`. Incluye temas oscuro, claro y alto contraste (botón del engranaje).
 
 ## Estructura
 
