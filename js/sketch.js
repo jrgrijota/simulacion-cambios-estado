@@ -573,7 +573,7 @@ function drawJarGlass() {
     line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
 
     noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
-    text('recipiente cerrado', JAR.x + JAR.w / 2, JAR.y - 18);
+    text('recipiente cerrado · tapa móvil a 1 atm', JAR.x + JAR.w / 2, JAR.y - 18);
 }
 
 function drawPlate() {
