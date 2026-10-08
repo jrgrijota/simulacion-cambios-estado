@@ -35,7 +35,7 @@ const DIAGRAMAS = {
         tMin: -120, tMax: 30, pMin: 0.3, pMax: 100,
         tt: -56.6,
         vap: { T: -56.6, P: 5.11, k: 2000 },   // llega al punto crítico (31 °C, 73 atm)
-        kSub: 3135,                            // pasa por (−78.5 °C, 1 atm)
+        kSub: 3146,                            // pasa por (−78,46 °C, 1 atm): sublima a −78 °C
         pendFus: 0.02,
         rotuloSub: 0.84,                   // posición (0–1) del rótulo sobre la curva de sublimación
         marcasP: [0.5, 1, 2, 5, 10, 20, 50, 100],
