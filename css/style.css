@@ -1116,7 +1116,8 @@ body.theme-contrast summary:focus-visible { outline-color: #ffff00; }
     .app-container { grid-template-columns: 1fr; height: auto; }
     body { overflow: auto; }
     .control-panel { height: auto; width: 100%; }
-    .simulation-panel { height: auto; }
+    /* En pantallas estrechas, el dibujo primero: es lo que hay que ver */
+    .simulation-panel { height: auto; order: -1; }
     #canvas-container { height: auto; padding-bottom: 62px; }
 }
 
