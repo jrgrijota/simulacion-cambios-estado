@@ -292,7 +292,7 @@ function setPotencia(v) {
 function updateCurvaUI() {
     if (!estado) return;
     document.getElementById('metric-temp').textContent = fmtT(estado.T);
-    document.getElementById('metric-tiempo').textContent = tiempo.toFixed(1);
+    document.getElementById('metric-tiempo').textContent = tiempo.toFixed(1).replace('.', ',');
     const d = describirEstado(estado);
     const el = document.getElementById('metric-estado');
     el.textContent = d.txt;

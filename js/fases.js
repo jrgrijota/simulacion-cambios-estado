@@ -24,9 +24,9 @@ const DIAGRAMAS = {
         rotulos: { solid: { T: -24, P: 0.6 }, liquid: { T: 48, P: 2.4 }, gas: { T: 104, P: 0.03 } },
         ejemplos: [
             { txt: 'Nivel del mar',    sub: '1 atm · 20 °C',    T: 20, P: 1 },
-            { txt: 'Cima del Everest', sub: '0.33 atm · 20 °C', T: 20, P: 0.33 },
+            { txt: 'Cima del Everest', sub: '0,33 atm · 20 °C', T: 20, P: 0.33 },
             { txt: 'Olla a presión',   sub: '2 atm · 20 °C',    T: 20, P: 2 },
-            { txt: 'Punto triple',     sub: '0.006 atm · 0 °C', triple: true },
+            { txt: 'Punto triple',     sub: '0,006 atm · 0 °C', triple: true },
         ],
         hint: 'A 1 atm el agua funde a 0 °C y hierve a 100 °C. ¿Y si cambia la presión?',
     },
@@ -44,7 +44,7 @@ const DIAGRAMAS = {
             { txt: 'Hielo seco',      sub: '1 atm · −100 °C', T: -100, P: 1 },
             { txt: 'Aire libre',      sub: '1 atm · 20 °C',   T: 20, P: 1 },
             { txt: 'Extintor de CO₂', sub: '65 atm · 20 °C',  T: 20, P: 65 },
-            { txt: 'Punto triple',    sub: '5.1 atm · −57 °C', triple: true },
+            { txt: 'Punto triple',    sub: '5,1 atm · −57 °C', triple: true },
         ],
         hint: 'A 1 atm el CO₂ nunca es líquido: el hielo seco pasa directamente a gas a −78 °C.',
     },
@@ -267,8 +267,9 @@ function textoAEstaPresion() {
 }
 
 function fmtP(P) {
-    if (P < 0.1)  return P.toFixed(3);
-    if (P < 10)   return P.toFixed(2);
+    // Con coma decimal, como se escribe en clase
+    if (P < 0.1)  return P.toFixed(3).replace('.', ',');
+    if (P < 10)   return P.toFixed(2).replace('.', ',');
     return P.toFixed(0);
 }
 
