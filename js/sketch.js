@@ -1052,7 +1052,7 @@ function nombreMeseta(tr) {
 }
 
 function drawGraph() {
-    drawPanelFrame(GRAPH, 'LA GRÁFICA', 'temperatura de la sustancia a lo largo del tiempo');
+    drawPanelFrame(GRAPH, 'LA GRÁFICA', 'temperatura a lo largo del tiempo · energías del modelo iguales en todas las sustancias: compara tramos de una misma sustancia');
     const { x0, x1, y0, y1 } = PLOT;
     const tMax = ejeTiempoMax();
     const xOf = (t) => map(t, 0, tMax, x0, x1);
@@ -1080,7 +1080,7 @@ function drawGraph() {
     noStroke(); fill(THEME.textDim); textAlign(LEFT, CENTER);
     text('T (°C)', GRAPH.x + 14, y0 - 13);
     textAlign(RIGHT, TOP);
-    text('tiempo (min)', x1, y1 + 20);
+    text('tiempo simulado (min)', x1, y1 + 20);
 
     // Temperaturas de fusión y ebullición
     lineaReferencia(yOf(sus.tf),  'fusión',     fmtT(sus.tf) + ' °C',  THEME.solid);
