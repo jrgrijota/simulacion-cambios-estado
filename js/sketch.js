@@ -30,7 +30,13 @@ const PLOT  = { x0: 84, x1: 932, y0: 494, y1: 654 };
 // Partículas: red de 8 × 8 en el sólido
 const P_COLS = 8, P_ROWS = 8, P_N = P_COLS * P_ROWS;
 const P_R    = 9;          // radio
-const P_SEP  = 2 * P_R + 3; // separación en la red cristalina
+// Separación en la red cristalina. En casi todas las sustancias el sólido es
+// más compacto que el líquido (partículas tocándose); el agua es la excepción:
+// el hielo tiene una red abierta y por eso flota. La lupa lo enseña así.
+function sepRed() {
+    const abierta = currentMode === 'fases' ? dg === DIAGRAMAS.agua : sus.flota;
+    return abierta ? 2 * P_R + 3 : 2 * P_R - 0.5;
+}
 
 // --- SUSTANCIAS ---
 // tf / teb: temperaturas reales de fusión y ebullición (°C, a 1 atm).
@@ -664,6 +670,7 @@ let verUniones = true;
 let verEstelas = true;
 
 function initParticles() {
+    const P_SEP = sepRed();
     const x0 = LENS.x + LENS.w / 2 - (P_COLS - 1) * P_SEP / 2;
     const yb = LENS.y + LENS.h - P_R - 4;
     sitios = [];
