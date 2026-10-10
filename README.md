@@ -23,7 +23,7 @@ de la curva se vea con claridad en el aula. El diagrama de fases es esquemático
 
 Abre `index.html` en un navegador. No necesita instalación ni conexión: incluye [p5.js](https://p5js.org/)
 en `js/vendor/`. Incluye temas oscuro, claro y alto contraste (botón del engranaje).
-Con `?lang=en` en la dirección (`index.html?lang=en`) muestra la interfaz en inglés, y con `?lang=ca`, en catalán.
+Con `?lang=en` en la dirección (`index.html?lang=en`) muestra la interfaz en inglés, con `?lang=ca`, en catalán, y con `?lang=eu`, en euskera.
 
 ## Estructura
 
@@ -33,4 +33,4 @@ Con `?lang=en` en la dirección (`index.html?lang=en`) muestra la interfaz en in
 | `css/style.css` | Estilos y temas (mismo sistema visual que el resto de simulaciones) |
 | `js/sketch.js` | Modo calentar y enfriar: modelo de energía, recipiente, partículas, gráfica y mensajes |
 | `js/fases.js` | Modo diagrama de fases: curvas, interacción y mensajes |
-| `js/i18n.js`, `js/i18n-en.js`, `js/i18n-ca.js` | Idioma de la interfaz (`?lang=en`, `?lang=ca`) y traducciones al inglés y al catalán |
+| `js/i18n.js`, `js/i18n-en.js`, `js/i18n-ca.js`, `js/i18n-eu.js` | Idioma de la interfaz (`?lang=en`, `?lang=ca`, `?lang=eu`) y traducciones al inglés, al catalán y al euskera |
