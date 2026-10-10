@@ -114,7 +114,7 @@ function setup() {
     const canvas = createCanvas(CV_W, CV_H);
     canvas.parent('canvas-container');
     canvas.elt.setAttribute('role', 'img');
-    canvas.elt.setAttribute('aria-label', 'Simulación de cambios de estado: recipiente, partículas y gráfica. Los mensajes de la simulación se leen en voz alta.');
+    canvas.elt.setAttribute('aria-label', i18n.t('Simulación de cambios de estado: recipiente, partículas y gráfica. Los mensajes de la simulación se leen en voz alta.'));
     fitCanvas();
     frameRate(60);
     textFont('monospace');
@@ -217,8 +217,8 @@ function reiniciar() {
 function cambiarSustancia(clave) {
     sus = SUSTANCIAS[clave];
     document.getElementById('sustancia-hint').innerHTML =
-        `Funde a <strong>${fmtT(sus.tf)} °C</strong> · Hierve a <strong>${fmtT(sus.teb)} °C</strong><br>` +
-        `<em>¿Sabías que…?</em> ${sus.curiosidad}`;
+        i18n.t('Funde a <strong>{tf} °C</strong> · Hierve a <strong>{teb} °C</strong><br><em>¿Sabías que…?</em> {c}',
+               { tf: fmtT(sus.tf), teb: fmtT(sus.teb), c: i18n.t(sus.curiosidad) });
     reiniciar();
     updateCurvaUI();
 }
@@ -227,17 +227,17 @@ function cambiarSustancia(clave) {
 function describirEstado(e) {
     const signo = Math.sign(potencia);
     switch (e.tramo) {
-        case 'solido':  return { txt: 'Sólido',  cls: 'st-solid' };
-        case 'liquido': return { txt: 'Líquido', cls: 'st-liquid' };
-        case 'gas':     return { txt: 'Gas',     cls: 'st-gas' };
+        case 'solido':  return { txt: i18n.t('Sólido'),  cls: 'st-solid' };
+        case 'liquido': return { txt: i18n.t('Líquido'), cls: 'st-liquid' };
+        case 'gas':     return { txt: i18n.t('Gas'),     cls: 'st-gas' };
         case 'fusion':
-            if (signo > 0) return { txt: 'Fusión  (sólido → líquido)', cls: 'st-change' };
-            if (signo < 0) return { txt: 'Solidificación  (líquido → sólido)', cls: 'st-change' };
-            return { txt: 'Sólido y líquido a la vez', cls: 'st-change' };
+            if (signo > 0) return { txt: i18n.t('Fusión  (sólido → líquido)'), cls: 'st-change' };
+            if (signo < 0) return { txt: i18n.t('Solidificación  (líquido → sólido)'), cls: 'st-change' };
+            return { txt: i18n.t('Sólido y líquido a la vez'), cls: 'st-change' };
         case 'vaporizacion':
-            if (signo > 0) return { txt: 'Vaporización  (líquido → gas)', cls: 'st-change' };
-            if (signo < 0) return { txt: 'Condensación  (gas → líquido)', cls: 'st-change' };
-            return { txt: 'Líquido y gas a la vez', cls: 'st-change' };
+            if (signo > 0) return { txt: i18n.t('Vaporización  (líquido → gas)'), cls: 'st-change' };
+            if (signo < 0) return { txt: i18n.t('Condensación  (gas → líquido)'), cls: 'st-change' };
+            return { txt: i18n.t('Líquido y gas a la vez'), cls: 'st-change' };
     }
 }
 
@@ -266,7 +266,7 @@ function setupCurvaControls() {
     const btnPausa = document.getElementById('btn-pausa');
     btnPausa.addEventListener('click', () => {
         enMarcha = !enMarcha;
-        btnPausa.textContent = enMarcha ? '⏸ Pausar' : '▶ Reanudar';
+        btnPausa.textContent = i18n.t(enMarcha ? '⏸ Pausar' : '▶ Reanudar');
         btnPausa.setAttribute('aria-pressed', String(!enMarcha));
         btnPausa.classList.toggle('active', !enMarcha);
     });
@@ -291,14 +291,14 @@ function setPotencia(v) {
         v === 0 ? '0 %' : (v > 0 ? '+' : '−') + Math.abs(v) + ' %';
 
     const placa = document.getElementById('metric-placa');
-    placa.textContent = v > 0 ? 'Calienta' : v < 0 ? 'Enfría' : 'Apagada';
+    placa.textContent = i18n.t(v > 0 ? 'Calienta' : v < 0 ? 'Enfría' : 'Apagada');
     placa.parentElement.className = 'metric metric-text ' + (v > 0 ? 'hot' : v < 0 ? 'cold' : '');
 }
 
 function updateCurvaUI() {
     if (!estado) return;
     document.getElementById('metric-temp').textContent = fmtT(estado.T);
-    document.getElementById('metric-tiempo').textContent = tiempo.toFixed(1).replace('.', ',');
+    document.getElementById('metric-tiempo').textContent = i18n.num(tiempo, 1);
     const d = describirEstado(estado);
     const el = document.getElementById('metric-estado');
     el.textContent = d.txt;
@@ -315,11 +315,11 @@ function updateCurvaUI() {
     const total = sensible + latente;
     const pS = total > 1e-6 ? Math.round(100 * sensible / total) : 0;
     const pL = total > 1e-6 ? 100 - pS : 0;
-    document.getElementById('energy-titulo').textContent = retirada
+    document.getElementById('energy-titulo').textContent = i18n.t(retirada
         ? '¿De dónde ha salido la energía retirada?'
-        : '¿En qué se ha gastado la energía aportada?';
-    document.getElementById('txt-sensible').textContent = retirada ? 'Bajar la temperatura' : 'Subir la temperatura';
-    document.getElementById('txt-latente').textContent  = retirada ? 'Unir las partículas'  : 'Separar las partículas';
+        : '¿En qué se ha gastado la energía aportada?');
+    document.getElementById('txt-sensible').textContent = i18n.t(retirada ? 'Bajar la temperatura' : 'Subir la temperatura');
+    document.getElementById('txt-latente').textContent  = i18n.t(retirada ? 'Unir las partículas'  : 'Separar las partículas');
     document.getElementById('bar-sensible').style.width = pS + '%';
     document.getElementById('bar-latente').style.width = pL + '%';
     document.getElementById('pct-sensible').textContent = pS + ' %';
@@ -346,49 +346,49 @@ const BANNER = { x: 20, y: 12, w: 1010, h: 50 };
 function mensajeDidactico() {
     const s = Math.sign(potencia);
     const tf = fmtT(sus.tf) + ' °C', teb = fmtT(sus.teb) + ' °C';
-    const N = sus.nombres;
+    const N = { solid: i18n.t(sus.nombres.solid), liquid: i18n.t(sus.nombres.liquid), gas: i18n.t(sus.nombres.gas) };
 
-    if (s < 0 && energia <= 0) return { tag: 'LÍMITE', col: THEME.textDim,
-        txt: `Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.` };
-    if (s > 0 && energia >= sus.eTot) return { tag: 'LÍMITE', col: THEME.textDim,
-        txt: `Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.` };
+    if (s < 0 && energia <= 0) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
+        txt: i18n.t('Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.') };
+    if (s > 0 && energia >= sus.eTot) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
+        txt: i18n.t('Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.') };
 
     switch (estado.tramo) {
         case 'solido':
-            if (s > 0) return { tag: 'SÓLIDO', col: THEME.solid,
-                txt: `El ${N.solid} se calienta: sus partículas vibran cada vez más deprisa y la temperatura sube.` };
-            if (s < 0) return { tag: 'SÓLIDO', col: THEME.solid,
-                txt: `El ${N.solid} se enfría: sus partículas vibran cada vez más despacio y la temperatura baja.` };
-            return { tag: 'SÓLIDO', col: THEME.solid,
-                txt: `Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.` };
+            if (s > 0) return { tag: i18n.t('SÓLIDO'), col: THEME.solid,
+                txt: i18n.t('El {s} se calienta: sus partículas vibran cada vez más deprisa y la temperatura sube.', { s: N.solid }) };
+            if (s < 0) return { tag: i18n.t('SÓLIDO'), col: THEME.solid,
+                txt: i18n.t('El {s} se enfría: sus partículas vibran cada vez más despacio y la temperatura baja.', { s: N.solid }) };
+            return { tag: i18n.t('SÓLIDO'), col: THEME.solid,
+                txt: i18n.t('Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.') };
         case 'fusion':
-            if (s > 0) return { tag: 'FUSIÓN', col: THEME.change,
-                txt: `La energía se usa para romper las uniones entre partículas, no para subir la temperatura. Por eso se queda en ${tf} hasta que todo se funde.` };
-            if (s < 0) return { tag: 'SOLIDIFICACIÓN', col: THEME.change,
-                txt: `Las partículas del líquido pierden energía y vuelven a ordenarse. La temperatura se mantiene en ${tf} hasta que todo es sólido.` };
-            return { tag: 'EQUILIBRIO', col: THEME.change,
-                txt: `Sólido y líquido conviven a ${tf}. Mientras no entre ni salga energía, la proporción no cambia.` };
+            if (s > 0) return { tag: i18n.t('FUSIÓN'), col: THEME.change,
+                txt: i18n.t('La energía se usa para romper las uniones entre partículas, no para subir la temperatura. Por eso se queda en {tf} hasta que todo se funde.', { tf }) };
+            if (s < 0) return { tag: i18n.t('SOLIDIFICACIÓN'), col: THEME.change,
+                txt: i18n.t('Las partículas del líquido pierden energía y vuelven a ordenarse. La temperatura se mantiene en {tf} hasta que todo es sólido.', { tf }) };
+            return { tag: i18n.t('EQUILIBRIO'), col: THEME.change,
+                txt: i18n.t('Sólido y líquido conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.', { tf }) };
         case 'liquido':
-            if (s > 0) return { tag: 'LÍQUIDO', col: THEME.liquid,
-                txt: `El ${N.liquid} se calienta: sus partículas se mueven y se deslizan cada vez más rápido.` };
-            if (s < 0) return { tag: 'LÍQUIDO', col: THEME.liquid,
-                txt: `El ${N.liquid} se enfría: sus partículas se mueven cada vez más despacio.` };
-            return { tag: 'LÍQUIDO', col: THEME.liquid,
-                txt: `Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.` };
+            if (s > 0) return { tag: i18n.t('LÍQUIDO'), col: THEME.liquid,
+                txt: i18n.t('El {s} se calienta: sus partículas se mueven y se deslizan cada vez más rápido.', { s: N.liquid }) };
+            if (s < 0) return { tag: i18n.t('LÍQUIDO'), col: THEME.liquid,
+                txt: i18n.t('El {s} se enfría: sus partículas se mueven cada vez más despacio.', { s: N.liquid }) };
+            return { tag: i18n.t('LÍQUIDO'), col: THEME.liquid,
+                txt: i18n.t('Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.') };
         case 'vaporizacion':
-            if (s > 0) return { tag: 'EBULLICIÓN', col: THEME.change,
-                txt: `Las partículas se separan del todo y escapan como gas (por eso salen burbujas). La energía se gasta en separarlas: la temperatura no pasa de ${teb}.` };
-            if (s < 0) return { tag: 'CONDENSACIÓN', col: THEME.change,
-                txt: `Las partículas del gas pierden energía, se juntan y vuelven a ser líquido (gotas en la tapa). La temperatura se mantiene en ${teb}.` };
-            return { tag: 'EQUILIBRIO', col: THEME.change,
-                txt: `Líquido y gas conviven a ${teb}. Mientras no entre ni salga energía, la proporción no cambia.` };
+            if (s > 0) return { tag: i18n.t('EBULLICIÓN'), col: THEME.change,
+                txt: i18n.t('Las partículas se separan del todo y escapan como gas (por eso salen burbujas). La energía se gasta en separarlas: la temperatura no pasa de {teb}.', { teb }) };
+            if (s < 0) return { tag: i18n.t('CONDENSACIÓN'), col: THEME.change,
+                txt: i18n.t('Las partículas del gas pierden energía, se juntan y vuelven a ser líquido (gotas en la tapa). La temperatura se mantiene en {teb}.', { teb }) };
+            return { tag: i18n.t('EQUILIBRIO'), col: THEME.change,
+                txt: i18n.t('Líquido y gas conviven a {teb}. Mientras no entre ni salga energía, la proporción no cambia.', { teb }) };
         case 'gas':
-            if (s > 0) return { tag: 'GAS', col: THEME.gas,
-                txt: `El ${N.gas} se calienta: sus partículas se mueven cada vez más rápido y ocupan todo el recipiente.` };
-            if (s < 0) return { tag: 'GAS', col: THEME.gas,
-                txt: `El ${N.gas} se enfría: sus partículas se mueven cada vez más despacio.` };
-            return { tag: 'GAS', col: THEME.gas,
-                txt: `Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.` };
+            if (s > 0) return { tag: i18n.t('GAS'), col: THEME.gas,
+                txt: i18n.t('El {s} se calienta: sus partículas se mueven cada vez más rápido y ocupan todo el recipiente.', { s: N.gas }) };
+            if (s < 0) return { tag: i18n.t('GAS'), col: THEME.gas,
+                txt: i18n.t('El {s} se enfría: sus partículas se mueven cada vez más despacio.', { s: N.gas }) };
+            return { tag: i18n.t('GAS'), col: THEME.gas,
+                txt: i18n.t('Placa apagada: no entra ni sale energía y nada cambia. Mueve la potencia para calentar o enfriar.') };
     }
 }
 
@@ -425,7 +425,7 @@ let gotas    = [];   // gotas que se forman en la tapa al condensar
 let motas    = [];   // motas que sugieren el gas que llena el recipiente
 
 function drawMacroView() {
-    drawPanelFrame(MACRO, 'LO QUE VEMOS', 'el recipiente a simple vista');
+    drawPanelFrame(MACRO, i18n.t('LO QUE VEMOS'), i18n.t('el recipiente a simple vista'));
 
     const fondo = JAR.y + JAR.h;
     const hLiq  = LIQ_MAX_H * estado.fl;
@@ -579,7 +579,7 @@ function drawJarGlass() {
     line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
 
     noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
-    text('recipiente cerrado · tapa móvil a 1 atm', JAR.x + JAR.w / 2, JAR.y - 18);
+    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 18);
 }
 
 function drawPlate() {
@@ -600,9 +600,9 @@ function drawPlate() {
 
     fill(THEME.plateText); textSize(11); textAlign(CENTER, CENTER);
     const pct = Math.round(abs(potencia) * 100);
-    const txt = potencia > 0 ? `CALIENTA ${pct} % · entra energía`
-              : potencia < 0 ? `ENFRÍA ${pct} % · sale energía`
-              : 'PLACA APAGADA';
+    const txt = potencia > 0 ? i18n.t('CALIENTA {pct} % · entra energía', { pct })
+              : potencia < 0 ? i18n.t('ENFRÍA {pct} % · sale energía', { pct })
+              : i18n.t('PLACA APAGADA');
     text(txt, x + w / 2, y + 13);
 }
 
@@ -633,9 +633,9 @@ function drawHeatArrows() {
 function drawComposicion() {
     const x = PLATE.x, y = 388, w = PLATE.w, h = 20;
     const partes = [
-        { f: estado.fs, col: THEME.solid,  txt: 'sólido' },
-        { f: estado.fl, col: THEME.liquid, txt: 'líquido' },
-        { f: estado.fg, col: THEME.gas,    txt: 'gas' },
+        { f: estado.fs, col: THEME.solid,  txt: i18n.t('sólido') },
+        { f: estado.fl, col: THEME.liquid, txt: i18n.t('líquido') },
+        { f: estado.fg, col: THEME.gas,    txt: i18n.t('gas') },
     ];
     let cx = x;
     textSize(11); textAlign(CENTER, CENTER); textStyle(BOLD);
@@ -896,7 +896,7 @@ function paredes() {
 }
 
 function drawMicroView() {
-    drawPanelFrame(MICRO, 'LO QUE NO VEMOS', 'las partículas de la sustancia');
+    drawPanelFrame(MICRO, i18n.t('LO QUE NO VEMOS'), i18n.t('las partículas de la sustancia'));
     drawParticleWindow();
     drawLeyendaEstados();
 }
@@ -994,13 +994,13 @@ function drawLeyendaEstados() {
 
         noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT, TOP);
         fill(activo ? col : THEME.textDim);
-        text(L.titulo, LEGEND.x + 12, y + 10);
+        text(i18n.t(L.titulo), LEGEND.x + 12, y + 10);
         textAlign(RIGHT, TOP);
         if (activo) text(Math.round(frac * 100) + ' %', LEGEND.x + LEGEND.w - 12, y + 10);
         textStyle(NORMAL);
 
         fill(activo ? THEME.text : THEME.textDim); textSize(12); textAlign(LEFT, TOP); textLeading(16);
-        text(L.txt, LEGEND.x + 12, y + 32, LEGEND.w - 24, h - 36);
+        text(i18n.t(L.txt), LEGEND.x + 12, y + 32, LEGEND.w - 24, h - 36);
     });
 }
 
@@ -1046,13 +1046,13 @@ function colorTramo(tramo) {
 
 function nombreMeseta(tr) {
     if (tr.tramo === 'fusion') {
-        return tr.signo > 0 ? 'FUSIÓN' : tr.signo < 0 ? 'SOLIDIFICACIÓN' : 'SÓLIDO + LÍQUIDO';
+        return i18n.t(tr.signo > 0 ? 'FUSIÓN' : tr.signo < 0 ? 'SOLIDIFICACIÓN' : 'SÓLIDO + LÍQUIDO');
     }
-    return tr.signo > 0 ? 'VAPORIZACIÓN' : tr.signo < 0 ? 'CONDENSACIÓN' : 'LÍQUIDO + GAS';
+    return i18n.t(tr.signo > 0 ? 'VAPORIZACIÓN' : tr.signo < 0 ? 'CONDENSACIÓN' : 'LÍQUIDO + GAS');
 }
 
 function drawGraph() {
-    drawPanelFrame(GRAPH, 'LA GRÁFICA', 'temperatura a lo largo del tiempo · energías del modelo iguales en todas las sustancias: compara tramos de una misma sustancia');
+    drawPanelFrame(GRAPH, i18n.t('LA GRÁFICA'), i18n.t('temperatura a lo largo del tiempo · energías del modelo iguales en todas las sustancias: compara tramos de una misma sustancia'));
     const { x0, x1, y0, y1 } = PLOT;
     const tMax = ejeTiempoMax();
     const xOf = (t) => map(t, 0, tMax, x0, x1);
@@ -1080,11 +1080,11 @@ function drawGraph() {
     noStroke(); fill(THEME.textDim); textAlign(LEFT, CENTER);
     text('T (°C)', GRAPH.x + 14, y0 - 13);
     textAlign(RIGHT, TOP);
-    text('tiempo simulado (min)', x1, y1 + 20);
+    text(i18n.t('tiempo simulado (min)'), x1, y1 + 20);
 
     // Temperaturas de fusión y ebullición
-    lineaReferencia(yOf(sus.tf),  'fusión',     fmtT(sus.tf) + ' °C',  THEME.solid);
-    lineaReferencia(yOf(sus.teb), 'ebullición', fmtT(sus.teb) + ' °C', THEME.gas);
+    lineaReferencia(yOf(sus.tf),  i18n.t('fusión'),     fmtT(sus.tf) + ' °C',  THEME.solid);
+    lineaReferencia(yOf(sus.teb), i18n.t('ebullición'), fmtT(sus.teb) + ' °C', THEME.gas);
 
     if (historial.length < 2) return;
 
@@ -1119,11 +1119,11 @@ function drawGraph() {
             fill(THEME.change);
             text(nombre, xm, y - 16);
             textStyle(NORMAL); textSize(10); fill(THEME.textDim);
-            text('temperatura constante', xm, y - 5);
+            text(i18n.t('temperatura constante'), xm, y - 5);
             finRotulo = xm + ancho / 2;
             pisoAnterior = piso;
         } else if (!tr.meseta && dur > tMax * 0.06 && abs(tr.fin.T - tr.ini.T) > 0) {
-            const nombre = { solido: 'sólido', liquido: 'líquido', gas: 'gas' }[tr.tramo];
+            const nombre = i18n.t({ solido: 'sólido', liquido: 'líquido', gas: 'gas' }[tr.tramo]);
             const ym = yOf((tr.ini.T + tr.fin.T) / 2);
             noStroke(); fill(colorTramo(tr.tramo)); textSize(11); textAlign(LEFT, CENTER);
             text(nombre, xm + 8, ym + 10);
@@ -1182,8 +1182,8 @@ function drawThermometer(T) {
     }
 
     // Marcas de fusión y ebullición
-    marcaTermometro(yOf(sus.tf),  'fusión',     sus.tf,  THEME.solid);
-    marcaTermometro(yOf(sus.teb), 'ebullición', sus.teb, THEME.gas);
+    marcaTermometro(yOf(sus.tf),  i18n.t('fusión'),     sus.tf,  THEME.solid);
+    marcaTermometro(yOf(sus.teb), i18n.t('ebullición'), sus.teb, THEME.gas);
 
     // Lectura digital
     noStroke(); fill(THEME.text); textAlign(CENTER, BOTTOM); textSize(15); textStyle(BOLD);

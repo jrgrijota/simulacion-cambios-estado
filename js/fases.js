@@ -164,7 +164,7 @@ function setupFasesControls() {
 
 function cambiarDiagrama(clave) {
     dg = DIAGRAMAS[clave];
-    document.getElementById('fases-hint').textContent = dg.hint;
+    document.getElementById('fases-hint').textContent = i18n.t(dg.hint);
 
     const slT = document.getElementById('slider-fases-T');
     slT.min = dg.tMin; slT.max = dg.tMax;
@@ -179,7 +179,7 @@ function cambiarDiagrama(clave) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'preset-btn';
-        b.innerHTML = `${ej.txt}<small>${ej.sub}</small>`;
+        b.innerHTML = `${i18n.t(ej.txt)}<small>${i18n.t(ej.sub)}</small>`;
         b.addEventListener('click', () => aplicarEjemplo(i));
         caja.appendChild(b);
     });
@@ -237,12 +237,12 @@ function updateFasesUI() {
     const sit = situacion();
     const el = document.getElementById('metric-fases-estado');
     if (sit.tipo) {
-        const txt = sit.fases.map(f => NOMBRE_ESTADO[f]).join(' + ');
-        el.textContent = txt[0].toUpperCase() + txt.slice(1) + (sit.tipo === 'triple' ? ' (punto triple)' : '');
+        const txt = sit.fases.map(f => i18n.t(NOMBRE_ESTADO[f])).join(' + ');
+        el.textContent = txt[0].toUpperCase() + txt.slice(1) + (sit.tipo === 'triple' ? ' (' + i18n.t('punto triple') + ')' : '');
         el.className = 'estado-value st-change';
     } else {
         const f = sit.fases[0];
-        el.textContent = { solid: 'Sólido', liquid: 'Líquido', gas: 'Gas' }[f];
+        el.textContent = i18n.t({ solid: 'Sólido', liquid: 'Líquido', gas: 'Gas' }[f]);
         el.className = 'estado-value st-' + f;
     }
 
@@ -254,22 +254,22 @@ function textoAEstaPresion() {
     const pt = pTriple();
     const P = fmtP(fP) + ' atm';
     if (situacion().tipo === 'triple') {
-        return `A ${P} estás en el <strong>punto triple</strong>: a ${fmtT(dg.tt)} °C pueden existir a la vez sólido, líquido y gas.`;
+        return i18n.t('A {P} estás en el <strong>punto triple</strong>: a {T} °C pueden existir a la vez sólido, líquido y gas.', { P, T: fmtT(dg.tt) });
     }
     if (fP < pt) {
-        return `A ${P} <strong>no puede ser líquida</strong>: al calentarla pasa directamente de sólido a gas ` +
-               `(sublimación) a <strong>${fmtT(tSub(fP))} °C</strong>.`;
+        return i18n.t('A {P} <strong>no puede ser líquida</strong>: al calentarla pasa directamente de sólido a gas ' +
+                      '(sublimación) a <strong>{T} °C</strong>.', { P, T: fmtT(tSub(fP)) });
     }
     const teb = tVap(fP);
-    const hierve = teb > dg.tMax ? `por encima de <strong>${fmtT(dg.tMax)} °C</strong>`
-                                 : `a <strong>${fmtT(teb)} °C</strong>`;
-    return `A ${P} funde a <strong>${fmtT(tFus(fP))} °C</strong> y hierve ${hierve}.`;
+    const hierve = teb > dg.tMax ? i18n.t('por encima de <strong>{T} °C</strong>', { T: fmtT(dg.tMax) })
+                                 : i18n.t('a <strong>{T} °C</strong>', { T: fmtT(teb) });
+    return i18n.t('A {P} funde a <strong>{T} °C</strong> y hierve {hierve}.', { P, T: fmtT(tFus(fP)), hierve });
 }
 
 function fmtP(P) {
-    // Con coma decimal, como se escribe en clase
-    if (P < 0.1)  return P.toFixed(3).replace('.', ',');
-    if (P < 10)   return P.toFixed(2).replace('.', ',');
+    // Con coma decimal, como se escribe en clase (punto en inglés)
+    if (P < 0.1)  return i18n.num(P, 3);
+    if (P < 10)   return i18n.num(P, 2);
     return P.toFixed(0);
 }
 
@@ -348,10 +348,10 @@ function agitacionFases() {
 function textoPlano(html) { return html.replace(/<[^>]+>/g, ''); }
 
 const TXT_COEXISTENCIA = {
-    triple: (T, P) => `A ${T} y ${P} conviven sólido, líquido y gas. Las partículas pasan continuamente de un estado a otro, pero las cantidades no cambian: es un equilibrio dinámico.`,
-    fusion: (T, P) => `Estás sobre la línea de fusión: a ${T} y ${P} el sólido y el líquido conviven. Unas partículas se sueltan de la red y otras se ordenan, al mismo ritmo.`,
-    vaporizacion: (T, P) => `Estás sobre la línea de vaporización: a ${T} y ${P} el líquido y el gas conviven. Unas partículas escapan del líquido y otras vuelven a él, al mismo ritmo.`,
-    sublimacion: (T, P) => `Estás sobre la línea de sublimación: a ${T} y ${P} el sólido y el gas conviven. Unas partículas escapan del sólido y otras se depositan en él, al mismo ritmo.`,
+    triple: (T, P) => i18n.t('A {T} y {P} conviven sólido, líquido y gas. Las partículas pasan continuamente de un estado a otro, pero las cantidades no cambian: es un equilibrio dinámico.', { T, P }),
+    fusion: (T, P) => i18n.t('Estás sobre la línea de fusión: a {T} y {P} el sólido y el líquido conviven. Unas partículas se sueltan de la red y otras se ordenan, al mismo ritmo.', { T, P }),
+    vaporizacion: (T, P) => i18n.t('Estás sobre la línea de vaporización: a {T} y {P} el líquido y el gas conviven. Unas partículas escapan del líquido y otras vuelven a él, al mismo ritmo.', { T, P }),
+    sublimacion: (T, P) => i18n.t('Estás sobre la línea de sublimación: a {T} y {P} el sólido y el gas conviven. Unas partículas escapan del sólido y otras se depositan en él, al mismo ritmo.', { T, P }),
 };
 
 function mensajeFases() {
@@ -359,8 +359,8 @@ function mensajeFases() {
     const P = fmtP(fP) + ' atm';
     const sit = situacion();
     if (sit.tipo) {
-        const tag = sit.tipo === 'triple' ? 'PUNTO TRIPLE'
-                  : sit.fases.map(s => NOMBRE_ESTADO[s].toUpperCase()).join(' + ');
+        const tag = sit.tipo === 'triple' ? i18n.t('PUNTO TRIPLE')
+                  : sit.fases.map(s => i18n.t(NOMBRE_ESTADO[s]).toUpperCase()).join(' + ');
         return { tag, col: THEME.change, txt: TXT_COEXISTENCIA[sit.tipo](fmtT(fT) + ' °C', P) };
     }
     if (ultimoCambio && millis() - ultimoCambio.t < 8000) {
@@ -370,33 +370,34 @@ function mensajeFases() {
         switch (clave) {
             case 'liquid>gas':
                 txt = causa === 'descomprimir'
-                    ? `¡Al bajar la presión, el líquido hierve sin calentarlo! A ${P} hierve a solo ${fmtT(tVap(fP))} °C.`
-                    : `Al calentar, el líquido llega a su temperatura de ebullición, que a ${P} es ${fmtT(tVap(fP))} °C. Sus partículas se separan del todo.`;
+                    ? i18n.t('¡Al bajar la presión, el líquido hierve sin calentarlo! A {P} hierve a solo {T} °C.', { P, T: fmtT(tVap(fP)) })
+                    : i18n.t('Al calentar, el líquido llega a su temperatura de ebullición, que a {P} es {T} °C. Sus partículas se separan del todo.', { P, T: fmtT(tVap(fP)) });
                 break;
             case 'gas>liquid':
                 txt = causa === 'comprimir'
-                    ? `Al comprimir el gas, sus partículas se juntan tanto que se convierte en líquido.`
-                    : `Al enfriar, las partículas del gas pierden energía, se juntan y forman un líquido.`;
+                    ? i18n.t('Al comprimir el gas, sus partículas se juntan tanto que se convierte en líquido.')
+                    : i18n.t('Al enfriar, las partículas del gas pierden energía, se juntan y forman un líquido.');
                 break;
             case 'solid>liquid':
-                txt = `Las partículas abandonan su red ordenada: el sólido se funde a ${fmtT(tFus(fP))} °C.`;
+                txt = i18n.t('Las partículas abandonan su red ordenada: el sólido se funde a {T} °C.', { T: fmtT(tFus(fP)) });
                 break;
             case 'liquid>solid':
-                txt = `Las partículas pierden energía y se ordenan en una red: el líquido se solidifica a ${fmtT(tFus(fP))} °C.`;
+                txt = i18n.t('Las partículas pierden energía y se ordenan en una red: el líquido se solidifica a {T} °C.', { T: fmtT(tFus(fP)) });
                 break;
             case 'solid>gas':
-                txt = `A ${P} no puede existir el líquido: el sólido pasa directamente a gas (como el hielo seco).`;
+                txt = i18n.t('A {P} no puede existir el líquido: el sólido pasa directamente a gas (como el hielo seco).', { P });
                 break;
             case 'gas>solid':
-                txt = `El gas pasa directamente a sólido sin ser líquido (así se forma la escarcha).`;
+                txt = i18n.t('El gas pasa directamente a sólido sin ser líquido (así se forma la escarcha).');
                 break;
         }
-        return { tag: NOMBRE_CAMBIO[clave], col: THEME.change, txt };
+        return { tag: i18n.t(NOMBRE_CAMBIO[clave]), col: THEME.change, txt };
     }
-    const sust = dg === DIAGRAMAS.agua ? 'El agua' : 'El CO₂';
+    const sust = i18n.t(dg === DIAGRAMAS.agua ? 'El agua' : 'El CO₂');
     return {
-        tag: NOMBRE_ESTADO[f].toUpperCase(), col: THEME[f],
-        txt: `${sust} está en estado ${NOMBRE_ESTADO[f]}. ${textoPlano(textoAEstaPresion())} Mueve el punto hasta cruzar una línea.`,
+        tag: i18n.t(NOMBRE_ESTADO[f]).toUpperCase(), col: THEME[f],
+        txt: i18n.t('{sust} está en estado {estado}. {presion} Mueve el punto hasta cruzar una línea.',
+                    { sust, estado: i18n.t(NOMBRE_ESTADO[f]), presion: textoPlano(textoAEstaPresion()) }),
     };
 }
 
@@ -414,7 +415,7 @@ const RETOS_TXT = {
 };
 
 function drawFasesParticulas() {
-    drawPanelFrame(FMICRO, 'LAS PARTÍCULAS', 'qué ocurre por dentro');
+    drawPanelFrame(FMICRO, i18n.t('LAS PARTÍCULAS'), i18n.t('qué ocurre por dentro'));
     drawParticleWindow();
 
     // Estado actual bajo la ventana (varios nombres si conviven)
@@ -424,20 +425,20 @@ function drawFasesParticulas() {
     let x = LENS.x;
     sit.fases.forEach((f, i) => {
         if (i > 0) { fill(THEME.textDim); text('+', x, y); x += textWidth('+ '); }
-        const titulo = LEYENDA.find(l => l.st === f).titulo;
+        const titulo = i18n.t(LEYENDA.find(l => l.st === f).titulo);
         fill(THEME[f]); text(titulo, x, y);
         x += textWidth(titulo + ' ');
     });
     textStyle(NORMAL); textSize(12); fill(THEME.text);
     const desc = sit.tipo
-        ? 'Conviven a la vez. Los anillos marcan las partículas que cambian de estado.'
-        : LEYENDA.find(l => l.st === sit.fases[0]).txt;
+        ? i18n.t('Conviven a la vez. Los anillos marcan las partículas que cambian de estado.')
+        : i18n.t(LEYENDA.find(l => l.st === sit.fases[0]).txt);
     if (sit.tipo) text(desc, LENS.x, y + 20, LENS.w, 40);
     else          text(desc, x + 4, y, LENS.x + LENS.w - x - 4, 40);
 }
 
 function drawRetos() {
-    drawPanelFrame(RETOS, 'PIENSA Y COMPRUEBA', 'usa el diagrama');
+    drawPanelFrame(RETOS, i18n.t('PIENSA Y COMPRUEBA'), i18n.t('usa el diagrama'));
     const lista = RETOS_TXT[dg === DIAGRAMAS.agua ? 'agua' : 'co2'];
     let y = RETOS.y + 40;
     lista.forEach((txt, i) => {
@@ -446,7 +447,7 @@ function drawRetos() {
         fill(THEME.canvasBg);
         text(i + 1, RETOS.x + 26, y + 10);
         textStyle(NORMAL); fill(THEME.text); textSize(12); textAlign(LEFT, TOP); textLeading(17);
-        text(txt, RETOS.x + 46, y, RETOS.w - 60, 54);
+        text(i18n.t(txt), RETOS.x + 46, y, RETOS.w - 60, 54);
         y += 58;
     });
 }
@@ -494,7 +495,7 @@ function moverPuntoAlRaton() {
 //  DIBUJO DEL DIAGRAMA
 // ═══════════════════════════════════════════════════════════════════
 function drawFasesMode() {
-    drawPanelFrame(DIAG, 'DIAGRAMA DE FASES', `del ${dg.nombre} (esquemático)`);
+    drawPanelFrame(DIAG, i18n.t('DIAGRAMA DE FASES'), i18n.t('del {s} (esquemático)', { s: i18n.t(dg.nombre) }));
 
     const { x0, x1, y0, y1 } = DPLOT;
     const pt = pTriple();
@@ -530,7 +531,7 @@ function drawFasesMode() {
     // El rótulo va justo a la derecha del primer cruce con 1 atm, donde siempre hay sitio
     const xRot = dx(1 > pt ? tFus(1) : tSub(1)) + 8;
     noStroke(); fill(THEME.textDim); textSize(11); textAlign(LEFT, BOTTOM);
-    text('1 atm (nivel del mar)', xRot, y1atm - 4);
+    text(i18n.t('1 atm (nivel del mar)'), xRot, y1atm - 4);
 
     // Fronteras
     noFill(); stroke(THEME.text); strokeWeight(2.5);
@@ -570,12 +571,12 @@ function drawEjesFases() {
 
     noStroke(); fill(THEME.textDim); textSize(12);
     textAlign(CENTER, TOP);
-    text('Temperatura (°C)', (x0 + x1) / 2, y1 + 24);
+    text(i18n.t('Temperatura (°C)'), (x0 + x1) / 2, y1 + 24);
     push();
     translate(DIAG.x + 16, (y0 + y1) / 2);
     rotate(-HALF_PI);
     textAlign(CENTER, CENTER);
-    text('Presión (atm) · escala comprimida', 0, 0);
+    text(i18n.t('Presión (atm) · escala comprimida'), 0, 0);
     pop();
 }
 
@@ -585,16 +586,16 @@ function drawRotulosFases() {
     for (const st of ['solid', 'liquid', 'gas']) {
         const r = dg.rotulos[st];
         fill(THEME[st]);
-        text({ solid: 'SÓLIDO', liquid: 'LÍQUIDO', gas: 'GAS' }[st], dx(r.T), dy(r.P));
+        text(i18n.t({ solid: 'SÓLIDO', liquid: 'LÍQUIDO', gas: 'GAS' }[st]), dx(r.T), dy(r.P));
     }
     textStyle(NORMAL);
 
     // Nombre de cada frontera, girado según la curva
-    rotuloCurva('fusión ⇄ solidificación',
+    rotuloCurva(i18n.t('fusión ⇄ solidificación'),
         (u) => { const P = Math.exp(lerp(Math.log(pTriple()), Math.log(dg.pMax), u)); return [dx(tFus(P)), dy(P)]; }, 0.62, 10);
-    rotuloCurva('vaporización ⇄ condensación',
+    rotuloCurva(i18n.t('vaporización ⇄ condensación'),
         (u) => { const T = lerp(dg.tt, dg.tMax, u); return [dx(T), dy(pVap(T))]; }, dg === DIAGRAMAS.agua ? 0.5 : 0.55, -10);
-    if (dg.rotuloSub) rotuloCurva('sublimación ⇄ sublimación inversa',
+    if (dg.rotuloSub) rotuloCurva(i18n.t('sublimación ⇄ sublimación inversa'),
         (u) => { const T = lerp(dg.tMin, dg.tt, u); return [dx(T), dy(pSub(T))]; }, dg.rotuloSub, -10);
 }
 
@@ -621,7 +622,7 @@ function drawPuntosNotables() {
     stroke(THEME.canvasBg); strokeWeight(2); fill(THEME.change);
     circle(dx(dg.tt), dy(pt), 10);
     noStroke(); fill(THEME.change); textSize(11); textAlign(LEFT, TOP); textStyle(BOLD);
-    text('punto triple', dx(dg.tt) + 8, dy(pt) + 4);
+    text(i18n.t('punto triple'), dx(dg.tt) + 8, dy(pt) + 4);
     textStyle(NORMAL);
 
     // Cruces con la línea de 1 atm
@@ -633,7 +634,7 @@ function drawPuntosNotables() {
         stroke(THEME.canvasBg); strokeWeight(2); fill(THEME.text);
         circle(dx(T), dy(1), 8);
         noStroke(); fill(THEME.text); textSize(11); textAlign(LEFT, TOP);
-        text(`${verbo} a ${fmtT(T)} °C`, dx(T) + 6, dy(1) + 5);
+        text(i18n.t(verbo + ' a {T} °C', { T: fmtT(T) }), dx(T) + 6, dy(1) + 5);
     }
 }
 
