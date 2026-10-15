@@ -293,4 +293,6 @@ window.I18N_GL = {
     'Oscuro': 'Escuro',
     'Claro': 'Claro',
     'Alto contraste': 'Alto contraste',
+  // Sello de la zona de simulación (js/sello.js)
+  'Más simulaciones en simulaciencia.es': 'Máis simulacións en simulaciencia.es'
 };
