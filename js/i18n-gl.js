@@ -219,6 +219,34 @@ window.I18N_GL = {
     '0,006 atm · 0 °C': '0,006 atm · 0 °C',
     '5,1 atm · −57 °C': '5,1 atm · −57 °C',
 
+    // Hielo seco (sublimación a 1 atm)
+    "Hielo seco (CO₂)": "Xeo seco (CO₂)",
+    "hielo seco": "xeo seco",
+    "CO₂ líquido": "CO₂ líquido",
+    "CO₂ gas": "CO₂ gas",
+    "Se usa para conservar alimentos congelados y para hacer «niebla» en los escenarios: no deja charco porque no pasa por líquido.": "Úsase para conservar alimentos conxelados e para facer «néboa» nos escenarios: non deixa charco porque non pasa por líquido.",
+    "A 1 atm no es líquido: sublima a <strong>{tf} °C</strong><br><em>¿Sabías que…?</em> {c}": "A 1 atm non é líquido: sublima a <strong>{tf} °C</strong><br><em>Sabías que…?</em> {c}",
+    "Sublimación  (sólido → gas)": "Sublimación  (sólido → gas)",
+    "Sublimación inversa  (gas → sólido)": "Sublimación inversa  (gas → sólido)",
+    "Sólido y gas a la vez": "Sólido e gas á vez",
+    "Las partículas escapan del sólido directamente como gas, sin pasar por líquido. La energía se gasta en separarlas: la temperatura se queda en {tf}.": "As partículas escapan do sólido directamente como gas, sen pasar por líquido. A enerxía gástase en separalas: a temperatura queda en {tf}.",
+    "Las partículas del gas pierden energía y se ordenan directamente en el sólido, sin pasar por líquido. La temperatura se mantiene en {tf}.": "As partículas do gas perden enerxía e ordénanse directamente no sólido, sen pasar por líquido. A temperatura mantense en {tf}.",
+    "Sólido y gas conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.": "Sólido e gas conviven a {tf}. Mentres non entre nin saia enerxía, a proporción non cambia.",
+    "SÓLIDO + GAS": "SÓLIDO + GAS",
+    "sublimación": "sublimación",
+
+    // Diagrama de fases del yodo
+    'Yodo (I₂)': 'Iodo (I₂)',
+    'yodo': 'iodo',
+    'El yodo': 'O iodo',
+    'A 1 atm el yodo funde a 114 °C y hierve a 184 °C. Por debajo de 0,12 atm pasa directamente de sólido a gas.': 'A 1 atm o iodo funde a 114 °C e ferve a 184 °C. Por debaixo de 0,12 atm pasa directamente de sólido a gas.',
+    'En el laboratorio': 'No laboratorio',
+    'Con poca presión': 'Con pouca presión',
+    'Yodo fundido': 'Iodo fundido',
+    'Al calentar yodo en un tubo abierto salen vapores violetas sin que se vea líquido. ¿Por qué, si a 1 atm funde?': 'Ao quentar iodo nun tubo aberto saen vapores violetas sen que se vexa líquido. Por que, se a 1 atm funde?',
+    '¿Por debajo de qué presión sublima el yodo sin fundirse?': 'Por debaixo de que presión sublima o iodo sen fundirse?',
+    '¿Qué temperatura hace falta para tener yodo líquido a 1 atm?': 'Que temperatura fai falta para ter iodo líquido a 1 atm?',
+
     // Modo diagrama de fases: lectura del estado
     'punto triple': 'punto triplo',
     'A {P} estás en el <strong>punto triple</strong>: a {T} °C pueden existir a la vez sólido, líquido y gas.':

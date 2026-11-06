@@ -69,6 +69,15 @@ const SUSTANCIAS = {
         col: { solid: '#8a6a5a', liquid: '#ff8a2a', gas: '#ffb070' }, flota: false,
         curiosidad: 'Para fundirlo hacen falta hornos a más de 1500 °C, como los altos hornos de las acerías.',
     },
+    // Hielo seco: a 1 atm no puede ser líquido y sublima a −78,5 °C
+    // (tf = teb = temperatura de sublimación; ver calcularTramos).
+    hieloSeco: {
+        nombre: 'Hielo seco (CO₂)', molecula: 'co2', sublima: true,
+        tf: -78.5, teb: -78.5, tMin: -120, tMax: 20, tIni: -110,
+        nombres: { solid: 'hielo seco', liquid: 'CO₂ líquido', gas: 'CO₂ gas' },
+        col: { solid: '#eef2f6', liquid: '#cfe0f0', gas: '#e4ecf4' }, flota: false,
+        curiosidad: 'Se usa para conservar alimentos congelados y para hacer «niebla» en los escenarios: no deja charco porque no pasa por líquido.',
+    },
 };
 
 // --- MODELO DE ENERGÍA (didáctico) ---
@@ -89,7 +98,10 @@ function calcularTramos(s) {
     const pL = C_REL.liquido * (s.teb - s.tf);
     const pG = C_REL.gas     * (s.tMax - s.teb);
     const k  = E_CALOR / (pS + pL + pG);
-    s.segE = [pS * k, E_FUSION, pL * k, E_VAPOR, pG * k];
+    // En la sublimación las partículas se separan del todo de una vez: absorbe
+    // la energía de la fusión y la de la vaporización juntas (como en la realidad).
+    s.segE = s.sublima ? [pS * k, E_FUSION + E_VAPOR, 0, 0, pG * k]
+                       : [pS * k, E_FUSION, pL * k, E_VAPOR, pG * k];
     s.eTot = s.segE.reduce((a, b) => a + b, 0);
 }
 Object.values(SUSTANCIAS).forEach(calcularTramos);
@@ -167,6 +179,11 @@ function estadoDesdeEnergia(E, s) {
         tramo = 'solido';
         T = lerp(s.tMin, s.tf, E / eS);
         fs = 1;
+    } else if (E < eS + eF && s.sublima) {
+        tramo = 'sublimacion';
+        T = s.tf;
+        fg = (E - eS) / eF;
+        fs = 1 - fg;
     } else if (E < eS + eF) {
         tramo = 'fusion';
         T = s.tf;
@@ -224,7 +241,9 @@ function marcarGrupo(selector, activo) {
 function cambiarSustancia(clave) {
     sus = SUSTANCIAS[clave];
     document.getElementById('sustancia-hint').innerHTML =
-        i18n.t('Funde a <strong>{tf} °C</strong> · Hierve a <strong>{teb} °C</strong><br><em>¿Sabías que…?</em> {c}',
+        i18n.t(sus.sublima
+                   ? 'A 1 atm no es líquido: sublima a <strong>{tf} °C</strong><br><em>¿Sabías que…?</em> {c}'
+                   : 'Funde a <strong>{tf} °C</strong> · Hierve a <strong>{teb} °C</strong><br><em>¿Sabías que…?</em> {c}',
                { tf: fmtT(sus.tf), teb: fmtT(sus.teb), c: i18n.t(sus.curiosidad) });
     reiniciar();
     updateCurvaUI();
@@ -241,6 +260,10 @@ function describirEstado(e) {
             if (signo > 0) return { txt: i18n.t('Fusión  (sólido → líquido)'), cls: 'st-change' };
             if (signo < 0) return { txt: i18n.t('Solidificación  (líquido → sólido)'), cls: 'st-change' };
             return { txt: i18n.t('Sólido y líquido a la vez'), cls: 'st-change' };
+        case 'sublimacion':
+            if (signo > 0) return { txt: i18n.t('Sublimación  (sólido → gas)'), cls: 'st-change' };
+            if (signo < 0) return { txt: i18n.t('Sublimación inversa  (gas → sólido)'), cls: 'st-change' };
+            return { txt: i18n.t('Sólido y gas a la vez'), cls: 'st-change' };
         case 'vaporizacion':
             if (signo > 0) return { txt: i18n.t('Vaporización  (líquido → gas)'), cls: 'st-change' };
             if (signo < 0) return { txt: i18n.t('Condensación  (gas → líquido)'), cls: 'st-change' };
@@ -401,6 +424,13 @@ function mensajeDidactico() {
                 txt: i18n.t('Las partículas del líquido pierden energía y vuelven a ordenarse. La temperatura se mantiene en {tf} hasta que todo es sólido.', { tf }) };
             return { tag: i18n.t('EQUILIBRIO'), col: THEME.change,
                 txt: i18n.t('Sólido y líquido conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.', { tf }) };
+        case 'sublimacion':
+            if (s > 0) return { tag: i18n.t('SUBLIMACIÓN'), col: THEME.change,
+                txt: i18n.t('Las partículas escapan del sólido directamente como gas, sin pasar por líquido. La energía se gasta en separarlas: la temperatura se queda en {tf}.', { tf }) };
+            if (s < 0) return { tag: i18n.t('SUBLIMACIÓN INVERSA'), col: THEME.change,
+                txt: i18n.t('Las partículas del gas pierden energía y se ordenan directamente en el sólido, sin pasar por líquido. La temperatura se mantiene en {tf}.', { tf }) };
+            return { tag: i18n.t('EQUILIBRIO'), col: THEME.change,
+                txt: i18n.t('Sólido y gas conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.', { tf }) };
         case 'liquido':
             if (s > 0) return { tag: i18n.t('LÍQUIDO'), col: THEME.liquid,
                 txt: i18n.t('El {s} se calienta: sus partículas se mueven y se deslizan cada vez más rápido.', { s: N.liquid }) };
@@ -945,12 +975,12 @@ function drawMicroView() {
     drawLeyendaEstados();
 }
 
-// Forma de las partículas: el agua, el nitrógeno y el CO₂ se dibujan como
-// moléculas (átomos con sus colores habituales: O rojo, H blanco, N azul, C gris);
+// Forma de las partículas: el agua, el nitrógeno, el CO₂ y el yodo se dibujan como
+// moléculas (átomos con sus colores habituales: O rojo, H blanco, N azul, C gris, I violeta);
 // el resto, como esferas.
-const COL_ATOMO = { O: '#e5484d', H: '#f4f6f8', N: '#5b84ff', C: '#8a929c' };
+const COL_ATOMO = { O: '#e5484d', H: '#f4f6f8', N: '#5b84ff', C: '#8a929c', I: '#9b5bd6' };
 function tipoMolecula() {
-    if (currentMode === 'fases') return dg === DIAGRAMAS.agua ? 'h2o' : 'co2';
+    if (currentMode === 'fases') return dg.molecula;
     return sus.molecula || 'esfera';
 }
 
@@ -982,6 +1012,10 @@ function dibujarParticulas() {
             fill(COL_ATOMO.N);
             circle(-R * 0.42, 0, R * 1.1);
             circle( R * 0.42, 0, R * 1.1);
+        } else if (tipo === 'i2') {
+            fill(COL_ATOMO.I);
+            circle(-R * 0.4, 0, R * 1.15);
+            circle( R * 0.4, 0, R * 1.15);
         } else if (tipo === 'co2') {
             fill(COL_ATOMO.O);
             circle(-R * 0.72, 0, R * 0.9);
@@ -1119,7 +1153,7 @@ function ejeTiempoMax() {
 function tramosHistorial() {
     const tramos = [];
     historial.forEach((m, i) => {
-        const meseta = m.tramo === 'fusion' || m.tramo === 'vaporizacion';
+        const meseta = m.tramo === 'fusion' || m.tramo === 'vaporizacion' || m.tramo === 'sublimacion';
         const clave = meseta ? m.tramo + m.signo : m.tramo;
         const ult = tramos[tramos.length - 1];
         if (ult && ult.clave === clave) { ult.fin = m; ult.iFin = i; }
@@ -1130,10 +1164,13 @@ function tramosHistorial() {
 
 function colorTramo(tramo) {
     return { solido: THEME.solid, liquido: THEME.liquid, gas: THEME.gas,
-             fusion: THEME.change, vaporizacion: THEME.change }[tramo];
+             fusion: THEME.change, vaporizacion: THEME.change, sublimacion: THEME.change }[tramo];
 }
 
 function nombreMeseta(tr) {
+    if (tr.tramo === 'sublimacion') {
+        return i18n.t(tr.signo > 0 ? 'SUBLIMACIÓN' : tr.signo < 0 ? 'SUBLIMACIÓN INVERSA' : 'SÓLIDO + GAS');
+    }
     if (tr.tramo === 'fusion') {
         return i18n.t(tr.signo > 0 ? 'FUSIÓN' : tr.signo < 0 ? 'SOLIDIFICACIÓN' : 'SÓLIDO + LÍQUIDO');
     }
@@ -1172,8 +1209,12 @@ function drawGraph() {
     text(i18n.t('tiempo simulado (min)'), x1, y1 + 20);
 
     // Temperaturas de fusión y ebullición
-    lineaReferencia(yOf(sus.tf),  i18n.t('fusión'),     fmtT(sus.tf) + ' °C',  THEME.solid);
-    lineaReferencia(yOf(sus.teb), i18n.t('ebullición'), fmtT(sus.teb) + ' °C', THEME.gas);
+    if (sus.sublima) {
+        lineaReferencia(yOf(sus.tf), i18n.t('sublimación'), fmtT(sus.tf) + ' °C', THEME.change);
+    } else {
+        lineaReferencia(yOf(sus.tf),  i18n.t('fusión'),     fmtT(sus.tf) + ' °C',  THEME.solid);
+        lineaReferencia(yOf(sus.teb), i18n.t('ebullición'), fmtT(sus.teb) + ' °C', THEME.gas);
+    }
 
     if (historial.length < 2) return;
 
@@ -1271,8 +1312,12 @@ function drawThermometer(T) {
     }
 
     // Marcas de fusión y ebullición
-    marcaTermometro(yOf(sus.tf),  i18n.t('fusión'),     sus.tf,  THEME.solid);
-    marcaTermometro(yOf(sus.teb), i18n.t('ebullición'), sus.teb, THEME.gas);
+    if (sus.sublima) {
+        marcaTermometro(yOf(sus.tf), i18n.t('sublimación'), sus.tf, THEME.change);
+    } else {
+        marcaTermometro(yOf(sus.tf),  i18n.t('fusión'),     sus.tf,  THEME.solid);
+        marcaTermometro(yOf(sus.teb), i18n.t('ebullición'), sus.teb, THEME.gas);
+    }
 
     // Lectura digital
     noStroke(); fill(THEME.text); textAlign(CENTER, BOTTOM); textSize(15); textStyle(BOLD);
