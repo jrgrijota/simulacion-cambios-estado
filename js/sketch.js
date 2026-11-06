@@ -221,7 +221,11 @@ function reiniciar() {
 function alternarPausa() {
     enMarcha = !enMarcha;
     const btn = document.getElementById('btn-pausa');
-    btn.textContent = i18n.t(enMarcha ? '⏸ Pausar' : '▶ Reanudar');
+    btn.innerHTML = enMarcha ? ICONO_PAUSA : ICONO_PLAY;
+    const txt = document.createElement('span');
+    txt.className = 'btn-txt';
+    txt.textContent = i18n.t(enMarcha ? 'Pausar' : 'Reanudar');
+    btn.appendChild(txt);
     btn.setAttribute('aria-pressed', String(!enMarcha));
     btn.classList.toggle('active', !enMarcha);
     document.body.classList.toggle('en-pausa', !enMarcha);
@@ -229,9 +233,20 @@ function alternarPausa() {
         i18n.t(enMarcha ? 'Simulación en marcha.' : 'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.');
 }
 
+const ICONO_PAUSA = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.6" height="12" rx="1"/><rect x="9.4" y="2" width="3.6" height="12" rx="1"/></svg>';
+const ICONO_PLAY  = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.2v11.6c0 .6.7 1 1.2.7l9-5.8c.5-.3.5-1 0-1.4l-9-5.8C4.7 1.2 4 1.6 4 2.2z"/></svg>';
+
+// Marca como activo un botón de un grupo de opciones (role="radio")
+function marcarGrupo(selector, activo) {
+    document.querySelectorAll(selector).forEach(b => {
+        b.classList.toggle('active', b === activo);
+        b.setAttribute('aria-checked', String(b === activo));
+    });
+}
+
 // Aviso «EN PAUSA» sobre la ventana de partículas
 function drawAvisoPausa() {
-    if (enMarcha) return;
+    if (enMarcha || currentMode !== 'curva') return;
     const txt = i18n.t('EN PAUSA · temperatura fija');
     textSize(13); textStyle(BOLD);
     const w = textWidth(txt) + 44, h = 26;
@@ -286,13 +301,35 @@ function setupCurvaControls() {
     slPot.addEventListener('input', () => setPotencia(parseInt(slPot.value, 10)));
     setPotencia(parseInt(slPot.value, 10));
 
-    document.querySelectorAll('.seg-btn[data-speed]').forEach(btn => {
+    document.querySelectorAll('[data-speed]').forEach(btn => {
         btn.addEventListener('click', () => {
             velocidad = parseFloat(btn.dataset.speed);
-            document.querySelectorAll('.seg-btn[data-speed]').forEach(b => {
-                b.classList.toggle('active', b === btn);
-                b.setAttribute('aria-checked', String(b === btn));
-            });
+            marcarGrupo('[data-speed]', btn);
+        });
+    });
+
+    // Botones rápidos de la placa: cambian el sentido y conservan la intensidad
+    // elegida en el deslizador (al encender desde «Apagar», al 50 %).
+    document.querySelectorAll('[data-placa]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const signo = parseInt(btn.dataset.placa, 10);
+            const mag = Math.abs(parseInt(slPot.value, 10)) || 50;
+            slPot.value = signo * mag;
+            setPotencia(signo * mag);
+        });
+    });
+
+    // En los grupos de opciones, las flechas pasan a la opción vecina (como en un grupo de radio)
+    document.querySelectorAll('.dock-seg[role="radiogroup"]').forEach(grupo => {
+        grupo.addEventListener('keydown', (e) => {
+            const paso = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+            if (!paso) return;
+            e.preventDefault();
+            const btns = [...grupo.querySelectorAll('button')];
+            const i = btns.indexOf(document.activeElement);
+            const sig = btns[(i + paso + btns.length) % btns.length];
+            sig.focus();
+            sig.click();
         });
     });
 
@@ -303,11 +340,12 @@ function setupCurvaControls() {
     // No actúan si el foco está en un control, que ya usa esas teclas.
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (currentMode !== 'curva') return;
         if (e.target.closest('button, input, select, textarea, summary, a')) return;
         if (e.key === ' ') {
             e.preventDefault();
             alternarPausa();
-        } else if ((e.key === 'r' || e.key === 'R') && currentMode === 'curva') {
+        } else if (e.key === 'r' || e.key === 'R') {
             reiniciar();
         }
     });
@@ -328,6 +366,9 @@ function setPotencia(v) {
     sl.style.setProperty('--pc', v >= 0 ? '#ff5a5acc' : '#3a8ee6cc');
     document.getElementById('val-potencia').textContent =
         v === 0 ? '0 %' : (v > 0 ? '+' : '−') + Math.abs(v) + ' %';
+
+    const signo = Math.sign(v);
+    marcarGrupo('[data-placa]', document.querySelector('[data-placa="' + signo + '"]'));
 
     const placa = document.getElementById('metric-placa');
     placa.textContent = i18n.t(v > 0 ? 'Calienta' : v < 0 ? 'Enfría' : 'Apagada');

@@ -543,9 +543,7 @@ function drawFasesMode() {
 
     detectarCambio();
     const sit = situacion();
-    // En pausa las partículas siguen moviéndose, pero no cambian de estado
-    // (al reanudar se ponen al día con el punto del diagrama).
-    if (enMarcha && avanzarFracciones(sit)) equilibrioDinamico(sit);
+    if (avanzarFracciones(sit)) equilibrioDinamico(sit);
     updateParticles(fasesFr, agitacionFases());
     drawFasesParticulas();
     drawRetos();

@@ -934,21 +934,86 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
 /* ════════════════════════════════════════════════════
    BOTONES SOBRE EL CANVAS (pausa, reinicio)
 ════════════════════════════════════════════════════ */
-.canvas-toolbar {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
+.sim-dock {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px 20px;
+    padding: 12px 16px 0;
+    width: 100%;
+}
+.dock-group { display: flex; align-items: center; gap: 8px; }
+.dock-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #8aa0b0;
+}
+.dock-seg {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    background: #141c24;
+    border: 1.5px solid #2a3d50;
+    border-radius: 22px;
+}
+.dock-seg-btn {
+    background: transparent;
+    border: 1.5px solid transparent;
+    color: #a8bccb;
+    min-height: 34px;
+    padding: 4px 12px;
+    border-radius: 18px;
+    font-family: system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.dock-seg-btn:hover { color: #ffffff; background: #1d2a36; }
+.dock-seg-btn.active { background: #0e2a3a; border-color: #00c8ff; color: #00c8ff; }
+.dock-seg-btn.seg-hot.active  { background: #3a1610; border-color: #ff6a4a; color: #ff8a6a; }
+.dock-seg-btn.seg-cold.active { background: #0f2240; border-color: #5aa8ff; color: #8cc4ff; }
+.dock-seg-btn.seg-off.active  { background: #22282e; border-color: #8a9aa8; color: #e0e6ec; }
+
+body.theme-light .dock-label { color: #3e5670; }
+body.theme-light .dock-seg { background: #e6ecf3; border-color: #a8b8cc; }
+body.theme-light .dock-seg-btn { color: #2e4a66; }
+body.theme-light .dock-seg-btn:hover { background: #d4e0ec; color: #10263c; }
+body.theme-light .dock-seg-btn.active { background: #ffffff; border-color: #0077a0; color: #00567a; }
+body.theme-light .dock-seg-btn.seg-hot.active  { background: #fff0ec; border-color: #c0402a; color: #a0301c; }
+body.theme-light .dock-seg-btn.seg-cold.active { background: #eaf3ff; border-color: #1a6ab0; color: #145a96; }
+body.theme-light .dock-seg-btn.seg-off.active  { background: #ffffff; border-color: #5a6a7a; color: #26323e; }
+body.theme-contrast .dock-label { color: #ffff00; }
+body.theme-contrast .dock-seg { background: #000; border-color: #00ffff; }
+body.theme-contrast .dock-seg-btn { color: #ffffff; }
+body.theme-contrast .dock-seg-btn:hover { background: #111; }
+body.theme-contrast .dock-seg-btn.active,
+body.theme-contrast .dock-seg-btn.seg-hot.active,
+body.theme-contrast .dock-seg-btn.seg-cold.active,
+body.theme-contrast .dock-seg-btn.seg-off.active { background: #ffff00; border-color: #ffff00; color: #000; }
+
+.canvas-btn .ico { width: 14px; height: 14px; fill: currentColor; flex: none; }
+
+.girar-movil { display: none; }
+@media (max-width: 600px) and (orientation: portrait) {
+    .girar-movil {
+        display: block;
+        margin: 8px 12px 0;
+        font-size: 0.8rem;
+        color: #8aa0b0;
+        text-align: center;
+    }
 }
 
 .canvas-btn {
     background: #1a2530;
     border: 1.5px solid #3a5268;
     color: #c4d4e0;
-    padding: 8px 20px;
+    padding: 8px 18px;
     min-height: 40px;
     border-radius: 22px;
     font-size: 0.95rem;
@@ -958,6 +1023,10 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
     cursor: pointer;
     font-family: system-ui, sans-serif;
     user-select: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .canvas-btn:hover {
@@ -976,7 +1045,7 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
 /* Botón principal (pausa): siempre en el color de acento para que se vea a la primera.
    En pausa se rellena y late suavemente para recordar que la simulación está parada. */
 .canvas-btn-main {
-    min-width: 140px;
+    min-width: 128px;
     border-color: #00c8ff;
     color: #00c8ff;
     background: #0b1d29;
@@ -1011,6 +1080,7 @@ body.theme-contrast .canvas-btn-main[aria-pressed="true"]:hover { background: #f
 ════════════════════════════════════════════════════ */
 .simulation-panel {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background-color: #111111;
@@ -1021,11 +1091,12 @@ body.theme-contrast .canvas-btn-main[aria-pressed="true"]:hover { background: #f
 
 #canvas-container {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: 10px 14px 52px;   /* abajo, franja para el sello y el botón de tema */
 }
 
 #canvas-container canvas {
@@ -1034,8 +1105,6 @@ body.theme-contrast .canvas-btn-main[aria-pressed="true"]:hover { background: #f
     /* El tamaño lo calcula fitCanvas() manteniendo la proporción 3:2 */
 }
 
-/* Hueco para los botones de pausa y reinicio */
-#canvas-container { padding-top: 62px; }
 
 /* Foco visible para quien navega con teclado */
 button:focus-visible,
@@ -1165,10 +1234,13 @@ body.theme-contrast summary:focus-visible { outline-color: #ffff00; }
     .metrics-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* En el móvil el sello baja a la esquina inferior izquierda y los botones
-   ocupan la franja de arriba, centrados */
+/* Pantallas estrechas: controles más compactos */
+@media (max-width: 900px) {
+    .dock-label { display: none; }
+}
 @media (max-width: 700px) {
-    .canvas-toolbar { top: 10px; }
+    .sim-dock { padding: 10px 10px 0; gap: 8px 12px; }
     .canvas-btn { padding: 7px 16px; font-size: 0.9rem; }
     .canvas-btn-main { min-width: 0; }
+    .dock-seg-btn { padding: 4px 11px; }
 }

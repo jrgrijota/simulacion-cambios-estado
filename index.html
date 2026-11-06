@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="js/estadisticas.js" data-sim="sim-cambios-estado"></script>
-    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="tl" data-esquina-movil="bl" data-ancho-movil="700"></script>
+    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="bl"></script>
 </head>
 <body class="mode-curva">
     <div class="app-container">
@@ -106,14 +106,6 @@
                     <div class="slider-bounds"><span class="bound-cold">❄ Enfriar</span><span>Apagada</span><span class="bound-hot">Calentar 🔥</span></div>
                 </div>
 
-                <div class="input-wrapper">
-                    <label>Velocidad de la simulación</label>
-                    <div class="seg-control" role="radiogroup" aria-label="Velocidad de la simulación">
-                        <button type="button" class="seg-btn active" data-speed="1" role="radio" aria-checked="true">×1</button>
-                        <button type="button" class="seg-btn" data-speed="2" role="radio" aria-checked="false">×2</button>
-                        <button type="button" class="seg-btn" data-speed="4" role="radio" aria-checked="false">×4</button>
-                    </div>
-                </div>
                 <p class="field-hint">El recipiente está aislado y cerrado con una tapa móvil: no se escapa materia ni energía y la presión se mantiene en 1 atm. Si apagas la placa, todo se queda como está.</p>
             </section>
 
@@ -278,10 +270,30 @@
         <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
         <main class="simulation-panel">
 
-            <div class="canvas-toolbar">
-                <button id="btn-pausa" type="button" class="canvas-btn canvas-btn-main" aria-pressed="false" aria-keyshortcuts="Space" title="Pausar o reanudar (barra espaciadora)">⏸ Pausar</button>
-                <button id="btn-reiniciar" type="button" class="canvas-btn only-curva" aria-keyshortcuts="R" title="Volver al principio (tecla R)">↺ Reiniciar</button>
+            <!-- Controles principales, junto a la simulación -->
+            <div class="sim-dock only-curva">
+                <div class="dock-group">
+                    <button id="btn-pausa" type="button" class="canvas-btn canvas-btn-main" aria-pressed="false" aria-keyshortcuts="Space" title="Pausar o reanudar (barra espaciadora)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.6" height="12" rx="1"/><rect x="9.4" y="2" width="3.6" height="12" rx="1"/></svg><span class="btn-txt">Pausar</span></button>
+                    <button id="btn-reiniciar" type="button" class="canvas-btn" aria-keyshortcuts="R" title="Volver al principio (tecla R)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 3.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M1.6 2.2l1.5 4.3 4.2-1.6z"/></svg><span class="btn-txt">Reiniciar</span></button>
+                </div>
+                <div class="dock-group">
+                    <span class="dock-label" id="lbl-placa">Placa</span>
+                    <div class="dock-seg" role="radiogroup" aria-labelledby="lbl-placa">
+                        <button type="button" class="dock-seg-btn seg-cold" data-placa="-1" role="radio" aria-checked="false">❄ Enfriar</button>
+                        <button type="button" class="dock-seg-btn seg-off" data-placa="0" role="radio" aria-checked="false">Apagar</button>
+                        <button type="button" class="dock-seg-btn seg-hot" data-placa="1" role="radio" aria-checked="true">🔥 Calentar</button>
+                    </div>
+                </div>
+                <div class="dock-group">
+                    <span class="dock-label" id="lbl-velocidad">Velocidad</span>
+                    <div class="dock-seg" role="radiogroup" aria-labelledby="lbl-velocidad">
+                        <button type="button" class="dock-seg-btn active" data-speed="1" role="radio" aria-checked="true" aria-label="Velocidad ×1">×1</button>
+                        <button type="button" class="dock-seg-btn" data-speed="2" role="radio" aria-checked="false" aria-label="Velocidad ×2">×2</button>
+                        <button type="button" class="dock-seg-btn" data-speed="4" role="radio" aria-checked="false" aria-label="Velocidad ×4">×4</button>
+                    </div>
+                </div>
             </div>
+            <p class="girar-movil">Gira el móvil para ver la simulación más grande.</p>
 
             <!-- Botón de tema -->
             <button id="theme-btn" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema" aria-expanded="false">
