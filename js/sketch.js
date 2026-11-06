@@ -136,7 +136,7 @@ function draw() {
     if (currentMode === 'curva') {
         actualizarModelo();
         drawMacroView();
-        updateParticles(estado, agitacion(estado.T, sus.tMin, sus.tf, sus.teb, sus.tMax), enMarcha);
+        updateParticles(estado, agitacion(estado.T, sus.tMin, sus.tf, sus.teb, sus.tMax));
         drawMicroView();
         drawGraph();
         drawBanner(mensajeDidactico());
@@ -215,8 +215,9 @@ function reiniciar() {
     estado = estadoDesdeEnergia(energia, sus);
 }
 
-// Pausa: se congela todo (tiempo, energía, partículas, burbujas y gotas).
-// Sirve en los dos modos, para parar las partículas y explicarlas.
+// Pausa: se detienen el tiempo y el aporte de energía, así que la temperatura y el
+// estado se quedan fijos. Las partículas siguen moviéndose como corresponde a esa
+// temperatura (su agitación térmica no se para), para poder explicarla.
 function alternarPausa() {
     enMarcha = !enMarcha;
     const btn = document.getElementById('btn-pausa');
@@ -225,13 +226,13 @@ function alternarPausa() {
     btn.classList.toggle('active', !enMarcha);
     document.body.classList.toggle('en-pausa', !enMarcha);
     document.getElementById('anuncio').textContent =
-        i18n.t(enMarcha ? 'Simulación en marcha.' : 'Simulación en pausa: las partículas se quedan quietas.');
+        i18n.t(enMarcha ? 'Simulación en marcha.' : 'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.');
 }
 
 // Aviso «EN PAUSA» sobre la ventana de partículas
 function drawAvisoPausa() {
     if (enMarcha) return;
-    const txt = i18n.t('EN PAUSA');
+    const txt = i18n.t('EN PAUSA · temperatura fija');
     textSize(13); textStyle(BOLD);
     const w = textWidth(txt) + 44, h = 26;
     const x = LENS.x + LENS.w / 2 - w / 2, y = LENS.y + 10;
@@ -842,9 +843,8 @@ function agitacion(T, tMin, tFus, tEb, tMax) {
 }
 
 // est: fracciones { fs, fl, fg } · ag: agitación · activo: si se mueven
-function updateParticles(est, ag, activo) {
+function updateParticles(est, ag) {
     asignarEstados(est);
-    if (!activo) return;
 
     const { ampSol, vLiq, vGas } = ag;
     const t = millis() * 0.02;

@@ -161,9 +161,9 @@ window.I18N_GL = {
     '↺ Reiniciar': '↺ Reiniciar',
     'Pausar o reanudar (barra espaciadora)': 'Pausar ou continuar (barra de espazo)',
     'Volver al principio (tecla R)': 'Volver ao principio (tecla R)',
-    'EN PAUSA': 'EN PAUSA',
+    'EN PAUSA · temperatura fija': 'EN PAUSA · temperatura fixa',
     'Simulación en marcha.': 'Simulación en marcha.',
-    'Simulación en pausa: las partículas se quedan quietas.': 'Simulación en pausa: as partículas quedan quietas.',
+    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulación en pausa: a temperatura non cambia e as partículas seguen movéndose.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Conceptos clave',

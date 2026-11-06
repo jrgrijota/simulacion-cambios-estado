@@ -161,9 +161,9 @@ window.I18N_EN = {
     '↺ Reiniciar': '↺ Restart',
     'Pausar o reanudar (barra espaciadora)': 'Pause or resume (space bar)',
     'Volver al principio (tecla R)': 'Back to the start (R key)',
-    'EN PAUSA': 'PAUSED',
+    'EN PAUSA · temperatura fija': 'PAUSED · fixed temperature',
     'Simulación en marcha.': 'Simulation running.',
-    'Simulación en pausa: las partículas se quedan quietas.': 'Simulation paused: the particles stay still.',
+    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulation paused: the temperature does not change and the particles keep moving.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Key concepts',

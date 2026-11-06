@@ -161,9 +161,9 @@ window.I18N_CA = {
     '↺ Reiniciar': '↺ Reinicia',
     'Pausar o reanudar (barra espaciadora)': "Posa en pausa o reprèn (barra d'espai)",
     'Volver al principio (tecla R)': 'Torna al principi (tecla R)',
-    'EN PAUSA': 'EN PAUSA',
+    'EN PAUSA · temperatura fija': 'EN PAUSA · temperatura fixa',
     'Simulación en marcha.': 'Simulació en marxa.',
-    'Simulación en pausa: las partículas se quedan quietas.': 'Simulació en pausa: les partícules es queden quietes.',
+    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulació en pausa: la temperatura no canvia i les partícules continuen movent-se.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Conceptes clau',

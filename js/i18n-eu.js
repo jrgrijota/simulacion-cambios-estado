@@ -161,9 +161,9 @@ window.I18N_EU = {
     '↺ Reiniciar': '↺ Berrabiarazi',
     'Pausar o reanudar (barra espaciadora)': 'Pausatu edo jarraitu (zuriune-barra)',
     'Volver al principio (tecla R)': 'Hasierara itzuli (R tekla)',
-    'EN PAUSA': 'PAUSAN',
+    'EN PAUSA · temperatura fija': 'PAUSAN · tenperatura finkoa',
     'Simulación en marcha.': 'Simulazioa martxan.',
-    'Simulación en pausa: las partículas se quedan quietas.': 'Simulazioa pausan: partikulak geldi geratzen dira.',
+    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulazioa pausan: tenperatura ez da aldatzen eta partikulek mugitzen jarraitzen dute.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Funtsezko kontzeptuak',
