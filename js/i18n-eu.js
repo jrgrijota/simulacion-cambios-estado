@@ -156,8 +156,6 @@ window.I18N_EU = {
     'LÍQUIDO + GAS': 'LIKIDOA + GASA',
 
     // Modo curva: botones del lienzo
-    'Pausar': 'Pausatu',
-    'Reanudar': 'Jarraitu',
     'Reiniciar': 'Berrabiarazi',
     'Apagar': 'Itzali',
     '🔥 Calentar': '🔥 Berotu',
@@ -166,11 +164,7 @@ window.I18N_EU = {
     'Velocidad ×2': 'Abiadura ×2',
     'Velocidad ×4': 'Abiadura ×4',
     'Gira el móvil para ver la simulación más grande.': 'Biratu mugikorra simulazioa handiago ikusteko.',
-    'Pausar o reanudar (barra espaciadora)': 'Pausatu edo jarraitu (zuriune-barra)',
     'Volver al principio (tecla R)': 'Hasierara itzuli (R tekla)',
-    'EN PAUSA · temperatura fija': 'PAUSAN · tenperatura finkoa',
-    'Simulación en marcha.': 'Simulazioa martxan.',
-    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulazioa pausan: tenperatura ez da aldatzen eta partikulek mugitzen jarraitzen dute.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Funtsezko kontzeptuak',

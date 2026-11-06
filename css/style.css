@@ -1042,38 +1042,6 @@ body.theme-contrast .dock-seg-btn.seg-off.active { background: #ffff00; border-c
     box-shadow: 0 0 14px #00c8ff28;
 }
 
-/* Botón principal (pausa): siempre en el color de acento para que se vea a la primera.
-   En pausa se rellena y late suavemente para recordar que la simulación está parada. */
-.canvas-btn-main {
-    min-width: 128px;
-    border-color: #00c8ff;
-    color: #00c8ff;
-    background: #0b1d29;
-}
-.canvas-btn-main:hover { background: #0e2a3a; border-color: #00c8ff; color: #7fe3ff; }
-.canvas-btn-main[aria-pressed="true"] {
-    background: #00c8ff;
-    border-color: #00c8ff;
-    color: #04121a;
-    animation: latido-pausa 1.8s ease-in-out infinite;
-}
-.canvas-btn-main[aria-pressed="true"]:hover { background: #5ad9ff; color: #04121a; }
-@keyframes latido-pausa {
-    0%, 100% { box-shadow: 0 0 0 0 #00c8ff55; }
-    50%      { box-shadow: 0 0 0 7px #00c8ff00; }
-}
-@media (prefers-reduced-motion: reduce) {
-    .canvas-btn-main[aria-pressed="true"] { animation: none; }
-}
-
-body.theme-light .canvas-btn-main            { background: #e6f3fa; border-color: #0077a0; color: #00567a; }
-body.theme-light .canvas-btn-main:hover      { background: #d2eaf6; border-color: #0077a0; color: #003a55; }
-body.theme-light .canvas-btn-main[aria-pressed="true"],
-body.theme-light .canvas-btn-main[aria-pressed="true"]:hover { background: #0077a0; border-color: #0077a0; color: #ffffff; }
-body.theme-contrast .canvas-btn-main            { background: #000000; border-color: #00ffff; color: #00ffff; }
-body.theme-contrast .canvas-btn-main:hover      { border-color: #ffffff; color: #ffffff; }
-body.theme-contrast .canvas-btn-main[aria-pressed="true"],
-body.theme-contrast .canvas-btn-main[aria-pressed="true"]:hover { background: #ffff00; border-color: #ffff00; color: #000000; box-shadow: none; }
 
 /* ════════════════════════════════════════════════════
    PANEL DE SIMULACIÓN (CANVAS)
@@ -1241,6 +1209,5 @@ body.theme-contrast summary:focus-visible { outline-color: #ffff00; }
 @media (max-width: 700px) {
     .sim-dock { padding: 10px 10px 0; gap: 8px 12px; }
     .canvas-btn { padding: 7px 16px; font-size: 0.9rem; }
-    .canvas-btn-main { min-width: 0; }
     .dock-seg-btn { padding: 4px 11px; }
 }

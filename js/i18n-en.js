@@ -156,8 +156,6 @@ window.I18N_EN = {
     'LÍQUIDO + GAS': 'LIQUID + GAS',
 
     // Modo curva: botones del lienzo
-    'Pausar': 'Pause',
-    'Reanudar': 'Resume',
     'Reiniciar': 'Restart',
     'Apagar': 'Off',
     '🔥 Calentar': '🔥 Heat',
@@ -166,11 +164,7 @@ window.I18N_EN = {
     'Velocidad ×2': 'Speed ×2',
     'Velocidad ×4': 'Speed ×4',
     'Gira el móvil para ver la simulación más grande.': 'Turn your phone sideways to see the simulation bigger.',
-    'Pausar o reanudar (barra espaciadora)': 'Pause or resume (space bar)',
     'Volver al principio (tecla R)': 'Back to the start (R key)',
-    'EN PAUSA · temperatura fija': 'PAUSED · fixed temperature',
-    'Simulación en marcha.': 'Simulation running.',
-    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulation paused: the temperature does not change and the particles keep moving.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Key concepts',

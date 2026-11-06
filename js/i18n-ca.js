@@ -156,8 +156,6 @@ window.I18N_CA = {
     'LÍQUIDO + GAS': 'LÍQUID + GAS',
 
     // Modo curva: botones del lienzo
-    'Pausar': 'Pausa',
-    'Reanudar': 'Reprèn',
     'Reiniciar': 'Reinicia',
     'Apagar': 'Apaga',
     '🔥 Calentar': '🔥 Escalfa',
@@ -166,11 +164,7 @@ window.I18N_CA = {
     'Velocidad ×2': 'Velocitat ×2',
     'Velocidad ×4': 'Velocitat ×4',
     'Gira el móvil para ver la simulación más grande.': 'Gira el mòbil per veure la simulació més gran.',
-    'Pausar o reanudar (barra espaciadora)': "Posa en pausa o reprèn (barra d'espai)",
     'Volver al principio (tecla R)': 'Torna al principi (tecla R)',
-    'EN PAUSA · temperatura fija': 'EN PAUSA · temperatura fixa',
-    'Simulación en marcha.': 'Simulació en marxa.',
-    'Simulación en pausa: la temperatura no cambia y las partículas siguen moviéndose.': 'Simulació en pausa: la temperatura no canvia i les partícules continuen movent-se.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Conceptes clau',
