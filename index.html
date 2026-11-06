@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="js/estadisticas.js" data-sim="sim-cambios-estado"></script>
-    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="tl"></script>
+    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="tl" data-esquina-movil="bl" data-ancho-movil="700"></script>
 </head>
 <body class="mode-curva">
     <div class="app-container">
@@ -278,9 +278,9 @@
         <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
         <main class="simulation-panel">
 
-            <div class="canvas-toolbar only-curva">
-                <button id="btn-pausa" type="button" class="canvas-btn" aria-pressed="false">⏸ Pausar</button>
-                <button id="btn-reiniciar" type="button" class="canvas-btn">↺ Reiniciar</button>
+            <div class="canvas-toolbar">
+                <button id="btn-pausa" type="button" class="canvas-btn canvas-btn-main" aria-pressed="false" aria-keyshortcuts="Space" title="Pausar o reanudar (barra espaciadora)">⏸ Pausar</button>
+                <button id="btn-reiniciar" type="button" class="canvas-btn only-curva" aria-keyshortcuts="R" title="Volver al principio (tecla R)">↺ Reiniciar</button>
             </div>
 
             <!-- Botón de tema -->

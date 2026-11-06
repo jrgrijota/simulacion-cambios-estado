@@ -159,6 +159,11 @@ window.I18N_EN = {
     '⏸ Pausar': '⏸ Pause',
     '▶ Reanudar': '▶ Resume',
     '↺ Reiniciar': '↺ Restart',
+    'Pausar o reanudar (barra espaciadora)': 'Pause or resume (space bar)',
+    'Volver al principio (tecla R)': 'Back to the start (R key)',
+    'EN PAUSA': 'PAUSED',
+    'Simulación en marcha.': 'Simulation running.',
+    'Simulación en pausa: las partículas se quedan quietas.': 'Simulation paused: the particles stay still.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Key concepts',

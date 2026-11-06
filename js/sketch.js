@@ -144,6 +144,7 @@ function draw() {
     } else {
         drawFasesMode();
     }
+    drawAvisoPausa();
 }
 
 // Ratón y pantalla táctil (p5 traduce los toques a eventos de ratón)
@@ -214,6 +215,37 @@ function reiniciar() {
     estado = estadoDesdeEnergia(energia, sus);
 }
 
+// Pausa: se congela todo (tiempo, energía, partículas, burbujas y gotas).
+// Sirve en los dos modos, para parar las partículas y explicarlas.
+function alternarPausa() {
+    enMarcha = !enMarcha;
+    const btn = document.getElementById('btn-pausa');
+    btn.textContent = i18n.t(enMarcha ? '⏸ Pausar' : '▶ Reanudar');
+    btn.setAttribute('aria-pressed', String(!enMarcha));
+    btn.classList.toggle('active', !enMarcha);
+    document.body.classList.toggle('en-pausa', !enMarcha);
+    document.getElementById('anuncio').textContent =
+        i18n.t(enMarcha ? 'Simulación en marcha.' : 'Simulación en pausa: las partículas se quedan quietas.');
+}
+
+// Aviso «EN PAUSA» sobre la ventana de partículas
+function drawAvisoPausa() {
+    if (enMarcha) return;
+    const txt = i18n.t('EN PAUSA');
+    textSize(13); textStyle(BOLD);
+    const w = textWidth(txt) + 44, h = 26;
+    const x = LENS.x + LENS.w / 2 - w / 2, y = LENS.y + 10;
+    stroke(THEME.accent); strokeWeight(1.5); fill(THEME.panelBg);
+    rect(x, y, w, h, h / 2);
+    // Símbolo de pausa dibujado (el carácter ⏸ no está en todas las fuentes monoespaciadas)
+    noStroke(); fill(THEME.accent);
+    rect(x + 14, y + 8, 3.5, 10, 1);
+    rect(x + 20, y + 8, 3.5, 10, 1);
+    textAlign(LEFT, CENTER);
+    text(txt, x + 30, y + h / 2 + 1);
+    textStyle(NORMAL);
+}
+
 function cambiarSustancia(clave) {
     sus = SUSTANCIAS[clave];
     document.getElementById('sustancia-hint').innerHTML =
@@ -263,15 +295,21 @@ function setupCurvaControls() {
         });
     });
 
-    const btnPausa = document.getElementById('btn-pausa');
-    btnPausa.addEventListener('click', () => {
-        enMarcha = !enMarcha;
-        btnPausa.textContent = i18n.t(enMarcha ? '⏸ Pausar' : '▶ Reanudar');
-        btnPausa.setAttribute('aria-pressed', String(!enMarcha));
-        btnPausa.classList.toggle('active', !enMarcha);
-    });
-
+    document.getElementById('btn-pausa').addEventListener('click', alternarPausa);
     document.getElementById('btn-reiniciar').addEventListener('click', reiniciar);
+
+    // Atajos de teclado: barra espaciadora (pausar o reanudar) y R (reiniciar).
+    // No actúan si el foco está en un control, que ya usa esas teclas.
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.target.closest('button, input, select, textarea, summary, a')) return;
+        if (e.key === ' ') {
+            e.preventDefault();
+            alternarPausa();
+        } else if ((e.key === 'r' || e.key === 'R') && currentMode === 'curva') {
+            reiniciar();
+        }
+    });
 
     const chkUniones = document.getElementById('check-uniones');
     const chkEstelas = document.getElementById('check-estelas');

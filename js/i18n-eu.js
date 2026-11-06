@@ -159,6 +159,11 @@ window.I18N_EU = {
     '⏸ Pausar': '⏸ Pausatu',
     '▶ Reanudar': '▶ Jarraitu',
     '↺ Reiniciar': '↺ Berrabiarazi',
+    'Pausar o reanudar (barra espaciadora)': 'Pausatu edo jarraitu (zuriune-barra)',
+    'Volver al principio (tecla R)': 'Hasierara itzuli (R tekla)',
+    'EN PAUSA': 'PAUSAN',
+    'Simulación en marcha.': 'Simulazioa martxan.',
+    'Simulación en pausa: las partículas se quedan quietas.': 'Simulazioa pausan: partikulak geldi geratzen dira.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Funtsezko kontzeptuak',

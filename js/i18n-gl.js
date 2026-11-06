@@ -159,6 +159,11 @@ window.I18N_GL = {
     '⏸ Pausar': '⏸ Pausar',
     '▶ Reanudar': '▶ Continuar',
     '↺ Reiniciar': '↺ Reiniciar',
+    'Pausar o reanudar (barra espaciadora)': 'Pausar ou continuar (barra de espazo)',
+    'Volver al principio (tecla R)': 'Volver ao principio (tecla R)',
+    'EN PAUSA': 'EN PAUSA',
+    'Simulación en marcha.': 'Simulación en marcha.',
+    'Simulación en pausa: las partículas se quedan quietas.': 'Simulación en pausa: as partículas quedan quietas.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Conceptos clave',

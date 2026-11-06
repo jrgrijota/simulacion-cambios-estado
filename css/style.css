@@ -789,8 +789,8 @@ body.theme-light .header-details[open] summary   { color: #4a6080; }
 body.theme-light .header-details[open] summary::before { color: #00628e; }
 body.theme-light .canvas-btn {
     background: #dde5f0;
-    border-color: #a8b8cc;
-    color: #2a4a6a;
+    border-color: #8fa4bc;
+    color: #1f3c5a;
 }
 body.theme-light .canvas-btn:hover {
     background: #c8d8ec;
@@ -936,22 +936,25 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
 ════════════════════════════════════════════════════ */
 .canvas-toolbar {
     position: absolute;
-    top: 14px;
-    right: 18px;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 10;
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .canvas-btn {
     background: #1a2530;
-    border: 1.5px solid #2a3d50;
-    color: #7a91a1;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 0.82rem;
+    border: 1.5px solid #3a5268;
+    color: #c4d4e0;
+    padding: 8px 20px;
+    min-height: 40px;
+    border-radius: 22px;
+    font-size: 0.95rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
     cursor: pointer;
     font-family: system-ui, sans-serif;
     user-select: none;
@@ -959,8 +962,8 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
 }
 .canvas-btn:hover {
     background: #0e2230;
-    border-color: #00c8ff44;
-    color: #80a8c0;
+    border-color: #00c8ff88;
+    color: #ffffff;
 }
 .canvas-btn.active,
 .canvas-btn[aria-pressed="true"] {
@@ -969,6 +972,39 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
     color: #00c8ff;
     box-shadow: 0 0 14px #00c8ff28;
 }
+
+/* Botón principal (pausa): siempre en el color de acento para que se vea a la primera.
+   En pausa se rellena y late suavemente para recordar que la simulación está parada. */
+.canvas-btn-main {
+    min-width: 140px;
+    border-color: #00c8ff;
+    color: #00c8ff;
+    background: #0b1d29;
+}
+.canvas-btn-main:hover { background: #0e2a3a; border-color: #00c8ff; color: #7fe3ff; }
+.canvas-btn-main[aria-pressed="true"] {
+    background: #00c8ff;
+    border-color: #00c8ff;
+    color: #04121a;
+    animation: latido-pausa 1.8s ease-in-out infinite;
+}
+.canvas-btn-main[aria-pressed="true"]:hover { background: #5ad9ff; color: #04121a; }
+@keyframes latido-pausa {
+    0%, 100% { box-shadow: 0 0 0 0 #00c8ff55; }
+    50%      { box-shadow: 0 0 0 7px #00c8ff00; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .canvas-btn-main[aria-pressed="true"] { animation: none; }
+}
+
+body.theme-light .canvas-btn-main            { background: #e6f3fa; border-color: #0077a0; color: #00567a; }
+body.theme-light .canvas-btn-main:hover      { background: #d2eaf6; border-color: #0077a0; color: #003a55; }
+body.theme-light .canvas-btn-main[aria-pressed="true"],
+body.theme-light .canvas-btn-main[aria-pressed="true"]:hover { background: #0077a0; border-color: #0077a0; color: #ffffff; }
+body.theme-contrast .canvas-btn-main            { background: #000000; border-color: #00ffff; color: #00ffff; }
+body.theme-contrast .canvas-btn-main:hover      { border-color: #ffffff; color: #ffffff; }
+body.theme-contrast .canvas-btn-main[aria-pressed="true"],
+body.theme-contrast .canvas-btn-main[aria-pressed="true"]:hover { background: #ffff00; border-color: #ffff00; color: #000000; box-shadow: none; }
 
 /* ════════════════════════════════════════════════════
    PANEL DE SIMULACIÓN (CANVAS)
@@ -998,8 +1034,8 @@ body.theme-contrast .qr-gas    { color: #ffaa00; background: #1a0e00; border-col
     /* El tamaño lo calcula fitCanvas() manteniendo la proporción 3:2 */
 }
 
-/* Hueco para los botones de pausa y reinicio (solo en el modo curva) */
-body.mode-curva #canvas-container { padding-top: 58px; }
+/* Hueco para los botones de pausa y reinicio */
+#canvas-container { padding-top: 62px; }
 
 /* Foco visible para quien navega con teclado */
 button:focus-visible,
@@ -1127,4 +1163,12 @@ body.theme-contrast summary:focus-visible { outline-color: #ffff00; }
 
 @media (max-width: 500px) {
     .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* En el móvil el sello baja a la esquina inferior izquierda y los botones
+   ocupan la franja de arriba, centrados */
+@media (max-width: 700px) {
+    .canvas-toolbar { top: 10px; }
+    .canvas-btn { padding: 7px 16px; font-size: 0.9rem; }
+    .canvas-btn-main { min-width: 0; }
 }

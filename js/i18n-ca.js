@@ -159,6 +159,11 @@ window.I18N_CA = {
     '⏸ Pausar': '⏸ Pausa',
     '▶ Reanudar': '▶ Reprèn',
     '↺ Reiniciar': '↺ Reinicia',
+    'Pausar o reanudar (barra espaciadora)': "Posa en pausa o reprèn (barra d'espai)",
+    'Volver al principio (tecla R)': 'Torna al principi (tecla R)',
+    'EN PAUSA': 'EN PAUSA',
+    'Simulación en marcha.': 'Simulació en marxa.',
+    'Simulación en pausa: las partículas se quedan quietas.': 'Simulació en pausa: les partícules es queden quietes.',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Conceptes clau',
