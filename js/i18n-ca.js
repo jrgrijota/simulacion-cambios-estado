@@ -156,9 +156,15 @@ window.I18N_CA = {
     'LÍQUIDO + GAS': 'LÍQUID + GAS',
 
     // Modo curva: botones del lienzo
-    '⏸ Pausar': '⏸ Pausa',
-    '▶ Reanudar': '▶ Reprèn',
-    '↺ Reiniciar': '↺ Reinicia',
+    'Reiniciar': 'Reinicia',
+    'Apagar': 'Apaga',
+    '🔥 Calentar': '🔥 Escalfa',
+    'Velocidad': 'Velocitat',
+    'Velocidad ×1': 'Velocitat ×1',
+    'Velocidad ×2': 'Velocitat ×2',
+    'Velocidad ×4': 'Velocitat ×4',
+    'Gira el móvil para ver la simulación más grande.': 'Gira el mòbil per veure la simulació més gran.',
+    'Volver al principio (tecla R)': 'Torna al principi (tecla R)',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Conceptes clau',
@@ -212,6 +218,34 @@ window.I18N_CA = {
     '0,33 atm · 20 °C': '0,33 atm · 20 °C',
     '0,006 atm · 0 °C': '0,006 atm · 0 °C',
     '5,1 atm · −57 °C': '5,1 atm · −57 °C',
+
+    // Hielo seco (sublimación a 1 atm)
+    "Hielo seco (CO₂)": "Gel sec (CO₂)",
+    "hielo seco": "gel sec",
+    "CO₂ líquido": "CO₂ líquid",
+    "CO₂ gas": "CO₂ gas",
+    "Se usa para conservar alimentos congelados y para hacer «niebla» en los escenarios: no deja charco porque no pasa por líquido.": "S’utilitza per conservar aliments congelats i per fer «boira» als escenaris: no deixa bassal perquè no passa per líquid.",
+    "A 1 atm no es líquido: sublima a <strong>{tf} °C</strong><br><em>¿Sabías que…?</em> {c}": "A 1 atm no és líquid: sublima a <strong>{tf} °C</strong><br><em>Sabies que…?</em> {c}",
+    "Sublimación  (sólido → gas)": "Sublimació  (sòlid → gas)",
+    "Sublimación inversa  (gas → sólido)": "Sublimació inversa  (gas → sòlid)",
+    "Sólido y gas a la vez": "Sòlid i gas alhora",
+    "Las partículas escapan del sólido directamente como gas, sin pasar por líquido. La energía se gasta en separarlas: la temperatura se queda en {tf}.": "Les partícules s’escapen del sòlid directament com a gas, sense passar per líquid. L’energia es gasta a separar-les: la temperatura es queda a {tf}.",
+    "Las partículas del gas pierden energía y se ordenan directamente en el sólido, sin pasar por líquido. La temperatura se mantiene en {tf}.": "Les partícules del gas perden energia i s’ordenen directament en el sòlid, sense passar per líquid. La temperatura es manté a {tf}.",
+    "Sólido y gas conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.": "Sòlid i gas conviuen a {tf}. Mentre no entri ni surti energia, la proporció no canvia.",
+    "SÓLIDO + GAS": "SÒLID + GAS",
+    "sublimación": "sublimació",
+
+    // Diagrama de fases del yodo
+    'Yodo (I₂)': 'Iode (I₂)',
+    'yodo': 'iode',
+    'El yodo': 'L’iode',
+    'A 1 atm el yodo funde a 114 °C y hierve a 184 °C. Por debajo de 0,12 atm pasa directamente de sólido a gas.': 'A 1 atm l’iode es fon a 114 °C i bull a 184 °C. Per sota de 0,12 atm passa directament de sòlid a gas.',
+    'En el laboratorio': 'Al laboratori',
+    'Con poca presión': 'Amb poca pressió',
+    'Yodo fundido': 'Iode fos',
+    'Al calentar yodo en un tubo abierto salen vapores violetas sin que se vea líquido. ¿Por qué, si a 1 atm funde?': 'En escalfar iode en un tub obert surten vapors violetes sense que es vegi líquid. Per què, si a 1 atm es fon?',
+    '¿Por debajo de qué presión sublima el yodo sin fundirse?': 'Per sota de quina pressió sublima l’iode sense fondre’s?',
+    '¿Qué temperatura hace falta para tener yodo líquido a 1 atm?': 'Quina temperatura cal per tenir iode líquid a 1 atm?',
 
     // Modo diagrama de fases: lectura del estado
     'punto triple': 'punt triple',

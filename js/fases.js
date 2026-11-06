@@ -11,7 +11,7 @@
 
 const DIAGRAMAS = {
     agua: {
-        nombre: 'agua',
+        nombre: 'agua', sujeto: 'El agua', molecula: 'h2o',
         tMin: -40, tMax: 160, pMin: 0.003, pMax: 5,
         tt: 0.01,                          // temperatura del punto triple (°C)
         // Curva de vaporización con la ecuación de Antoine (P en mmHg):
@@ -31,7 +31,7 @@ const DIAGRAMAS = {
         hint: 'A 1 atm el agua funde a 0 °C y hierve a 100 °C. ¿Y si cambia la presión?',
     },
     co2: {
-        nombre: 'CO₂',
+        nombre: 'CO₂', sujeto: 'El CO₂', molecula: 'co2',
         tMin: -120, tMax: 30, pMin: 0.3, pMax: 100,
         tt: -56.6,
         vap: { T: -56.6, P: 5.11, k: 2000 },   // llega al punto crítico (31 °C, 73 atm)
@@ -47,6 +47,24 @@ const DIAGRAMAS = {
             { txt: 'Punto triple',    sub: '5,1 atm · −57 °C', triple: true },
         ],
         hint: 'A 1 atm el CO₂ nunca es líquido: el hielo seco pasa directamente a gas a −78 °C.',
+    },
+    yodo: {
+        nombre: 'yodo', sujeto: 'El yodo', molecula: 'i2',
+        tMin: 20, tMax: 220, pMin: 0.0003, pMax: 5,
+        tt: 113.5,                             // punto triple: 113,5 °C y 0,12 atm
+        vap: { T: 184.3, P: 1, k: 5296 },      // hierve a 184 °C a 1 atm
+        kSub: 7396,                            // presión de vapor del sólido: 0,0004 atm a 25 °C
+        pendFus: 0.03,
+        rotuloSub: 0.55,
+        marcasP: [0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
+        rotulos: { solid: { T: 55, P: 0.6 }, liquid: { T: 150, P: 2.5 }, gas: { T: 175, P: 0.004 } },
+        ejemplos: [
+            { txt: 'En el laboratorio', sub: '1 atm · 80 °C',     T: 80, P: 1 },
+            { txt: 'Con poca presión',  sub: '0,01 atm · 80 °C',  T: 80, P: 0.01 },
+            { txt: 'Yodo fundido',      sub: '1 atm · 130 °C',    T: 130, P: 1 },
+            { txt: 'Punto triple',      sub: '0,12 atm · 114 °C', triple: true },
+        ],
+        hint: 'A 1 atm el yodo funde a 114 °C y hierve a 184 °C. Por debajo de 0,12 atm pasa directamente de sólido a gas.',
     },
 };
 
@@ -268,6 +286,7 @@ function textoAEstaPresion() {
 
 function fmtP(P) {
     // Con coma decimal, como se escribe en clase (punto en inglés)
+    if (P < 0.001) return i18n.num(P, 4);
     if (P < 0.1)  return i18n.num(P, 3);
     if (P < 10)   return i18n.num(P, 2);
     return P.toFixed(0);
@@ -393,7 +412,7 @@ function mensajeFases() {
         }
         return { tag: i18n.t(NOMBRE_CAMBIO[clave]), col: THEME.change, txt };
     }
-    const sust = i18n.t(dg === DIAGRAMAS.agua ? 'El agua' : 'El CO₂');
+    const sust = i18n.t(dg.sujeto);
     return {
         tag: i18n.t(NOMBRE_ESTADO[f]).toUpperCase(), col: THEME[f],
         txt: i18n.t('{sust} está en estado {estado}. {presion} Mueve el punto hasta cruzar una línea.',
@@ -406,6 +425,11 @@ const RETOS_TXT = {
         '¿A qué temperatura hierve el agua en la cima del Everest? Pulsa el ejemplo y sube la temperatura.',
         '¿Por qué en una olla a presión los alimentos se cocinan antes?',
         '¿Puedes hacer que el agua hierva sin calentarla?',
+    ],
+    yodo: [
+        'Al calentar yodo en un tubo abierto salen vapores violetas sin que se vea líquido. ¿Por qué, si a 1 atm funde?',
+        '¿Por debajo de qué presión sublima el yodo sin fundirse?',
+        '¿Qué temperatura hace falta para tener yodo líquido a 1 atm?',
     ],
     co2: [
         '¿Por qué el hielo seco no deja charco cuando «se derrite»?',
@@ -439,7 +463,7 @@ function drawFasesParticulas() {
 
 function drawRetos() {
     drawPanelFrame(RETOS, i18n.t('PIENSA Y COMPRUEBA'), i18n.t('usa el diagrama'));
-    const lista = RETOS_TXT[dg === DIAGRAMAS.agua ? 'agua' : 'co2'];
+    const lista = RETOS_TXT[Object.keys(DIAGRAMAS).find(k => DIAGRAMAS[k] === dg)];
     let y = RETOS.y + 40;
     lista.forEach((txt, i) => {
         noStroke(); fill(THEME.accent); textStyle(BOLD); textSize(13); textAlign(CENTER, CENTER);
@@ -544,7 +568,7 @@ function drawFasesMode() {
     detectarCambio();
     const sit = situacion();
     if (avanzarFracciones(sit)) equilibrioDinamico(sit);
-    updateParticles(fasesFr, agitacionFases(), true);
+    updateParticles(fasesFr, agitacionFases());
     drawFasesParticulas();
     drawRetos();
     drawBanner(mensajeFases());

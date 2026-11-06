@@ -156,9 +156,15 @@ window.I18N_EN = {
     'LÍQUIDO + GAS': 'LIQUID + GAS',
 
     // Modo curva: botones del lienzo
-    '⏸ Pausar': '⏸ Pause',
-    '▶ Reanudar': '▶ Resume',
-    '↺ Reiniciar': '↺ Restart',
+    'Reiniciar': 'Restart',
+    'Apagar': 'Off',
+    '🔥 Calentar': '🔥 Heat',
+    'Velocidad': 'Speed',
+    'Velocidad ×1': 'Speed ×1',
+    'Velocidad ×2': 'Speed ×2',
+    'Velocidad ×4': 'Speed ×4',
+    'Gira el móvil para ver la simulación más grande.': 'Turn your phone sideways to see the simulation bigger.',
+    'Volver al principio (tecla R)': 'Back to the start (R key)',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Key concepts',
@@ -212,6 +218,36 @@ window.I18N_EN = {
     '0,33 atm · 20 °C': '0.33 atm · 20 °C',
     '0,006 atm · 0 °C': '0.006 atm · 0 °C',
     '5,1 atm · −57 °C': '5.1 atm · −57 °C',
+
+    // Hielo seco (sublimación a 1 atm)
+    "Hielo seco (CO₂)": "Dry ice (CO₂)",
+    "hielo seco": "dry ice",
+    "CO₂ líquido": "liquid CO₂",
+    "CO₂ gas": "CO₂ gas",
+    "Se usa para conservar alimentos congelados y para hacer «niebla» en los escenarios: no deja charco porque no pasa por líquido.": "It is used to keep frozen food cold and to make stage “fog”: it leaves no puddle because it never becomes a liquid.",
+    "A 1 atm no es líquido: sublima a <strong>{tf} °C</strong><br><em>¿Sabías que…?</em> {c}": "At 1 atm it is never a liquid: it sublimes at <strong>{tf} °C</strong><br><em>Did you know…?</em> {c}",
+    "Sublimación  (sólido → gas)": "Sublimation  (solid → gas)",
+    "Sublimación inversa  (gas → sólido)": "Deposition  (gas → solid)",
+    "Sólido y gas a la vez": "Solid and gas at the same time",
+    "Las partículas escapan del sólido directamente como gas, sin pasar por líquido. La energía se gasta en separarlas: la temperatura se queda en {tf}.": "The particles escape from the solid straight into gas, without becoming a liquid. The energy is spent separating them: the temperature stays at {tf}.",
+    "Las partículas del gas pierden energía y se ordenan directamente en el sólido, sin pasar por líquido. La temperatura se mantiene en {tf}.": "The gas particles lose energy and arrange themselves straight into the solid, without becoming a liquid. The temperature stays at {tf}.",
+    "Sólido y gas conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.": "Solid and gas coexist at {tf}. As long as no energy enters or leaves, the proportion does not change.",
+    "SÓLIDO + GAS": "SOLID + GAS",
+    "sublimación": "sublimation",
+
+    // Diagrama de fases del yodo
+    'Yodo (I₂)': 'Iodine (I₂)',
+    'yodo': 'iodine',
+    'El yodo': 'Iodine',
+    'A 1 atm el yodo funde a 114 °C y hierve a 184 °C. Por debajo de 0,12 atm pasa directamente de sólido a gas.': 'At 1 atm iodine melts at 114 °C and boils at 184 °C. Below 0.12 atm it goes straight from solid to gas.',
+    'En el laboratorio': 'In the lab',
+    'Con poca presión': 'At low pressure',
+    'Yodo fundido': 'Molten iodine',
+    'Al calentar yodo en un tubo abierto salen vapores violetas sin que se vea líquido. ¿Por qué, si a 1 atm funde?': 'When iodine is heated in an open tube, violet vapour appears without any visible liquid. Why, if it melts at 1 atm?',
+    '¿Por debajo de qué presión sublima el yodo sin fundirse?': 'Below what pressure does iodine sublime without melting?',
+    '¿Qué temperatura hace falta para tener yodo líquido a 1 atm?': 'What temperature do you need for liquid iodine at 1 atm?',
+    '0,01 atm · 80 °C': '0.01 atm · 80 °C',
+    '0,12 atm · 114 °C': '0.12 atm · 114 °C',
 
     // Modo diagrama de fases: lectura del estado
     'punto triple': 'triple point',

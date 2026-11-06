@@ -156,9 +156,15 @@ window.I18N_EU = {
     'LÍQUIDO + GAS': 'LIKIDOA + GASA',
 
     // Modo curva: botones del lienzo
-    '⏸ Pausar': '⏸ Pausatu',
-    '▶ Reanudar': '▶ Jarraitu',
-    '↺ Reiniciar': '↺ Berrabiarazi',
+    'Reiniciar': 'Berrabiarazi',
+    'Apagar': 'Itzali',
+    '🔥 Calentar': '🔥 Berotu',
+    'Velocidad': 'Abiadura',
+    'Velocidad ×1': 'Abiadura ×1',
+    'Velocidad ×2': 'Abiadura ×2',
+    'Velocidad ×4': 'Abiadura ×4',
+    'Gira el móvil para ver la simulación más grande.': 'Biratu mugikorra simulazioa handiago ikusteko.',
+    'Volver al principio (tecla R)': 'Hasierara itzuli (R tekla)',
 
     // Modo curva: conceptos clave
     'Conceptos clave': 'Funtsezko kontzeptuak',
@@ -212,6 +218,34 @@ window.I18N_EU = {
     '0,33 atm · 20 °C': '0,33 atm · 20 °C',
     '0,006 atm · 0 °C': '0,006 atm · 0 °C',
     '5,1 atm · −57 °C': '5,1 atm · −57 °C',
+
+    // Hielo seco (sublimación a 1 atm)
+    "Hielo seco (CO₂)": "Izotz lehorra (CO₂)",
+    "hielo seco": "izotz lehorra",
+    "CO₂ líquido": "CO₂ likidoa",
+    "CO₂ gas": "CO₂ gasa",
+    "Se usa para conservar alimentos congelados y para hacer «niebla» en los escenarios: no deja charco porque no pasa por líquido.": "Elikagai izoztuak kontserbatzeko eta agertokietan «lainoa» egiteko erabiltzen da: ez du putzurik uzten, ez delako likido bihurtzen.",
+    "A 1 atm no es líquido: sublima a <strong>{tf} °C</strong><br><em>¿Sabías que…?</em> {c}": "1 atm-an ez da likidoa: <strong>{tf} °C</strong>-an sublimatzen da<br><em>Ba al zenekien…?</em> {c}",
+    "Sublimación  (sólido → gas)": "Sublimazioa  (solidoa → gasa)",
+    "Sublimación inversa  (gas → sólido)": "Alderantzizko sublimazioa  (gasa → solidoa)",
+    "Sólido y gas a la vez": "Solidoa eta gasa batera",
+    "Las partículas escapan del sólido directamente como gas, sin pasar por líquido. La energía se gasta en separarlas: la temperatura se queda en {tf}.": "Partikulak solidotik zuzenean gas gisa ihes egiten dute, likido izan gabe. Energia haiek bereizteko erabiltzen da: tenperatura {tf}-an geratzen da.",
+    "Las partículas del gas pierden energía y se ordenan directamente en el sólido, sin pasar por líquido. La temperatura se mantiene en {tf}.": "Gasaren partikulek energia galtzen dute eta zuzenean solidoan ordenatzen dira, likido izan gabe. Tenperatura {tf}-an mantentzen da.",
+    "Sólido y gas conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.": "Solidoa eta gasa batera daude {tf}-an. Energiarik sartzen edo ateratzen ez den bitartean, proportzioa ez da aldatzen.",
+    "SÓLIDO + GAS": "SOLIDOA + GASA",
+    "sublimación": "sublimazioa",
+
+    // Diagrama de fases del yodo
+    'Yodo (I₂)': 'Iodoa (I₂)',
+    'yodo': 'iodoa',
+    'El yodo': 'Iodoa',
+    'A 1 atm el yodo funde a 114 °C y hierve a 184 °C. Por debajo de 0,12 atm pasa directamente de sólido a gas.': '1 atm-an iodoa 114 °C-an urtzen da eta 184 °C-an irakiten du. 0,12 atm-tik behera solidotik gasera zuzenean igarotzen da.',
+    'En el laboratorio': 'Laborategian',
+    'Con poca presión': 'Presio txikiarekin',
+    'Yodo fundido': 'Iodo urtua',
+    'Al calentar yodo en un tubo abierto salen vapores violetas sin que se vea líquido. ¿Por qué, si a 1 atm funde?': 'Iodoa hodi ireki batean berotzean lurrun moreak ateratzen dira, likidorik ikusi gabe. Zergatik, 1 atm-an urtzen bada?',
+    '¿Por debajo de qué presión sublima el yodo sin fundirse?': 'Zer presiotik behera sublimatzen da iodoa urtu gabe?',
+    '¿Qué temperatura hace falta para tener yodo líquido a 1 atm?': 'Zer tenperatura behar da 1 atm-an iodo likidoa izateko?',
 
     // Modo diagrama de fases: lectura del estado
     'punto triple': 'puntu hirukoitza',
