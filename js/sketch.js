@@ -140,6 +140,28 @@ function setup() {
     setupThemeSelector();
 
     cambiarSustancia('agua');
+
+    // Ajustes de la dirección (fichas del alumnado): ver js/parametros.js.
+    // «sustancia», «temperatura» y «presion» (en atm) valen para el modo en el que
+    // se abra; la presión del diagrama va en escala logarítmica.
+    const pulsar = (sel) => (v) => { const b = document.querySelector(sel(v)); if (b) b.click(); };
+    aplicarParametrosUrl({
+        modo:        urlParam.click({ curva: 'mode-curva', fases: 'mode-fases' }),
+        sustancia:   (v) => urlParam.select(currentMode === 'fases' ? 'select-fases-sustancia' : 'select-sustancia')(
+                         { 'hielo-seco': 'hieloseco', 'hieloseco': 'hieloseco' }[v] || v),
+        potencia:    urlParam.range('slider-potencia'),
+        placa:       pulsar((v) => `[data-placa="${{ enfriar: -1, apagar: 0, calentar: 1 }[v]}"]`),
+        velocidad:   pulsar((v) => `[data-speed="${parseInt(v, 10)}"]`),
+        uniones:     urlParam.toggle('check-uniones', (c) => c.checked),
+        estelas:     urlParam.toggle('check-estelas', (c) => c.checked),
+        temperatura: urlParam.range('slider-fases-T'),
+        presion:     (v) => {
+            const pAtm = parseFloat(v.replace(',', '.'));
+            if (!(pAtm > 0)) return;
+            const pos = 1000 * (Math.log(pAtm) - Math.log(dg.pMin)) / (Math.log(dg.pMax) - Math.log(dg.pMin));
+            urlParam.range('slider-fases-P')(String(pos));
+        },
+    });
 }
 
 function draw() {
