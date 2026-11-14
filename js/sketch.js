@@ -43,28 +43,29 @@ function sepRed() {
 // --- SUSTANCIAS ---
 // tf / teb: temperaturas reales de fusión y ebullición (°C, a 1 atm).
 // tMin / tMax: rango del termómetro y de la gráfica. tIni: temperatura inicial.
+// tMax deja al gas un margen amplio para que se vea cómo se sigue calentando.
 // col: colores de la vista macroscópica. flota: si el sólido flota en su líquido.
 const SUSTANCIAS = {
     agua: {
-        nombre: 'Agua', molecula: 'h2o', tf: 0, teb: 100, tMin: -40, tMax: 140, tIni: -20,
+        nombre: 'Agua', molecula: 'h2o', tf: 0, teb: 100, tMin: -40, tMax: 250, tIni: -20,
         nombres: { solid: 'hielo', liquid: 'agua líquida', gas: 'vapor de agua' },
         col: { solid: '#d6ecff', liquid: '#3a8ee6', gas: '#cfe0f0' }, flota: true,
         curiosidad: 'El hielo flota porque es menos denso que el agua líquida: algo muy raro entre los sólidos.',
     },
     alcohol: {
-        nombre: 'Alcohol', tf: -114, teb: 78, tMin: -160, tMax: 120, tIni: -140,
+        nombre: 'Alcohol', tf: -114, teb: 78, tMin: -160, tMax: 240, tIni: -140,
         nombres: { solid: 'alcohol sólido', liquid: 'alcohol líquido', gas: 'vapor de alcohol' },
         col: { solid: '#f2eed8', liquid: '#d9c46a', gas: '#efe6c0' }, flota: false,
         curiosidad: 'Hierve antes que el agua: por eso el alcohol de las heridas se evapora tan rápido.',
     },
     nitrogeno: {
-        nombre: 'Nitrógeno', molecula: 'n2', tf: -210, teb: -196, tMin: -226, tMax: -180, tIni: -220,
+        nombre: 'Nitrógeno', molecula: 'n2', tf: -210, teb: -196, tMin: -226, tMax: -150, tIni: -220,
         nombres: { solid: 'nitrógeno sólido', liquid: 'nitrógeno líquido', gas: 'nitrógeno gas' },
         col: { solid: '#eef6ff', liquid: '#9fd4ee', gas: '#d8eef8' }, flota: false,
         curiosidad: 'A temperatura ambiente es un gas: forma el 78 % del aire que respiramos.',
     },
     hierro: {
-        nombre: 'Hierro', tf: 1538, teb: 2862, tMin: 1000, tMax: 3300, tIni: 1200,
+        nombre: 'Hierro', tf: 1538, teb: 2862, tMin: 1000, tMax: 4200, tIni: 1200,
         nombres: { solid: 'hierro sólido', liquid: 'hierro fundido', gas: 'hierro gas' },
         col: { solid: '#8a6a5a', liquid: '#ff8a2a', gas: '#ffb070' }, flota: false,
         curiosidad: 'Para fundirlo hacen falta hornos a más de 1500 °C, como los altos hornos de las acerías.',
@@ -88,7 +89,7 @@ const SUSTANCIAS = {
 // calentamiento se reparten E_CALOR según ΔT × calor específico relativo:
 // el líquido necesita el doble de energía por grado que el sólido y el gas
 // (en el agua, 4,18 frente a unos 2 J/g·°C), así que su pendiente es menor.
-const E_FUSION = 14, E_VAPOR = 26, E_CALOR = 36;
+const E_FUSION = 14, E_VAPOR = 26, E_CALOR = 50;
 const C_REL = { solido: 1, liquido: 2, gas: 1 };
 const POT_MAX = 1.0;   // unidades de energía por "minuto" con la placa al 100 %
 
@@ -117,6 +118,7 @@ let tiempo  = 0;         // tiempo simulado (min)
 let potencia = 0.5;      // -1 (enfriar al máximo) … +1 (calentar al máximo)
 let velocidad = 1;       // multiplicador de tiempo
 let estado;              // resultado de estadoDesdeEnergia()
+let limite = 0;          // +1 / −1: la placa se apagó sola al llegar al tope / al fondo
 
 // --- ESTADO GLOBAL ---
 let THEME = {};
@@ -239,6 +241,14 @@ function actualizarModelo() {
     const dt = min(deltaTime / 1000, 0.1) * velocidad;
     tiempo += dt;
     energia = constrain(energia + potencia * POT_MAX * dt, 0, sus.eTot);
+    // Al llegar al extremo del termómetro se apaga la placa: si siguiera
+    // encendida, la gráfica pintaría una meseta que no existe.
+    if ((potencia > 0 && energia >= sus.eTot) || (potencia < 0 && energia <= 0)) {
+        const signo = Math.sign(potencia);
+        document.getElementById('slider-potencia').value = 0;
+        setPotencia(0);
+        limite = signo;
+    }
     estado = estadoDesdeEnergia(energia, sus);
     registrarMuestra();
 }
@@ -246,6 +256,7 @@ function actualizarModelo() {
 function reiniciar() {
     energia = energiaSolido(sus.tIni, sus);
     energiaInicial = energia;
+    limite = 0;
     tiempo = 0;
     historial = [];
     burbujas = [];
@@ -358,6 +369,7 @@ function setupCurvaControls() {
 
 function setPotencia(v) {
     potencia = v / 100;
+    limite = 0;
     const sl = document.getElementById('slider-potencia');
     const from = v >= 0 ? 50 : 50 + v / 2;
     const to   = v >= 0 ? 50 + v / 2 : 50;
@@ -428,10 +440,10 @@ function mensajeDidactico() {
     const tf = fmtT(sus.tf) + ' °C', teb = fmtT(sus.teb) + ' °C';
     const N = { solid: i18n.t(sus.nombres.solid), liquid: i18n.t(sus.nombres.liquid), gas: i18n.t(sus.nombres.gas) };
 
-    if (s < 0 && energia <= 0) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
-        txt: i18n.t('Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.') };
-    if (s > 0 && energia >= sus.eTot) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
-        txt: i18n.t('Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.') };
+    if (limite < 0) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
+        txt: i18n.t('El termómetro ha llegado a su mínimo y la placa se ha apagado sola. Sin energía que salga, la temperatura ya no baja. Calienta para seguir.') };
+    if (limite > 0) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
+        txt: i18n.t('El termómetro ha llegado a su máximo y la placa se ha apagado sola. Sin energía que entre, la temperatura ya no sube. Enfría para seguir.') };
 
     switch (estado.tramo) {
         case 'solido':

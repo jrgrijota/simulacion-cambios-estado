@@ -90,10 +90,10 @@ window.I18N_EN = {
 
     // Modo curva: franja de mensajes
     'LÍMITE': 'LIMIT',
-    'Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.':
-        'You have reached the lowest temperature in this simulation. Heat it to carry on.',
-    'Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.':
-        'You have reached the highest temperature in this simulation. Cool it to carry on.',
+    'El termómetro ha llegado a su mínimo y la placa se ha apagado sola. Sin energía que salga, la temperatura ya no baja. Calienta para seguir.':
+        'The thermometer has reached its minimum and the hotplate has switched itself off. With no energy leaving, the temperature stops falling. Heat it to carry on.',
+    'El termómetro ha llegado a su máximo y la placa se ha apagado sola. Sin energía que entre, la temperatura ya no sube. Enfría para seguir.':
+        'The thermometer has reached its maximum and the hotplate has switched itself off. With no energy coming in, the temperature stops rising. Cool it to carry on.',
     'SÓLIDO': 'SOLID',
     'LÍQUIDO': 'LIQUID',
     'GAS': 'GAS',
