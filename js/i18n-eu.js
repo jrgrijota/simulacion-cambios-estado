@@ -90,10 +90,10 @@ window.I18N_EU = {
 
     // Modo curva: franja de mensajes
     'LÍMITE': 'MUGA',
-    'Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.':
-        'Simulazio honetako tenperaturarik baxuenera iritsi zara. Berotu jarraitzeko.',
-    'Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.':
-        'Simulazio honetako tenperaturarik altuenera iritsi zara. Hoztu jarraitzeko.',
+    'El termómetro ha llegado a su mínimo y la placa se ha apagado sola. Sin energía que salga, la temperatura ya no baja. Calienta para seguir.':
+        'Termometroa bere minimora iritsi da eta plaka bere kabuz itzali da. Energiarik irteten ez denez, tenperatura ez da gehiago jaisten. Berotu jarraitzeko.',
+    'El termómetro ha llegado a su máximo y la placa se ha apagado sola. Sin energía que entre, la temperatura ya no sube. Enfría para seguir.':
+        'Termometroa bere maximora iritsi da eta plaka bere kabuz itzali da. Energiarik sartzen ez denez, tenperatura ez da gehiago igotzen. Hoztu jarraitzeko.',
     'SÓLIDO': 'SOLIDOA',
     'LÍQUIDO': 'LIKIDOA',
     'GAS': 'GASA',

@@ -90,10 +90,10 @@ window.I18N_GL = {
 
     // Modo curva: franja de mensajes
     'LÍMITE': 'LÍMITE',
-    'Has llegado a la temperatura más baja de esta simulación. Calienta para seguir.':
-        'Chegaches á temperatura máis baixa desta simulación. Quenta para seguir.',
-    'Has llegado a la temperatura más alta de esta simulación. Enfría para seguir.':
-        'Chegaches á temperatura máis alta desta simulación. Arrefría para seguir.',
+    'El termómetro ha llegado a su mínimo y la placa se ha apagado sola. Sin energía que salga, la temperatura ya no baja. Calienta para seguir.':
+        'O termómetro chegou ao seu mínimo e a placa apagouse soa. Sen enerxía que saia, a temperatura xa non baixa. Quenta para seguir.',
+    'El termómetro ha llegado a su máximo y la placa se ha apagado sola. Sin energía que entre, la temperatura ya no sube. Enfría para seguir.':
+        'O termómetro chegou ao seu máximo e a placa apagouse soa. Sen enerxía que entre, a temperatura xa non sobe. Arrefría para seguir.',
     'SÓLIDO': 'SÓLIDO',
     'LÍQUIDO': 'LÍQUIDO',
     'GAS': 'GAS',
