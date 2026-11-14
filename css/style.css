@@ -722,6 +722,7 @@ body.theme-contrast .seg-btn.active { background: #001a1a; border-color: #00ffff
 .dark-swatch     { background: #141414; border: 1.5px solid #555; }
 .light-swatch    { background: #f0f2f5; border: 1.5px solid #aaa; }
 .contrast-swatch { background: #000000; border: 1.5px solid #ffff00; }
+.marca-swatch    { background: linear-gradient(135deg, #f8fafc 50%, #0369a1 50%); border: 1.5px solid #00c8ff; }
 
 
 /* ════════════════════════════════════════════════════
@@ -1211,3 +1212,98 @@ body.theme-contrast summary:focus-visible { outline-color: #ffff00; }
     .canvas-btn { padding: 7px 16px; font-size: 0.9rem; }
     .dock-seg-btn { padding: 4px 11px; }
 }
+
+/* ════════════════════════════════════════════════════
+   TEMA SIMULACIENCIA (paleta de marca)
+   Se aplica junto con .theme-light y solo cambia lo que difiere.
+   Neutros: fondo #f8fafc · superficie #ffffff · hundido #f1f5f9 · línea #e2e8f0
+   Texto: tinta #1e293b · secundario #475569 · terciario #64748b
+   Marca: azul #0369a1 (activo) · azul fuerte #075985 · azul suave #e0f2fe · cian #00c8ff (solo relleno)
+   Contraste: naranja #c2410c · violeta #6d28d9 · verde azulado #0f766e · ámbar #b45309 · rojo #dc2626
+   Estados de la materia: sólido azul · líquido verde azulado · gas naranja · cambio violeta
+════════════════════════════════════════════════════ */
+body.theme-marca { background-color: #f8fafc; color: #1e293b; }
+body.theme-marca .control-panel { background-color: #ffffff; border-right-color: #e2e8f0; }
+body.theme-marca .control-panel::-webkit-scrollbar-thumb { background: #cbd5e1; }
+body.theme-marca .control-panel::-webkit-scrollbar-track { background: #f1f5f9; }
+body.theme-marca .card { background-color: #f8fafc; border-color: #e2e8f0; }
+body.theme-marca .card.card-data { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
+body.theme-marca .card.card-estado { background: #f5f3ff; border-color: #ddd6fe; border-left-color: #6d28d9; }
+body.theme-marca .card h3 { color: #475569; }
+body.theme-marca .metric { color: #1e293b; }
+body.theme-marca .metric small { color: #64748b; }
+body.theme-marca .estado-value { color: #6d28d9; }
+body.theme-marca .estado-value.st-solid  { color: #0369a1; }
+body.theme-marca .estado-value.st-liquid { color: #0f766e; }
+body.theme-marca .estado-value.st-gas    { color: #c2410c; }
+body.theme-marca .estado-value.st-change { color: #6d28d9; }
+body.theme-marca .simulation-panel { background-color: #f1f5f9; }
+body.theme-marca #canvas-container canvas { box-shadow: 0 8px 28px rgba(15,23,42,0.08), 0 0 0 1px #e2e8f0; }
+body.theme-marca .custom-details { background-color: #ffffff; border-color: #e2e8f0; }
+body.theme-marca .custom-details summary { color: #475569; }
+body.theme-marca .custom-details summary::after { color: #64748b; }
+body.theme-marca .details-content { background-color: #f8fafc; border-top-color: #e2e8f0; }
+body.theme-marca .divider { background: #e2e8f0; }
+body.theme-marca h2, body.theme-marca .subtitle { color: #0369a1; }
+body.theme-marca .header-top h1 { color: #1e293b; }
+body.theme-marca .section-note, body.theme-marca .label-hint,
+body.theme-marca .slider-bounds, body.theme-marca .field-hint { color: #64748b; }
+body.theme-marca label { color: #1e293b; }
+body.theme-marca .value-badge { background-color: #e0f2fe; color: #075985; }
+body.theme-marca .custom-select { background-color: #ffffff; border-color: #cbd5e1; color: #1e293b; }
+body.theme-marca .custom-select option { background: #ffffff; color: #1e293b; }
+body.theme-marca .formula-name { color: #475569; }
+body.theme-marca .formula-eq { color: #0369a1; }
+body.theme-marca .formula { border-bottom-color: #e2e8f0; }
+body.theme-marca .mode-switch { background: #f1f5f9; border-color: #e2e8f0; }
+body.theme-marca .mode-btn { color: #475569; }
+body.theme-marca .mode-btn .mode-sub { color: #64748b; }
+body.theme-marca .mode-btn:hover { color: #1e293b; }
+body.theme-marca .mode-btn.active { background: #ffffff; border-color: #0369a1; color: #0369a1; box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
+body.theme-marca .mode-btn.active .mode-sub { color: #075985; }
+body.theme-marca .header-details summary { color: #64748b; }
+body.theme-marca .header-details[open] summary, body.theme-marca .header-details[open] summary::before { color: #0369a1; }
+body.theme-marca .canvas-btn { background: #ffffff; border-color: #cbd5e1; color: #1e293b; }
+body.theme-marca .canvas-btn:hover { background: #f1f5f9; border-color: #0369a1; color: #0369a1; }
+body.theme-marca .canvas-btn.active,
+body.theme-marca .canvas-btn[aria-pressed="true"] { background: #e0f2fe; border-color: #0369a1; color: #075985; box-shadow: none; }
+body.theme-marca .theme-btn { background: #ffffff; border-color: #cbd5e1; color: #475569; }
+body.theme-marca .theme-btn:hover, body.theme-marca .theme-btn.active { border-color: #0369a1; color: #0369a1; background: #f1f5f9; }
+body.theme-marca .theme-panel { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 12px 32px rgba(15,23,42,0.12); }
+body.theme-marca .theme-panel-title { color: #64748b; }
+body.theme-marca .theme-opt { border-color: #e2e8f0; color: #1e293b; }
+body.theme-marca .theme-opt:hover { background: #f1f5f9; border-color: #0369a1; color: #0369a1; }
+body.theme-marca .theme-opt.active { background: #e0f2fe; border-color: #0369a1; color: #075985; }
+body.theme-marca input[type="range"] { background: linear-gradient(to right, #0369a1 0%, #0369a1 var(--fill, 40%), #e2e8f0 var(--fill, 40%)); }
+body.theme-marca input[type="range"]::-webkit-slider-thumb { background: #00c8ff; border-color: #ffffff; box-shadow: 0 0 0 1px #0369a1; }
+body.theme-marca input[type="range"]::-moz-range-thumb { background: #00c8ff; border-color: #ffffff; box-shadow: 0 0 0 1px #0369a1; }
+body.theme-marca input[type="range"].power-slider { --track: #e2e8f0; }
+body.theme-marca .check-row input[type="checkbox"] { accent-color: #0369a1; }
+body.theme-marca .bound-cold, body.theme-marca .metric-text.cold { color: #0284c7; }
+body.theme-marca .bound-hot, body.theme-marca .metric-text.hot { color: #dc2626; }
+body.theme-marca .energy-bar { background: #f1f5f9; border-color: #e2e8f0; }
+body.theme-marca .seg-sensible, body.theme-marca .dot-sensible { background: #c2410c; }
+body.theme-marca .seg-latente,  body.theme-marca .dot-latente  { background: #6d28d9; }
+body.theme-marca .energy-legend { color: #475569; }
+body.theme-marca .energy-legend b, body.theme-marca .key-ideas strong { color: #1e293b; }
+body.theme-marca .key-ideas { color: #475569; }
+body.theme-marca .key-ideas li { border-left-color: #00c8ff; }
+body.theme-marca .preset-btn { background: #ffffff; border-color: #e2e8f0; color: #1e293b; }
+body.theme-marca .preset-btn small { color: #64748b; }
+body.theme-marca .preset-btn:hover { border-color: #0369a1; }
+body.theme-marca .preset-btn.active { background: #e0f2fe; border-color: #0369a1; color: #075985; }
+body.theme-marca .at-pressure p { color: #475569; }
+body.theme-marca .at-pressure strong { color: #1e293b; }
+body.theme-marca .qr-solid  { color: #0369a1; background: #e0f2fe; border-color: #bae6fd; }
+body.theme-marca .qr-liquid { color: #0f766e; background: #f0fdfa; border-color: #99f6e4; }
+body.theme-marca .qr-gas    { color: #c2410c; background: #fff7ed; border-color: #fed7aa; }
+body.theme-marca .dock-label { color: #64748b; }
+body.theme-marca .dock-seg { background: #ffffff; border-color: #e2e8f0; }
+body.theme-marca .dock-seg-btn { color: #475569; }
+body.theme-marca .dock-seg-btn:hover { background: #f1f5f9; color: #1e293b; }
+body.theme-marca .dock-seg-btn.active { background: #e0f2fe; border-color: #0369a1; color: #075985; }
+body.theme-marca .dock-seg-btn.seg-hot.active  { background: #fef2f2; border-color: #dc2626; color: #b91c1c; }
+body.theme-marca .dock-seg-btn.seg-cold.active { background: #f0f9ff; border-color: #0284c7; color: #0369a1; }
+body.theme-marca .dock-seg-btn.seg-off.active  { background: #f8fafc; border-color: #64748b; color: #1e293b; }
+body.theme-marca button:focus-visible, body.theme-marca select:focus-visible,
+body.theme-marca input:focus-visible, body.theme-marca summary:focus-visible { outline-color: #0369a1; }
