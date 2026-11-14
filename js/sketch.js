@@ -146,6 +146,8 @@ function setup() {
     // se abra; la presión del diagrama va en escala logarítmica.
     const pulsar = (sel) => (v) => { const b = document.querySelector(sel(v)); if (b) b.click(); };
     aplicarParametrosUrl({
+        tema:        (v) => { const t = { simulaciencia: 'marca', marca: 'marca', claro: 'light', oscuro: 'dark', contraste: 'contrast' }[v];
+                                  const b = t && document.querySelector(`.theme-opt[data-theme="${t}"]`); if (b) b.click(); },
         modo:        urlParam.click({ curva: 'mode-curva', fases: 'mode-fases' }),
         sustancia:   (v) => urlParam.select(currentMode === 'fases' ? 'select-fases-sustancia' : 'select-sustancia')(
                          { 'hielo-seco': 'hieloseco', 'hieloseco': 'hieloseco' }[v] || v),
@@ -1459,8 +1461,10 @@ function setupThemeSelector() {
     themeOpts.forEach(btn => {
         btn.addEventListener('click', () => {
             const theme = btn.dataset.theme;
-            document.body.classList.remove('theme-light', 'theme-contrast');
-            if (theme !== 'dark') document.body.classList.add('theme-' + theme);
+            document.body.classList.remove('theme-light', 'theme-contrast', 'theme-marca');
+            // El tema SimulaCiencia parte del claro y cambia sus colores por los de la marca.
+            if (theme === 'marca') document.body.classList.add('theme-light', 'theme-marca');
+            else if (theme !== 'dark') document.body.classList.add('theme-' + theme);
             themeOpts.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             closePanel();
@@ -1473,8 +1477,41 @@ function setupThemeSelector() {
 function updateTheme() {
     const isLight    = document.body.classList.contains('theme-light');
     const isContrast = document.body.classList.contains('theme-contrast');
+    const isMarca    = document.body.classList.contains('theme-marca');
 
-    if (isLight) {
+    if (isMarca) {
+        // Paleta SimulaCiencia (la de simulaciencia.es y la de los vídeos del canal).
+        THEME = {
+            canvasBg:   '#f8fafc',
+            panelBg:    '#ffffff',
+            border:     '#e2e8f0',
+            text:       '#1e293b',
+            textDim:    '#64748b',
+            accent:     '#0369a1',
+            solid:      '#0369a1',
+            liquid:     '#0f766e',
+            gas:        '#c2410c',
+            change:     '#6d28d9',
+            thermoGlass:'#cbd5e1',
+            thermoTube: '#ffffff',
+            thermoTick: '#64748b',
+            thermoFill: '#dc2626',
+            jarWall:    '#475569',
+            jarLid:     '#cbd5e1',
+            jarShine:   'rgba(255,255,255,0.7)',
+            plateBody:  '#334155',
+            plateTop:   '#64748b',
+            plateText:  '#f8fafc',
+            heat:       '#dc2626',
+            cold:       '#0284c7',
+            lensBg:     '#f1f5f9',
+            grid:       '#e2e8f0',
+            axis:       '#64748b',
+            particle:   '#334155',
+            particleEdge:'#0f172a',
+            bond:       'rgba(3,105,161,0.55)',
+        };
+    } else if (isLight) {
         THEME = {
             canvasBg:   '#ccd6e8',
             panelBg:    '#bccadd',
