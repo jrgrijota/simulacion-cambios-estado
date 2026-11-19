@@ -15,7 +15,7 @@ const FASES_W = 1050, FASES_H = 700;
 let CV_W = FASES_W, CV_H = FASES_H;
 
 // Recipiente, placa y termómetro; ventana de partículas; gráfica (las fija calcularEscena)
-let JAR, PLATE, TH, LIQ_MAX_H, LENS_CURVA, GRAPH, PLOT;
+let LENS_CURVA, GRAPH, PLOT;
 let LENS;     // ventana de partículas activa (cada modo tiene la suya)
 
 // Partículas: red de 16 × 4 en el sólido. Es ancha y baja, como el líquido que
@@ -267,8 +267,8 @@ function reiniciar() {
     limite = 0;
     tiempo = 0;
     historial = [];
-    burbujas = [];
-    gotas = [];
+    burbujasV = [];
+    gotasV = [];
     initParticles();
     estado = estadoDesdeEnergia(energia, sus);
     if (typeof retosReiniciar === 'function') retosReiniciar();
@@ -623,9 +623,6 @@ function drawBanner(m) {
 // ═══════════════════════════════════════════════════════════════════
 //  VISTA MACROSCÓPICA: "LO QUE VEMOS"
 // ═══════════════════════════════════════════════════════════════════
-let burbujas = [];   // burbujas de vapor durante la ebullición
-let gotas    = [];   // gotas que se forman en la tapa al condensar
-let motas    = [];   // motas que sugieren el gas que llena el recipiente
 
 function drawPanelFrame(r, titulo, sub) {
     if (THEME.fun) {
@@ -649,202 +646,6 @@ function drawPanelFrame(r, titulo, sub) {
     const w = textWidth(titulo);
     textStyle(NORMAL); textSize(11); fill(THEME.textDim);
     text('· ' + sub, r.x + 20 + w, r.y + 17);
-}
-
-// El gas ocupa TODO el recipiente: neblina + motas que se mueven.
-function drawGas(ySup) {
-    if (motas.length === 0) {
-        for (let i = 0; i < 70; i++) motas.push({ x: random(JAR.w), y: random(JAR.h), f: random(1) });
-    }
-    if (estado.fg <= 0) return;
-    const c = color(sus.col.gas);
-    c.setAlpha(18 + 55 * estado.fg);
-    noStroke(); fill(c);
-    rect(JAR.x, JAR.y, JAR.w, ySup - JAR.y);
-
-    c.setAlpha(170);
-    fill(c);
-    for (const m of motas) {
-        if (m.f > estado.fg) continue;          // más gas → más motas
-        m.x = (m.x + random(-1.4, 1.4) * velocidad + JAR.w) % JAR.w;
-        m.y = (m.y + random(-1.4, 1.4) * velocidad + JAR.h) % JAR.h;
-        const y = JAR.y + m.y;
-        if (y < ySup - 3) circle(JAR.x + m.x, y, 2.6);
-    }
-}
-
-function drawLiquid(ySup, hLiq) {
-    if (hLiq < 0.5) return;
-    const c = color(sus.col.liquid);
-    c.setAlpha(205);
-    noStroke(); fill(c);
-    beginShape();
-    vertex(JAR.x, JAR.y + JAR.h);
-    for (let x = 0; x <= JAR.w; x += 10) {
-        const ola = sin(x * 0.05 + frameCount * 0.06) * 1.6;
-        vertex(JAR.x + x, ySup + ola);
-    }
-    vertex(JAR.x + JAR.w, JAR.y + JAR.h);
-    endShape(CLOSE);
-
-    // Brillo de la superficie
-    stroke(255, 255, 255, 70); strokeWeight(1.5);
-    line(JAR.x + 4, ySup + 2, JAR.x + JAR.w - 4, ySup + 2);
-}
-
-// Trozos de sólido: se encogen y se redondean al fundirse.
-// El hielo flota en el agua; los demás sólidos se quedan en el fondo.
-function drawSolid(ySup, hLiq) {
-    if (estado.fs <= 0) return null;
-    // En la escena, los trozos se reparten en el hueco que deja el termómetro
-    const x1 = currentMode === 'curva' ? TH.x - TH.tubo / 2 - 6 : JAR.x + JAR.w;
-    const s0 = Math.min(42, (x1 - JAR.x - 8) / 5.6);
-    const s = s0 * sqrt(estado.fs);
-    const fondo = JAR.y + JAR.h;
-    const cx = (JAR.x + x1) / 2;
-    let base = fondo;
-    if (sus.flota && hLiq > 0) base = min(fondo, ySup + s * 0.85);
-
-    // Color del sólido (el hierro se pone al rojo al acercarse a su fusión)
-    let c = color(sus.col.solid);
-    if (sus === SUSTANCIAS.hierro) {
-        c = lerpColor(c, color('#ff5a1e'), constrain(map(estado.T, sus.tMin, sus.tf, 0.15, 0.75), 0, 1));
-    }
-    c.setAlpha(235);
-    const borde = lerpColor(c, color(0), 0.35);
-    const radio = (THEME.fun ? 7 : 3) + (1 - estado.fs) * s * 0.35;
-
-    const fila1 = [-2, -1, 0, 1, 2], fila2 = [-1, 0, 1];
-    const sep = s0 * 1.07;
-    if (THEME.fun) { stroke(THEME.ink); strokeWeight(2.5); } else { stroke(borde); strokeWeight(1.5); }
-    fill(c);
-    for (const i of fila1) rect(cx + i * sep - s / 2, base - s, s, s, radio);
-    for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, s0) - 2, s, s, radio);
-
-    // Reflejo
-    noStroke(); fill(255, 255, 255, THEME.fun ? 150 : 80);
-    const brillo = THEME.fun ? 5 : 3;
-    for (const i of fila1) rect(cx + i * sep - s / 2 + 5, base - s + 5, s * 0.3, brillo, 2);
-    if (THEME.fun) for (const i of fila2) rect(cx + i * sep - s / 2 + 5, base - s - min(s, s0) + 3, s * 0.3, brillo, 2);
-    return { base, techo: base - s - min(s, s0) - 2 };
-}
-
-function drawBubbles(ySup, hLiq) {
-    const hirviendo = estado.tramo === 'vaporizacion' && potencia > 0;
-    if (hirviendo && random() < potencia * velocidad * 0.9) {
-        burbujas.push({ x: JAR.x + random(10, JAR.w - 10), y: JAR.y + JAR.h - 3, r: random(2, 5), v: random(0.8, 1.8) });
-    }
-    noFill(); stroke(255, 255, 255, 150); strokeWeight(1.2);
-    for (let i = burbujas.length - 1; i >= 0; i--) {
-        const b = burbujas[i];
-        b.y -= b.v * velocidad; b.r += 0.02; b.x += random(-0.4, 0.4);
-        if (b.y < ySup + 2 || hLiq < 2) { burbujas.splice(i, 1); continue; }
-        circle(b.x, b.y, b.r * 2);
-    }
-}
-
-// Al condensar se forman gotas en la tapa que caen al líquido.
-function drawDroplets(ySup) {
-    const condensando = estado.tramo === 'vaporizacion' && potencia < 0;
-    if (condensando && random() < -potencia * velocidad * 0.5) {
-        gotas.push({ x: JAR.x + random(12, JAR.w - 12), y: JAR.y + 2, r: 1, v: 0 });
-    }
-    const c = color(sus.col.liquid);
-    c.setAlpha(220);
-    noStroke(); fill(c);
-    for (let i = gotas.length - 1; i >= 0; i--) {
-        const g = gotas[i];
-        if (g.r < 3.6) g.r += 0.035 * velocidad;   // crece pegada a la tapa
-        else { g.v += 0.25; g.y += g.v; }           // y luego cae
-        if (g.y > ySup) { gotas.splice(i, 1); continue; }
-        ellipse(g.x, g.y + g.r * 0.4, g.r * 1.8, g.r * 2.3);
-    }
-}
-
-function drawJarGlass() {
-    if (THEME.fun) {
-        // Tapa con asa, contorno de tinta
-        stroke(THEME.ink); strokeWeight(2.5); fill(THEME.jarLid);
-        rect(JAR.x + JAR.w / 2 - 16, JAR.y - 22, 32, 10, 5);
-        rect(JAR.x - 9, JAR.y - 14, JAR.w + 18, 14, 7);
-        noStroke(); fill(255, 255, 255, 90);
-        rect(JAR.x - 3, JAR.y - 11, JAR.w * 0.5, 3, 2);
-        // Paredes: tinta por fuera y vidrio por dentro
-        noFill(); stroke(THEME.ink); strokeWeight(7);
-        paredesJarra();
-        stroke(THEME.jarWall); strokeWeight(3);
-        paredesJarra();
-        // Reflejos del vidrio
-        stroke(THEME.jarShine); strokeWeight(5); strokeCap(ROUND);
-        line(JAR.x + 12, JAR.y + 14, JAR.x + 12, JAR.y + JAR.h - 40);
-        strokeWeight(3);
-        line(JAR.x + 21, JAR.y + 14, JAR.x + 21, JAR.y + 50);
-        if (currentMode === 'curva' && ESC_MOVIL) return;   // en el móvil lo dice la ayuda (?)
-        noStroke(); fill(THEME.textDim); textSize(12.5); textAlign(LEFT, TOP);
-        textFont(FUENTE_TEXTO);
-        if (currentMode === 'curva') { textSize(12); textAlign(LEFT, BOTTOM); text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x - 12, JAR.y - 28); }
-        else text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + 30, JAR.y + 10, JAR.w - 40);
-        textFont('Fredoka');
-        return;
-    }
-    // Tapa
-    stroke(THEME.jarWall); strokeWeight(2); fill(THEME.jarLid);
-    rect(JAR.x - 9, JAR.y - 14, JAR.w + 18, 14, 4);
-    // Paredes
-    noFill(); strokeWeight(3);
-    paredesJarra();
-    // Reflejo del vidrio
-    stroke(THEME.jarShine); strokeWeight(2);
-    line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
-
-    noStroke(); fill(THEME.textDim); textSize(11); textAlign(LEFT, TOP);
-    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + 14, JAR.y + 10);
-}
-
-function paredesJarra() {
-    beginShape();
-    vertex(JAR.x, JAR.y);
-    vertex(JAR.x, JAR.y + JAR.h - 10);
-    quadraticVertex(JAR.x, JAR.y + JAR.h, JAR.x + 10, JAR.y + JAR.h);
-    vertex(JAR.x + JAR.w - 10, JAR.y + JAR.h);
-    quadraticVertex(JAR.x + JAR.w, JAR.y + JAR.h, JAR.x + JAR.w, JAR.y + JAR.h - 10);
-    vertex(JAR.x + JAR.w, JAR.y);
-    endShape();
-}
-
-function drawPlate() {
-    const { x, y, w, h } = PLATE;
-    // Superficie: roja al calentar, azul al enfriar
-    let sup = color(THEME.plateTop);
-    if (potencia > 0) sup = lerpColor(sup, color('#ff3b1e'), 0.25 + 0.75 * potencia);
-    if (potencia < 0) sup = lerpColor(sup, color('#3a9cff'), 0.25 + 0.75 * -potencia);
-
-    if (THEME.fun) {
-        // Patas, cuerpo redondeado con mandos y superficie que brilla
-        stroke(THEME.ink); strokeWeight(2); fill(THEME.plateBody);
-        rect(x + 16, y + h - 2, 14, 8, 3); rect(x + w - 30, y + h - 2, 14, 8, 3);
-        strokeWeight(2.5);
-        rect(x, y, w, h, 9);
-        fill(sup); rect(x + 6, y - 3, w - 12, 7, 4);
-        noStroke(); fill(THEME.plateTop);
-        circle(x + 12, y + 13, 9); circle(x + w - 12, y + 13, 9);
-    } else {
-    noStroke(); fill(THEME.plateBody);
-    rect(x, y, w, h, 4);
-    fill(sup);
-    rect(x + 4, y, w - 8, 5, 2);
-    }
-    if (potencia !== 0) {                     // resplandor
-        const g = color(sup); g.setAlpha(60 * abs(potencia));
-        fill(g); rect(x + 4, y - 4, w - 8, 4, 2);
-    }
-
-    fill(THEME.plateText); textSize(11); textAlign(CENTER, CENTER);
-    const pct = Math.round(abs(potencia) * 100);
-    const txt = frase(potencia > 0 ? i18n.t('CALIENTA {pct} % · entra energía', { pct })
-              : potencia < 0 ? i18n.t('ENFRÍA {pct} % · sale energía', { pct })
-              : i18n.t('PLACA APAGADA'));
-    text(txt, x + w / 2, y + 13);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1143,10 +944,11 @@ function dibujarParticulas() {
     const tipo = tipoMolecula();
     stroke(THEME.particleEdge); strokeWeight(THEME.fun ? 1.8 : 1.2);
     if (tipo === 'esfera') {
-        strokeWeight(1.5); fill(THEME.particle);
+        strokeWeight(1.5); fill(currentMode === 'curva' && THEME.fun ? '#b9c2cc' : THEME.particle);
+        if (currentMode === 'curva' && THEME.fun) { stroke(THEME.ink); strokeWeight(2); }
         for (const p of particulas) circle(p.x, p.y, P_R * 2 - 3);
-        noStroke(); fill(255, 255, 255, 110);
-        for (const p of particulas) circle(p.x - 2.5, p.y - 2.5, 5);
+        noStroke(); fill(255, 255, 255, 140);
+        for (const p of particulas) circle(p.x - P_R * 0.3, p.y - P_R * 0.3, P_R * 0.55);
         return;
     }
     const R = P_R;
