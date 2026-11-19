@@ -13,33 +13,33 @@
 }
 
 body:not(.theme-contrast):not(.theme-marca) {
-    /* Noche */
-    --bg1: #1b1446;  --bg2: #31206e;
-    --panel: #261c5e; --panel-2: #33277a; --hundido: #1f1752;
-    --line: #4d3fa0;  --line-suave: #3a2d86;
-    --text: #f3efff;  --muted: #c3baf0; --title: #ffffff;
-    --accent: #ffd84a; --accent-ink: #3a2a00; --accent-suave: rgba(255,216,74,0.14);
-    --cyan: #5fd4ff;
-    --solid: #86b4ff; --liquid: #2ee6a6; --gas: #ff9a4a; --change: #ffd84a;
-    --hot: #ff7a5a;   --cold: #6ab8ff;
-    --boton-sombra: #120d36;
-    --shadow: 0 10px 30px rgba(10, 5, 40, 0.45);
-    --puntos: rgba(255,255,255,0.07);
+    /* Pizarra: azules de SimulaCiencia, oscuro de tono medio para la pizarra digital */
+    --bg1: #0b2236;  --bg2: #154a70;
+    --panel: #15395a; --panel-2: #1d4a72; --hundido: #0e2b45;
+    --line: #2d6996;  --line-suave: #24577f;
+    --text: #eef7ff;  --muted: #b5d3ec; --title: #ffffff;
+    --accent: #00c8ff; --accent-ink: #04263d; --accent-suave: rgba(0,200,255,0.18);
+    --cyan: #00c8ff;
+    --solid: #9ec9ff; --liquid: #34e3a8; --gas: #ffa25a; --change: #ffd84a;
+    --hot: #ff8a6a;   --cold: #8cc8ff;
+    --boton-sombra: #071a2b;
+    --shadow: 0 10px 28px rgba(3, 15, 28, 0.45);
+    --puntos: rgba(255,255,255,0.06);
     --font-fun: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
 }
 body.theme-light:not(.theme-marca) {
-    /* Día */
-    --bg1: #fff3df;  --bg2: #ffe0c2;
-    --panel: #ffffff; --panel-2: #fff3e6; --hundido: #fff8ef;
-    --line: #f0cfae;  --line-suave: #f6dfc6;
-    --text: #2a2350;  --muted: #5d5280; --title: #1d1b3a;
-    --accent: #6d3df5; --accent-ink: #ffffff; --accent-suave: rgba(109,61,245,0.10);
-    --cyan: #6d3df5;
-    --solid: #1f6fd0; --liquid: #0a7d58; --gas: #c2510c; --change: #9a6500;
+    /* Día: claro pero no blanco, con el azul de la marca */
+    --bg1: #dde9f3;  --bg2: #eef5fb;
+    --panel: #f7fbff; --panel-2: #e4eff8; --hundido: #d3e2ef;
+    --line: #a9c6de;  --line-suave: #c6dbec;
+    --text: #13304a;  --muted: #3f5f7a; --title: #0b2236;
+    --accent: #0369a1; --accent-ink: #ffffff; --accent-suave: rgba(3,105,161,0.14);
+    --cyan: #0369a1;
+    --solid: #1f5fbf; --liquid: #0a7d58; --gas: #c2410c; --change: #8a5a00;
     --hot: #c0402a;   --cold: #1a6ab0;
-    --boton-sombra: #e7c39e;
-    --shadow: 0 10px 26px rgba(120, 70, 20, 0.16);
-    --puntos: rgba(120,70,20,0.08);
+    --boton-sombra: #a9c6de;
+    --shadow: 0 10px 24px rgba(11, 34, 54, 0.14);
+    --puntos: rgba(11,34,54,0.07);
 }
 
 /* ── Base ─────────────────────────────────────────── */
@@ -287,8 +287,8 @@ body:not(.theme-contrast):not(.theme-marca) .theme-opt {
 }
 body:not(.theme-contrast):not(.theme-marca) .theme-opt:hover { background: var(--panel-2); border-color: var(--line); color: var(--title); }
 body:not(.theme-contrast):not(.theme-marca) .theme-opt.active { background: transparent; border-color: var(--accent); color: var(--title); }
-.dark-swatch  { background: linear-gradient(135deg, #31206e 50%, #ffd84a 50%) !important; border: 0 !important; }
-.light-swatch { background: linear-gradient(135deg, #fff3df 50%, #6d3df5 50%) !important; border: 1px solid #ccc !important; }
+.dark-swatch  { background: linear-gradient(135deg, #154a70 50%, #00c8ff 50%) !important; border: 0 !important; }
+.light-swatch { background: linear-gradient(135deg, #eef5fb 50%, #0369a1 50%) !important; border: 1px solid #a9c6de !important; }
 
 /* Foco visible del color de acento */
 body:not(.theme-contrast):not(.theme-marca) button:focus-visible,
@@ -306,4 +306,20 @@ body:not(.theme-contrast):not(.theme-marca) summary:focus-visible {
 body:not(.theme-contrast):not(.theme-marca) input[type="range"]:not(.power-slider) {
     background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 40%), var(--hundido) var(--fill, 40%));
     box-shadow: inset 0 0 0 2px var(--line-suave);
+}
+
+/* ── Pequeñas animaciones ─────────────────────────── */
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+body:not(.theme-contrast):not(.theme-marca) .estado-value.bump { animation: bump 0.5s ease; }
+body:not(.theme-contrast):not(.theme-marca) .mode-btn:active,
+body:not(.theme-contrast):not(.theme-marca) .preset-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--boton-sombra); }
+body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn:active { transform: scale(0.94); }
+body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn { transition: transform 0.1s, background 0.15s; }
+@keyframes aparece { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+body:not(.theme-contrast):not(.theme-marca) .control-group,
+body:not(.theme-contrast):not(.theme-marca) .custom-details { animation: aparece 0.4s ease both; }
+@media (prefers-reduced-motion: reduce) {
+    body:not(.theme-contrast):not(.theme-marca) .estado-value.bump,
+    body:not(.theme-contrast):not(.theme-marca) .control-group,
+    body:not(.theme-contrast):not(.theme-marca) .custom-details { animation: none; }
 }

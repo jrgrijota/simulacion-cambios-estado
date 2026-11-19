@@ -395,8 +395,10 @@ function updateCurvaUI() {
     document.getElementById('metric-tiempo').textContent = i18n.num(tiempo, 1);
     const d = describirEstado(estado);
     const el = document.getElementById('metric-estado');
+    const cambia = el.textContent !== d.txt;
     el.textContent = d.txt;
     el.className = 'estado-value ' + d.cls;
+    if (cambia && THEME.fun && !MOV_REDUCIDO) { void el.offsetWidth; el.classList.add('bump'); }
 
     // Solo cuenta la energía que ha entrado (o salido) desde el inicio: la que
     // ya tenía la sustancia a su temperatura inicial no es «aportada».
@@ -493,8 +495,113 @@ function mensajeDidactico() {
     }
 }
 
+// ── Estilo juego: mascota, saltos y chispas ─────────────────────
+const MOV_REDUCIDO = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let bannerTag = '', bannerDesde = -1e9, chispas = [];
+
+function lanzarChispas(x, y, col, n) {
+    if (MOV_REDUCIDO) return;
+    for (let i = 0; i < n; i++) {
+        const a = random(TWO_PI), v = random(1.5, 4);
+        chispas.push({ x, y, vx: cos(a) * v, vy: sin(a) * v - 1, vida: 1, col, r: random(3, 6), estrella: random() < 0.5 });
+    }
+}
+
+function drawChispas() {
+    for (let i = chispas.length - 1; i >= 0; i--) {
+        const c = chispas[i];
+        c.x += c.vx; c.y += c.vy; c.vy += 0.12; c.vida -= 0.025;
+        if (c.vida <= 0) { chispas.splice(i, 1); continue; }
+        const col = color(c.col); col.setAlpha(255 * c.vida);
+        noStroke(); fill(col);
+        if (c.estrella) estrella(c.x, c.y, c.r * 1.3, c.r * 0.5);
+        else circle(c.x, c.y, c.r * 2 * c.vida);
+    }
+}
+
+function estrella(x, y, r1, r2) {
+    beginShape();
+    for (let i = 0; i < 10; i++) {
+        const a = -HALF_PI + i * PI / 5, r = i % 2 ? r2 : r1;
+        vertex(x + cos(a) * r, y + sin(a) * r);
+    }
+    endShape(CLOSE);
+}
+
+// Escala de un «salto» (pop) que dura ~0,45 s desde t0
+function salto(t0) {
+    if (MOV_REDUCIDO) return 1;
+    const e = (millis() - t0) / 450;
+    if (e >= 1) return 1;
+    return 1 + 0.35 * sin(e * PI) * (1 - e);
+}
+
+// Mascota: una partícula sonriente del color del estado actual.
+function drawMascota(cx, cy, r, col) {
+    const bote = MOV_REDUCIDO ? 0 : sin(millis() / 260) * 1.5;
+    const t = millis() % 4200;
+    const parpadeo = t > 4050;
+    push();
+    translate(cx, cy + bote);
+    const s = salto(bannerDesde);
+    scale(s, 2 - s);
+    noStroke(); fill(0, 0, 0, 45); ellipse(0, r + 3 - bote, r * 1.5, 5);
+    stroke(THEME.ink); strokeWeight(2.5); fill(col);
+    circle(0, 0, r * 2);
+    noStroke(); fill(255, 255, 255, 150);
+    ellipse(-r * 0.42, -r * 0.45, r * 0.55, r * 0.35);
+    // Ojos y sonrisa
+    fill(THEME.ink);
+    if (parpadeo) { stroke(THEME.ink); strokeWeight(2); line(-r * 0.42, -r * 0.05, -r * 0.18, -r * 0.05); line(r * 0.18, -r * 0.05, r * 0.42, -r * 0.05); }
+    else { ellipse(-r * 0.3, -r * 0.08, r * 0.2, r * 0.3); ellipse(r * 0.3, -r * 0.08, r * 0.2, r * 0.3); }
+    noFill(); stroke(THEME.ink); strokeWeight(2.2);
+    arc(0, r * 0.18, r * 0.6, r * 0.45, 0.15 * PI, 0.85 * PI);
+    noStroke(); fill(255, 120, 150, 120);
+    circle(-r * 0.58, r * 0.22, r * 0.3); circle(r * 0.58, r * 0.22, r * 0.3);
+    pop();
+}
+
+function drawBannerJuego(m) {
+    const { x, y, w, h } = BANNER;
+    if (m.tag !== bannerTag) {
+        if (bannerTag) lanzarChispas(x + 120, y + h / 2, m.col, 22);
+        bannerTag = m.tag; bannerDesde = millis();
+    }
+    // En el tema Día los colores de estado son oscuros (para leerse): la mascota, más clara
+    const cm = lightness(color(m.col)) > 55 ? color(m.col) : lerpColor(color(m.col), color(255), 0.45);
+    drawMascota(x + 24, y + h / 2, 21, cm);
+
+    // Bocadillo con pico hacia la mascota
+    const bx = x + 58;
+    noStroke(); fill(THEME.ink); rect(bx, y + 3, w - 58, h, 16);
+    stroke(THEME.border); strokeWeight(2); fill(THEME.panelBg);
+    rect(bx, y, w - 58, h, 16);
+    noStroke(); fill(THEME.panelBg);
+    triangle(bx - 9, y + h / 2, bx + 2, y + h / 2 - 8, bx + 2, y + h / 2 + 8);
+    stroke(THEME.border); strokeWeight(2);
+    line(bx - 9, y + h / 2, bx + 1, y + h / 2 - 8); line(bx - 9, y + h / 2, bx + 1, y + h / 2 + 8);
+
+    // Etiqueta que da un salto al cambiar
+    textStyle(BOLD); textSize(14);
+    const tw = textWidth(m.tag) + 26;
+    push();
+    translate(bx + 14 + tw / 2, y + h / 2);
+    scale(salto(bannerDesde));
+    noStroke(); fill(THEME.ink); rect(-tw / 2, -13, tw, 28, 14);
+    fill(m.col); rect(-tw / 2, -15, tw, 28, 14);
+    fill(lightness(color(m.col)) > 55 ? THEME.ink : '#ffffff'); textAlign(CENTER, CENTER);
+    text(m.tag, 0, -1);
+    pop();
+    textStyle(NORMAL);
+
+    fill(THEME.text); textSize(14); textAlign(LEFT, CENTER); textLeading(17);
+    const tx = bx + 14 + tw + 14;
+    text(m.txt, tx, y + 4, x + w - tx - 14, h - 8);
+}
+
 function drawBanner(m) {
     anunciar(m);
+    if (THEME.fun) { drawBannerJuego(m); drawChispas(); return; }
     const { x, y, w, h } = BANNER;
     const borde = color(m.col);
     const rad = THEME.fun ? 16 : 10;
@@ -675,11 +782,42 @@ function drawDroplets(ySup) {
 }
 
 function drawJarGlass() {
+    if (THEME.fun) {
+        // Tapa con asa, contorno de tinta
+        stroke(THEME.ink); strokeWeight(2.5); fill(THEME.jarLid);
+        rect(JAR.x + JAR.w / 2 - 16, JAR.y - 22, 32, 10, 5);
+        rect(JAR.x - 9, JAR.y - 14, JAR.w + 18, 14, 7);
+        noStroke(); fill(255, 255, 255, 90);
+        rect(JAR.x - 3, JAR.y - 11, JAR.w * 0.5, 3, 2);
+        // Paredes: tinta por fuera y vidrio por dentro
+        noFill(); stroke(THEME.ink); strokeWeight(7);
+        paredesJarra();
+        stroke(THEME.jarWall); strokeWeight(3);
+        paredesJarra();
+        // Reflejos del vidrio
+        stroke(THEME.jarShine); strokeWeight(5); strokeCap(ROUND);
+        line(JAR.x + 12, JAR.y + 14, JAR.x + 12, JAR.y + JAR.h - 40);
+        strokeWeight(3);
+        line(JAR.x + 21, JAR.y + 14, JAR.x + 21, JAR.y + 50);
+        noStroke(); fill(THEME.textDim); textSize(12); textAlign(CENTER, BOTTOM);
+        text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 25);
+        return;
+    }
     // Tapa
     stroke(THEME.jarWall); strokeWeight(2); fill(THEME.jarLid);
     rect(JAR.x - 9, JAR.y - 14, JAR.w + 18, 14, 4);
     // Paredes
     noFill(); strokeWeight(3);
+    paredesJarra();
+    // Reflejo del vidrio
+    stroke(THEME.jarShine); strokeWeight(2);
+    line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
+
+    noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
+    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 18);
+}
+
+function paredesJarra() {
     beginShape();
     vertex(JAR.x, JAR.y);
     vertex(JAR.x, JAR.y + JAR.h - 10);
@@ -688,12 +826,6 @@ function drawJarGlass() {
     quadraticVertex(JAR.x + JAR.w, JAR.y + JAR.h, JAR.x + JAR.w, JAR.y + JAR.h - 10);
     vertex(JAR.x + JAR.w, JAR.y);
     endShape();
-    // Reflejo del vidrio
-    stroke(THEME.jarShine); strokeWeight(2);
-    line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
-
-    noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
-    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 18);
 }
 
 function drawPlate() {
@@ -703,10 +835,21 @@ function drawPlate() {
     if (potencia > 0) sup = lerpColor(sup, color('#ff3b1e'), 0.25 + 0.75 * potencia);
     if (potencia < 0) sup = lerpColor(sup, color('#3a9cff'), 0.25 + 0.75 * -potencia);
 
+    if (THEME.fun) {
+        // Patas, cuerpo redondeado con mandos y superficie que brilla
+        stroke(THEME.ink); strokeWeight(2); fill(THEME.plateBody);
+        rect(x + 16, y + h - 2, 14, 8, 3); rect(x + w - 30, y + h - 2, 14, 8, 3);
+        strokeWeight(2.5);
+        rect(x, y, w, h, 9);
+        fill(sup); rect(x + 6, y - 3, w - 12, 7, 4);
+        noStroke(); fill(THEME.plateTop);
+        circle(x + 12, y + 13, 9); circle(x + w - 12, y + 13, 9);
+    } else {
     noStroke(); fill(THEME.plateBody);
     rect(x, y, w, h, 4);
     fill(sup);
     rect(x + 4, y, w - 8, 5, 2);
+    }
     if (potencia !== 0) {                     // resplandor
         const g = color(sup); g.setAlpha(60 * abs(potencia));
         fill(g); rect(x + 4, y - 4, w - 8, 4, 2);
@@ -765,8 +908,9 @@ function drawComposicion() {
         cx += pw;
     }
     textStyle(NORMAL);
-    noFill(); stroke(THEME.border); strokeWeight(1);
-    rect(x, y, w, h, 4);
+    noFill();
+    if (THEME.fun) { stroke(THEME.canvasBg); strokeWeight(4); rect(x - 2, y - 2, w + 4, h + 4, 8); stroke(THEME.ink); strokeWeight(2.5); rect(x, y, w, h, 7); }
+    else { stroke(THEME.border); strokeWeight(1); rect(x, y, w, h, 4); }
 }
 
 
@@ -1041,7 +1185,7 @@ function tipoMolecula() {
 
 function dibujarParticulas() {
     const tipo = tipoMolecula();
-    stroke(THEME.particleEdge); strokeWeight(1.2);
+    stroke(THEME.particleEdge); strokeWeight(THEME.fun ? 1.8 : 1.2);
     if (tipo === 'esfera') {
         strokeWeight(1.5); fill(THEME.particle);
         for (const p of particulas) circle(p.x, p.y, P_R * 2 - 3);
@@ -1274,7 +1418,7 @@ function drawGraph() {
     if (historial.length < 2) return;
 
     // Curva coloreada por tramos
-    strokeWeight(3.5); noFill(); strokeJoin(ROUND);
+    strokeWeight(THEME.fun ? 5.5 : 3.5); noFill(); strokeJoin(ROUND); strokeCap(ROUND);
     const tramos = tramosHistorial();
     let prev = null;
     for (const tr of tramos) {
@@ -1315,9 +1459,27 @@ function drawGraph() {
         }
     }
 
+    // Hitos: una estrella donde empieza cada cambio de estado
+    if (THEME.fun) {
+        for (const tr of tramos) {
+            if (!tr.meseta || tr.iIni === 0) continue;
+            stroke(THEME.ink); strokeWeight(2); fill(THEME.change);
+            estrella(xOf(tr.ini.t), yOf(tr.ini.T), 9, 4);
+        }
+    }
+
     // Punto actual
     const u = historial[historial.length - 1];
     const c = color(colorTramo(u.tramo));
+    if (THEME.fun) {
+        const pulso = MOV_REDUCIDO ? 0 : (millis() % 1200) / 1200;
+        c.setAlpha(110 * (1 - pulso)); noStroke(); fill(c);
+        circle(xOf(u.t), yOf(u.T), 16 + 18 * pulso);
+        fill(colorTramo(u.tramo)); stroke(THEME.ink); strokeWeight(2.5);
+        circle(xOf(u.t), yOf(u.T), 14);
+        noStroke(); fill(255, 255, 255, 170); circle(xOf(u.t) - 2.5, yOf(u.T) - 2.5, 4);
+        return;
+    }
     c.setAlpha(70); noStroke(); fill(c);
     circle(xOf(u.t), yOf(u.T), 18);
     fill(colorTramo(u.tramo)); stroke(THEME.canvasBg); strokeWeight(2);
@@ -1345,7 +1507,7 @@ function drawThermometer(T) {
     const yOf = (t) => map(t, sus.tMin, sus.tMax, bottom - 6, top + 8);
 
     // Tubo y bulbo
-    stroke(THEME.thermoGlass); strokeWeight(2); fill(THEME.thermoTube);
+    stroke(THEME.fun ? THEME.ink : THEME.thermoGlass); strokeWeight(THEME.fun ? 3 : 2); fill(THEME.thermoTube);
     rect(x - tubeW / 2, top, tubeW, bottom - top, tubeW / 2);
     circle(x, bottom + bulbR - 4, bulbR * 2);
 
@@ -1354,6 +1516,11 @@ function drawThermometer(T) {
     noStroke(); fill(THEME.thermoFill);
     rect(x - 3, yT, 6, bottom - yT + 4, 3);
     circle(x, bottom + bulbR - 4, bulbR * 2 - 8);
+    if (THEME.fun) {
+        fill(255, 255, 255, 170);
+        ellipse(x - 5, bottom + bulbR - 10, 6, 8);
+        rect(x - 4.5, top + 6, 2.5, bottom - top - 16, 2);
+    }
 
     // Escala
     textSize(11); textAlign(RIGHT, CENTER);
@@ -1543,38 +1710,38 @@ function updateTheme() {
             bond:       'rgba(3,105,161,0.55)',
         };
     } else if (isLight) {
-        // Día: paleta del juego «Carga cero» (piloto de estilo).
+        // Día: azules de SimulaCiencia con el estilo del juego (piloto).
         THEME = {
-            canvasBg:   '#fffaf2',
-            panelBg:    '#ffffff',
-            border:     '#f0cfae',
-            text:       '#2a2350',
-            textDim:    '#5d5280',
-            accent:     '#6d3df5',
-            title:      '#1d1b3a',
-            solid:      '#1f6fd0',
+            canvasBg:   '#eef5fb',
+            panelBg:    '#f7fbff',
+            border:     '#a9c6de',
+            text:       '#13304a',
+            textDim:    '#3f5f7a',
+            accent:     '#0369a1',
+            title:      '#0b2236',
+            solid:      '#1f5fbf',
             liquid:     '#0a7d58',
-            gas:        '#c2510c',
-            change:     '#9a6500',
-            thermoGlass:'#5d5280',
+            gas:        '#c2410c',
+            change:     '#8a5a00',
+            thermoGlass:'#3f5f7a',
             thermoTube: '#ffffff',
             thermoTick: '#5d5280',
             thermoFill: '#e53950',
-            jarWall:    '#2a2350',
-            jarLid:     '#d9ccff',
+            jarWall:    '#13304a',
+            jarLid:     '#bfe3f7',
             jarShine:   'rgba(255,255,255,0.8)',
-            plateBody:  '#2a2350',
-            plateTop:   '#8a7fb0',
-            plateText:  '#fffaf2',
+            plateBody:  '#13304a',
+            plateTop:   '#6f8ba3',
+            plateText:  '#f7fbff',
             heat:       '#e0401e',
             cold:       '#1a72d0',
-            lensBg:     '#f6efff',
-            grid:       '#f2e2d0',
-            axis:       '#5d5280',
+            lensBg:     '#e4eff8',
+            grid:       '#d3e2ef',
+            axis:       '#3f5f7a',
             particle:   '#fffaf0',
-            particleEdge:'#2a2350',
-            bond:       'rgba(109,61,245,0.55)',
-            ink:        '#2a2350',
+            particleEdge:'#13304a',
+            bond:       'rgba(3,105,161,0.55)',
+            ink:        '#13304a',
             fun:        true,
         };
     } else if (isContrast) {
@@ -1609,38 +1776,38 @@ function updateTheme() {
             bond:       '#00ffff',
         };
     } else {
-        // Noche: paleta del juego «Carga cero» (piloto de estilo).
+        // Pizarra: azules de SimulaCiencia con el estilo del juego «Carga cero» (piloto).
         THEME = {
-            canvasBg:   '#221a5c',
-            panelBg:    '#2c2270',
-            border:     '#4d3fa0',
-            text:       '#f3efff',
-            textDim:    '#c3baf0',
-            accent:     '#ffd84a',
+            canvasBg:   '#11314f',
+            panelBg:    '#15395a',
+            border:     '#2d6996',
+            text:       '#eef7ff',
+            textDim:    '#b5d3ec',
+            accent:     '#00c8ff',
             title:      '#ffffff',
-            solid:      '#86b4ff',
-            liquid:     '#2ee6a6',
-            gas:        '#ff9a4a',
+            solid:      '#9ec9ff',
+            liquid:     '#34e3a8',
+            gas:        '#ffa25a',
             change:     '#ffd84a',
-            thermoGlass:'#b7acec',
-            thermoTube: '#1b1446',
-            thermoTick: '#b7acec',
+            thermoGlass:'#b5d3ec',
+            thermoTube: '#0b2236',
+            thermoTick: '#b5d3ec',
             thermoFill: '#ff5d73',
-            jarWall:    '#e9e4ff',
-            jarLid:     '#5a4bb0',
+            jarWall:    '#e6f4ff',
+            jarLid:     '#2d6996',
             jarShine:   'rgba(255,255,255,0.35)',
-            plateBody:  '#120d36',
-            plateTop:   '#5a4bb0',
-            plateText:  '#f3efff',
+            plateBody:  '#071a2b',
+            plateTop:   '#2d6996',
+            plateText:  '#eef7ff',
             heat:       '#ff7043',
             cold:       '#4aa8ff',
-            lensBg:     '#170f45',
-            grid:       '#3a2d86',
-            axis:       '#b7acec',
-            particle:   '#fffaf0',
-            particleEdge:'#1d1b3a',
-            bond:       'rgba(255,216,74,0.55)',
-            ink:        '#120d36',
+            lensBg:     '#0b2236',
+            grid:       '#22507a',
+            axis:       '#b5d3ec',
+            particle:   '#f4fbff',
+            particleEdge:'#071a2b',
+            bond:       'rgba(0,200,255,0.6)',
+            ink:        '#071a2b',
             fun:        true,
         };
     }
