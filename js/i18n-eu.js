@@ -1,10 +1,10 @@
 // Traducciones al euskera (se usan con ?lang=eu). Ver js/i18n.js.
 window.I18N_EU = {
     // Título de la página
-    'Cambios de Estado — Simulación Interactiva': 'Egoera-aldaketak — Simulazio interaktiboa',
+    'Cambios de estado — Simulación interactiva': 'Egoera-aldaketak — Simulazio interaktiboa',
 
     // Cabecera
-    'Cambios de Estado': 'Egoera-aldaketak',
+    'Cambios de estado': 'Egoera-aldaketak',
     'Sólido · Líquido · Gas': 'Solidoa · Likidoa · Gasa',
     '¿Qué es un cambio de estado?': 'Zer da egoera-aldaketa bat?',
     'intro-materia': 'Materia egoera solidoan, likidoan edo gaseosoan egon daiteke. Berotzen edo hozten dugunean egoeraz aldatzen da, baina <strong>bere partikulak berberak dira</strong>: zein hurbil dauden eta nola mugitzen diren baino ez da aldatzen.',

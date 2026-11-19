@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambios de Estado — Simulación Interactiva</title>
+    <title>Cambios de estado — Simulación interactiva</title>
     <!-- Página pública de esta simulación: simulaciencia.es. Esta dirección (github.io) es la que carga la web dentro de un iframe; la canónica evita que los buscadores la indexen como página aparte. -->
     <meta name="description" content="Calienta y enfría una sustancia viendo sus partículas y su curva de calentamiento, y mira con el diagrama de fases por qué el agua hierve a unos 72 °C en el Everest.">
     <link rel="canonical" id="canonical" href="https://simulaciencia.es/simulaciones/cambios-estado/">
@@ -15,6 +15,7 @@
     <script src="js/i18n.js"></script>
     <script src="js/vendor/p5.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/estilo-juego.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="js/estadisticas.js" data-sim="sim-cambios-estado"></script>
     <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="bl"></script>
@@ -29,24 +30,23 @@
                 <div class="header-top">
                     <svg class="header-icon-svg" width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <!-- Vapor -->
-                        <path d="M14 9 Q11 6 14 3" stroke="#ff9a4a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-                        <path d="M21 10 Q18 6.5 21 3" stroke="#ff9a4a" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.75"/>
-                        <path d="M28 9 Q25 6 28 3" stroke="#ff9a4a" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.5"/>
+                        <path d="M13 9 Q10 6 13 2.5" stroke="#ff9a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                        <path d="M21 9 Q18 5.5 21 2" stroke="#ff9a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                        <path d="M29 9 Q26 6 29 2.5" stroke="#ff9a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
                         <!-- Vaso -->
-                        <rect x="6" y="12" width="30" height="25" rx="3.5" stroke="#585858" stroke-width="1.8" fill="#0d0d0d"/>
+                        <rect x="6" y="11.5" width="30" height="25" rx="6" fill="#e9f4ff" stroke="#1d1b3a" stroke-width="2.2"/>
                         <!-- Líquido -->
-                        <rect x="7.9" y="24" width="26.2" height="11.1" fill="#3ccf9a" opacity="0.40"/>
-                        <path d="M8 24 Q15 22.5 21 24 Q27 25.5 34 24" stroke="#3ccf9a" stroke-width="1.4" fill="none"/>
+                        <path d="M7.1 23 Q14 21 21 23 Q28 25 34.9 23 V30.5 Q34.9 35.4 30 35.4 H12 Q7.1 35.4 7.1 30.5 Z" fill="#2ee6a6"/>
                         <!-- Cubito de hielo -->
-                        <rect x="13" y="18.5" width="10" height="10" rx="1.8" fill="#1a2440" stroke="#8aa8ff" stroke-width="1.8" transform="rotate(-12 18 23.5)"/>
+                        <rect x="12" y="16.5" width="11" height="11" rx="2.6" fill="#86c8ff" stroke="#1d1b3a" stroke-width="2" transform="rotate(-12 17.5 22)"/>
+                        <rect x="13.6" y="18" width="4" height="2" rx="1" fill="#ffffff" transform="rotate(-12 17.5 22)"/>
                         <!-- Partículas -->
-                        <circle cx="27" cy="29" r="1.6" fill="#3ccf9a"/>
-                        <circle cx="30.5" cy="31.5" r="1.6" fill="#3ccf9a"/>
-                        <circle cx="12" cy="32" r="1.6" fill="#3ccf9a"/>
+                        <circle cx="27" cy="29" r="1.8" fill="#ffffff"/>
+                        <circle cx="30.5" cy="26.5" r="1.4" fill="#ffffff"/>
                         <!-- Placa calefactora -->
-                        <rect x="4" y="38.5" width="34" height="2.5" rx="1.2" fill="#ff5a5a"/>
+                        <rect x="4" y="37.8" width="34" height="3.4" rx="1.7" fill="#ff7043" stroke="#1d1b3a" stroke-width="1.2"/>
                     </svg>
-                    <h1>Cambios de Estado</h1>
+                    <h1>Cambios de estado</h1>
                 </div>
                 <p class="subtitle">Sólido · Líquido · Gas</p>
                 <details class="header-details">

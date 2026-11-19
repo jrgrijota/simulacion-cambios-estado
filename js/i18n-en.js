@@ -1,10 +1,10 @@
 // Traducciones al inglés (se usan con ?lang=en). Ver js/i18n.js.
 window.I18N_EN = {
     // Título de la página
-    'Cambios de Estado — Simulación Interactiva': 'Changes of State — Interactive Simulation',
+    'Cambios de estado — Simulación interactiva': 'Changes of state — Interactive simulation',
 
     // Cabecera
-    'Cambios de Estado': 'Changes of State',
+    'Cambios de estado': 'Changes of state',
     'Sólido · Líquido · Gas': 'Solid · Liquid · Gas',
     '¿Qué es un cambio de estado?': 'What is a change of state?',
     'intro-materia': 'Matter can be in the solid, liquid or gas state. When it is heated or cooled it changes state, but <strong>its particles stay the same</strong>: only how close together they are and how they move changes.',

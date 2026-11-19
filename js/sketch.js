@@ -133,6 +133,7 @@ function setup() {
     fitCanvas();
     frameRate(60);
     textFont('monospace');
+    if (document.fonts) document.fonts.load('600 12px Fredoka');
 
     document.getElementById('mode-curva').addEventListener('click', () => setMode('curva'));
     document.getElementById('mode-fases').addEventListener('click', () => setMode('fases'));
@@ -170,7 +171,16 @@ function setup() {
 
 function draw() {
     updateTheme();
-    background(THEME.canvasBg);
+    if (THEME.fun) {
+        // El marco exterior se dibuja dentro del lienzo: así encoge con él y nunca
+        // choca con los tableros (en el móvil el lienzo se reduce mucho).
+        clear();
+        stroke(THEME.border); strokeWeight(2); fill(THEME.canvasBg);
+        rect(1, 1, CV_W - 2, CV_H - 2, 34);
+    } else {
+        background(THEME.canvasBg);
+    }
+    textFont(THEME.fun ? 'Fredoka' : 'monospace');
 
     if (currentMode === 'curva') {
         actualizarModelo();
@@ -393,8 +403,10 @@ function updateCurvaUI() {
     document.getElementById('metric-tiempo').textContent = i18n.num(tiempo, 1);
     const d = describirEstado(estado);
     const el = document.getElementById('metric-estado');
+    const cambia = el.textContent !== d.txt;
     el.textContent = d.txt;
     el.className = 'estado-value ' + d.cls;
+    if (cambia && THEME.fun && !MOV_REDUCIDO) { void el.offsetWidth; el.classList.add('bump'); }
 
     // Solo cuenta la energía que ha entrado (o salido) desde el inicio: la que
     // ya tenía la sustancia a su temperatura inicial no es «aportada».
@@ -491,14 +503,138 @@ function mensajeDidactico() {
     }
 }
 
+// ── Estilo juego: mascota, saltos y chispas ─────────────────────
+const FUENTE_TEXTO = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+// En el estilo juego los textos van en tipo frase («Lo que vemos»), no en mayúsculas.
+function frase(t) {
+    if (!THEME.fun) return t;
+    const l = t.toLocaleLowerCase();
+    return l.charAt(0).toLocaleUpperCase() + l.slice(1);
+}
+const MOV_REDUCIDO = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let bannerTag = '', bannerDesde = -1e9, chispas = [];
+
+function lanzarChispas(x, y, col, n) {
+    if (MOV_REDUCIDO) return;
+    for (let i = 0; i < n; i++) {
+        const a = random(TWO_PI), v = random(1.5, 4);
+        chispas.push({ x, y, vx: cos(a) * v, vy: sin(a) * v - 1, vida: 1, col, r: random(3, 6), estrella: random() < 0.5 });
+    }
+}
+
+function drawChispas() {
+    for (let i = chispas.length - 1; i >= 0; i--) {
+        const c = chispas[i];
+        c.x += c.vx; c.y += c.vy; c.vy += 0.12; c.vida -= 0.04;
+        if (c.vida <= 0) { chispas.splice(i, 1); continue; }
+        const col = color(c.col); col.setAlpha(255 * c.vida);
+        noStroke(); fill(col);
+        if (c.estrella) estrella(c.x, c.y, c.r * 1.3, c.r * 0.5);
+        else circle(c.x, c.y, c.r * 2 * c.vida);
+    }
+}
+
+function estrella(x, y, r1, r2) {
+    beginShape();
+    for (let i = 0; i < 10; i++) {
+        const a = -HALF_PI + i * PI / 5, r = i % 2 ? r2 : r1;
+        vertex(x + cos(a) * r, y + sin(a) * r);
+    }
+    endShape(CLOSE);
+}
+
+// Escala de un «salto» (pop) que dura ~0,45 s desde t0
+function salto(t0) {
+    if (MOV_REDUCIDO) return 1;
+    const e = (millis() - t0) / 450;
+    if (e >= 1) return 1;
+    return 1 + 0.35 * sin(e * PI) * (1 - e);
+}
+
+// Mascota: una partícula sonriente del color del estado actual.
+function drawMascota(cx, cy, r, col) {
+    const bote = MOV_REDUCIDO ? 0 : sin(millis() / 260) * 1.5;
+    const t = millis() % 4200;
+    const parpadeo = t > 4050;
+    push();
+    translate(cx, cy + bote);
+    const s = salto(bannerDesde);
+    scale(s, 2 - s);
+    noStroke(); fill(0, 0, 0, 45); ellipse(0, r + 3 - bote, r * 1.5, 5);
+    stroke(THEME.ink); strokeWeight(2.5); fill(col);
+    circle(0, 0, r * 2);
+    noStroke(); fill(255, 255, 255, 150);
+    ellipse(-r * 0.42, -r * 0.45, r * 0.55, r * 0.35);
+    // Ojos y sonrisa
+    fill(THEME.ink);
+    if (parpadeo) { stroke(THEME.ink); strokeWeight(2); line(-r * 0.42, -r * 0.05, -r * 0.18, -r * 0.05); line(r * 0.18, -r * 0.05, r * 0.42, -r * 0.05); }
+    else { ellipse(-r * 0.3, -r * 0.08, r * 0.2, r * 0.3); ellipse(r * 0.3, -r * 0.08, r * 0.2, r * 0.3); }
+    noFill(); stroke(THEME.ink); strokeWeight(2.2);
+    arc(0, r * 0.18, r * 0.6, r * 0.45, 0.15 * PI, 0.85 * PI);
+    noStroke(); fill(255, 120, 150, 120);
+    circle(-r * 0.58, r * 0.22, r * 0.3); circle(r * 0.58, r * 0.22, r * 0.3);
+    pop();
+}
+
+function drawBannerJuego(m) {
+    const { x, y, w, h } = BANNER;
+    if (m.tag !== bannerTag) {
+        if (bannerTag) lanzarChispas(x + 24, y + h / 2, m.col, 12);
+        bannerTag = m.tag; bannerDesde = millis();
+    }
+    // En el tema Día los colores de estado son oscuros (para leerse): la mascota, más clara
+    const cm = lightness(color(m.col)) > 55 ? color(m.col) : lerpColor(color(m.col), color(255), 0.45);
+    drawMascota(x + 24, y + h / 2, 21, cm);
+
+    // Bocadillo con pico hacia la mascota
+    const bx = x + 58, my = y + h / 2;
+    noStroke(); fill(THEME.ink); rect(bx, y + 3, w - 58, h, 16);
+    stroke(THEME.border); strokeWeight(2); fill(THEME.panelBg);
+    triangle(bx - 10, my, bx + 4, my - 8, bx + 4, my + 8);      // pico con su borde
+    rect(bx, y, w - 58, h, 16);
+    noStroke(); fill(THEME.panelBg);
+    triangle(bx - 7, my, bx + 3, my - 6, bx + 3, my + 6);        // tapa la junta: una sola forma
+
+    // Etiqueta que da un salto al cambiar
+    textStyle(BOLD); textSize(14);
+    const tw = textWidth(m.tag) + 26;
+    push();
+    translate(bx + 14 + tw / 2, y + h / 2);
+    scale(salto(bannerDesde));
+    noStroke(); fill(THEME.ink); rect(-tw / 2, -13, tw, 28, 14);
+    fill(m.col); rect(-tw / 2, -15, tw, 28, 14);
+    fill(lightness(color(m.col)) > 55 ? THEME.ink : '#ffffff'); textAlign(CENTER, CENTER);
+    text(m.tag, 0, -1);
+    pop();
+    textStyle(NORMAL);
+
+    textFont(FUENTE_TEXTO);
+    fill(THEME.text); textSize(14); textAlign(LEFT, CENTER); textLeading(17);
+    const tx = bx + 14 + tw + 14;
+    text(m.txt, tx, y + 3, x + w - tx - 14, h - 6);
+    textFont('Fredoka');
+}
+
 function drawBanner(m) {
     anunciar(m);
+    if (THEME.fun) {
+        drawBannerJuego(m);
+        // Las chispas no salen de la franja del mensaje: nunca tapan texto de los tableros
+        drawingContext.save();
+        drawingContext.beginPath();
+        drawingContext.rect(BANNER.x, BANNER.y - 6, 120, BANNER.h + 12);
+        drawingContext.clip();
+        drawChispas();
+        drawingContext.restore();
+        return;
+    }
     const { x, y, w, h } = BANNER;
     const borde = color(m.col);
-    stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
-    rect(x, y, w, h, 10);
+    const rad = THEME.fun ? 16 : 10;
+    stroke(THEME.border); strokeWeight(THEME.fun ? 2 : 1); fill(THEME.panelBg);
+    rect(x, y, w, h, rad);
     noStroke(); fill(borde);
-    rect(x, y, 5, h, 10, 0, 0, 10);
+    if (!THEME.fun) rect(x, y, 5, h, 10, 0, 0, 10);
 
     // Etiqueta del estado o del cambio
     textStyle(BOLD); textSize(13);
@@ -510,7 +646,7 @@ function drawBanner(m) {
     text(m.tag, x + 16 + tw / 2, y + h / 2 + 1);
     textStyle(NORMAL);
 
-    fill(THEME.text); textSize(13); textAlign(LEFT, CENTER); textLeading(17);
+    fill(THEME.text); textSize(THEME.fun ? 14 : 13); textAlign(LEFT, CENTER); textLeading(17);
     const tx = x + 16 + tw + 16;
     text(m.txt, tx, y + 4, x + w - tx - 14, h - 8);
 }
@@ -525,6 +661,7 @@ let motas    = [];   // motas que sugieren el gas que llena el recipiente
 
 function drawMacroView() {
     drawPanelFrame(MACRO, i18n.t('LO QUE VEMOS'), i18n.t('el recipiente a simple vista'));
+    if (THEME.fun) { noStroke(); fill(THEME.jarInside); rect(JAR.x, JAR.y, JAR.w, JAR.h, 0, 0, 10, 10); }
 
     const fondo = JAR.y + JAR.h;
     const hLiq  = LIQ_MAX_H * estado.fl;
@@ -543,6 +680,20 @@ function drawMacroView() {
 }
 
 function drawPanelFrame(r, titulo, sub) {
+    if (THEME.fun) {
+        // Tablero del juego: borde grueso y una «sombra» sólida debajo
+        noStroke(); fill(THEME.ink); rect(r.x, r.y + 4, r.w, r.h, 18);
+        stroke(THEME.border); strokeWeight(2); fill(THEME.panelBg);
+        rect(r.x, r.y, r.w, r.h, 18);
+        noStroke(); fill(THEME.textDim); circle(r.x + 18, r.y + 18, 8);
+        titulo = frase(titulo);
+        textAlign(LEFT, CENTER); textStyle(BOLD); textSize(15); fill(THEME.title);
+        text(titulo, r.x + 30, r.y + 18);
+        const w = textWidth(titulo);
+        textStyle(NORMAL); textSize(12); fill(THEME.textDim);
+        text('· ' + sub, r.x + 36 + w, r.y + 18);
+        return;
+    }
     stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
     rect(r.x, r.y, r.w, r.h, 10);
     noStroke(); textAlign(LEFT, CENTER); textStyle(BOLD); textSize(12); fill(THEME.accent);
@@ -610,17 +761,20 @@ function drawSolid(ySup, hLiq) {
     }
     c.setAlpha(235);
     const borde = lerpColor(c, color(0), 0.35);
-    const radio = 3 + (1 - estado.fs) * s * 0.35;
+    const radio = (THEME.fun ? 7 : 3) + (1 - estado.fs) * s * 0.35;
 
     const fila1 = [-2, -1, 0, 1, 2], fila2 = [-1, 0, 1];
     const sep = 45;
-    stroke(borde); strokeWeight(1.5); fill(c);
+    if (THEME.fun) { stroke(THEME.ink); strokeWeight(2.5); } else { stroke(borde); strokeWeight(1.5); }
+    fill(c);
     for (const i of fila1) rect(cx + i * sep - s / 2, base - s, s, s, radio);
     for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, 42) - 2, s, s, radio);
 
     // Reflejo
-    noStroke(); fill(255, 255, 255, 80);
-    for (const i of fila1) rect(cx + i * sep - s / 2 + 4, base - s + 4, s * 0.25, 3, 2);
+    noStroke(); fill(255, 255, 255, THEME.fun ? 150 : 80);
+    const brillo = THEME.fun ? 5 : 3;
+    for (const i of fila1) rect(cx + i * sep - s / 2 + 5, base - s + 5, s * 0.3, brillo, 2);
+    if (THEME.fun) for (const i of fila2) rect(cx + i * sep - s / 2 + 5, base - s - min(s, 42) + 3, s * 0.3, brillo, 2);
 }
 
 function drawBubbles(ySup, hLiq) {
@@ -656,11 +810,42 @@ function drawDroplets(ySup) {
 }
 
 function drawJarGlass() {
+    if (THEME.fun) {
+        // Tapa con asa, contorno de tinta
+        stroke(THEME.ink); strokeWeight(2.5); fill(THEME.jarLid);
+        rect(JAR.x + JAR.w / 2 - 16, JAR.y - 22, 32, 10, 5);
+        rect(JAR.x - 9, JAR.y - 14, JAR.w + 18, 14, 7);
+        noStroke(); fill(255, 255, 255, 90);
+        rect(JAR.x - 3, JAR.y - 11, JAR.w * 0.5, 3, 2);
+        // Paredes: tinta por fuera y vidrio por dentro
+        noFill(); stroke(THEME.ink); strokeWeight(7);
+        paredesJarra();
+        stroke(THEME.jarWall); strokeWeight(3);
+        paredesJarra();
+        // Reflejos del vidrio
+        stroke(THEME.jarShine); strokeWeight(5); strokeCap(ROUND);
+        line(JAR.x + 12, JAR.y + 14, JAR.x + 12, JAR.y + JAR.h - 40);
+        strokeWeight(3);
+        line(JAR.x + 21, JAR.y + 14, JAR.x + 21, JAR.y + 50);
+        noStroke(); fill(THEME.textDim); textSize(12); textAlign(CENTER, BOTTOM);
+        text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 27);
+        return;
+    }
     // Tapa
     stroke(THEME.jarWall); strokeWeight(2); fill(THEME.jarLid);
     rect(JAR.x - 9, JAR.y - 14, JAR.w + 18, 14, 4);
     // Paredes
     noFill(); strokeWeight(3);
+    paredesJarra();
+    // Reflejo del vidrio
+    stroke(THEME.jarShine); strokeWeight(2);
+    line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
+
+    noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
+    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 18);
+}
+
+function paredesJarra() {
     beginShape();
     vertex(JAR.x, JAR.y);
     vertex(JAR.x, JAR.y + JAR.h - 10);
@@ -669,12 +854,6 @@ function drawJarGlass() {
     quadraticVertex(JAR.x + JAR.w, JAR.y + JAR.h, JAR.x + JAR.w, JAR.y + JAR.h - 10);
     vertex(JAR.x + JAR.w, JAR.y);
     endShape();
-    // Reflejo del vidrio
-    stroke(THEME.jarShine); strokeWeight(2);
-    line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
-
-    noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
-    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 18);
 }
 
 function drawPlate() {
@@ -684,10 +863,21 @@ function drawPlate() {
     if (potencia > 0) sup = lerpColor(sup, color('#ff3b1e'), 0.25 + 0.75 * potencia);
     if (potencia < 0) sup = lerpColor(sup, color('#3a9cff'), 0.25 + 0.75 * -potencia);
 
+    if (THEME.fun) {
+        // Patas, cuerpo redondeado con mandos y superficie que brilla
+        stroke(THEME.ink); strokeWeight(2); fill(THEME.plateBody);
+        rect(x + 16, y + h - 2, 14, 8, 3); rect(x + w - 30, y + h - 2, 14, 8, 3);
+        strokeWeight(2.5);
+        rect(x, y, w, h, 9);
+        fill(sup); rect(x + 6, y - 3, w - 12, 7, 4);
+        noStroke(); fill(THEME.plateTop);
+        circle(x + 12, y + 13, 9); circle(x + w - 12, y + 13, 9);
+    } else {
     noStroke(); fill(THEME.plateBody);
     rect(x, y, w, h, 4);
     fill(sup);
     rect(x + 4, y, w - 8, 5, 2);
+    }
     if (potencia !== 0) {                     // resplandor
         const g = color(sup); g.setAlpha(60 * abs(potencia));
         fill(g); rect(x + 4, y - 4, w - 8, 4, 2);
@@ -695,9 +885,9 @@ function drawPlate() {
 
     fill(THEME.plateText); textSize(11); textAlign(CENTER, CENTER);
     const pct = Math.round(abs(potencia) * 100);
-    const txt = potencia > 0 ? i18n.t('CALIENTA {pct} % · entra energía', { pct })
+    const txt = frase(potencia > 0 ? i18n.t('CALIENTA {pct} % · entra energía', { pct })
               : potencia < 0 ? i18n.t('ENFRÍA {pct} % · sale energía', { pct })
-              : i18n.t('PLACA APAGADA');
+              : i18n.t('PLACA APAGADA'));
     text(txt, x + w / 2, y + 13);
 }
 
@@ -711,6 +901,21 @@ function drawHeatArrows() {
     const fase = frameCount * 0.15 * (entra ? 1 : -1);
 
     noFill(); stroke(c); strokeWeight(2.5);
+    if (THEME.fun) {
+        for (const fx of [0.2, 0.5, 0.8]) {
+            const x = JAR.x + JAR.w * fx;
+            for (const [col, peso] of [[THEME.ink, 6.5], [c, 3.2]]) {
+                noFill(); stroke(col); strokeWeight(peso); strokeCap(ROUND);
+                beginShape();
+                for (let y = y0; y >= y1 + 6; y -= 3) vertex(x + sin(y * 0.25 + fase) * 3, y);
+                endShape();
+            }
+            stroke(THEME.ink); strokeWeight(2); strokeJoin(ROUND); fill(c);
+            if (entra) triangle(x, y1 - 4, x - 7, y1 + 8, x + 7, y1 + 8);
+            else       triangle(x, y0 + 6, x - 7, y0 - 6, x + 7, y0 - 6);
+        }
+        return;
+    }
     for (const fx of [0.2, 0.5, 0.8]) {
         const x = JAR.x + JAR.w * fx;
         beginShape();
@@ -746,8 +951,9 @@ function drawComposicion() {
         cx += pw;
     }
     textStyle(NORMAL);
-    noFill(); stroke(THEME.border); strokeWeight(1);
-    rect(x, y, w, h, 4);
+    noFill();
+    if (THEME.fun) { stroke(THEME.canvasBg); strokeWeight(4); rect(x - 2, y - 2, w + 4, h + 4, 8); stroke(THEME.ink); strokeWeight(2.5); rect(x, y, w, h, 7); }
+    else { stroke(THEME.border); strokeWeight(1); rect(x, y, w, h, 4); }
 }
 
 
@@ -1022,7 +1228,7 @@ function tipoMolecula() {
 
 function dibujarParticulas() {
     const tipo = tipoMolecula();
-    stroke(THEME.particleEdge); strokeWeight(1.2);
+    stroke(THEME.particleEdge); strokeWeight(THEME.fun ? 1.8 : 1.2);
     if (tipo === 'esfera') {
         strokeWeight(1.5); fill(THEME.particle);
         for (const p of particulas) circle(p.x, p.y, P_R * 2 - 3);
@@ -1065,13 +1271,18 @@ function dibujarParticulas() {
 
 function drawParticleWindow() {
     stroke(THEME.border); strokeWeight(1); fill(THEME.lensBg);
-    rect(LENS.x, LENS.y, LENS.w, LENS.h, 8);
+    rect(LENS.x, LENS.y, LENS.w, LENS.h, THEME.fun ? 14 : 8);
 
     drawingContext.save();
     drawingContext.beginPath();
     drawingContext.rect(LENS.x, LENS.y, LENS.w, LENS.h);
     drawingContext.clip();
 
+    if (THEME.fun) {
+        stroke(THEME.grid); strokeWeight(1);
+        for (let gx = LENS.x + 20; gx < LENS.x + LENS.w; gx += 20) line(gx, LENS.y, gx, LENS.y + LENS.h);
+        for (let gy = LENS.y + 20; gy < LENS.y + LENS.h; gy += 20) line(LENS.x, gy, LENS.x + LENS.w, gy);
+    }
     if (verUniones) drawUniones();
 
     if (verEstelas) {
@@ -1147,19 +1358,23 @@ function drawLeyendaEstados() {
         const activo = frac > 0;
         const col = color(THEME[L.st]);
 
-        const fondo = color(THEME[L.st]); fondo.setAlpha(activo ? 34 : 0);
-        stroke(activo ? col : THEME.border); strokeWeight(activo ? 2 : 1); fill(fondo);
-        rect(LEGEND.x, y, LEGEND.w, h, 8);
+        let fondo = color(THEME[L.st]); fondo.setAlpha(activo ? 34 : 0);
+        if (THEME.fun && !activo) noStroke(); else { stroke(activo ? col : THEME.border); strokeWeight(activo ? 2 : 1); }
+        if (THEME.fun && !activo) fondo = color(THEME.lensBg);
+        fill(fondo);
+        rect(LEGEND.x, y, LEGEND.w, h, THEME.fun ? 14 : 8);
 
         noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT, TOP);
         fill(activo ? col : THEME.textDim);
-        text(i18n.t(L.titulo), LEGEND.x + 12, y + 10);
+        text(frase(i18n.t(L.titulo)), LEGEND.x + 12, y + 10);
         textAlign(RIGHT, TOP);
         if (activo) text(Math.round(frac * 100) + ' %', LEGEND.x + LEGEND.w - 12, y + 10);
         textStyle(NORMAL);
 
         fill(activo ? THEME.text : THEME.textDim); textSize(12); textAlign(LEFT, TOP); textLeading(16);
+        if (THEME.fun) textFont(FUENTE_TEXTO);
         text(i18n.t(L.txt), LEGEND.x + 12, y + 32, LEGEND.w - 24, h - 36);
+        if (THEME.fun) textFont('Fredoka');
     });
 }
 
@@ -1255,7 +1470,7 @@ function drawGraph() {
     if (historial.length < 2) return;
 
     // Curva coloreada por tramos
-    strokeWeight(3.5); noFill(); strokeJoin(ROUND);
+    strokeWeight(THEME.fun ? 5.5 : 3.5); noFill(); strokeJoin(ROUND); strokeCap(ROUND);
     const tramos = tramosHistorial();
     let prev = null;
     for (const tr of tramos) {
@@ -1296,9 +1511,27 @@ function drawGraph() {
         }
     }
 
+    // Hitos: una estrella donde empieza cada cambio de estado
+    if (THEME.fun) {
+        for (const tr of tramos) {
+            if (!tr.meseta || tr.iIni === 0) continue;
+            stroke(THEME.ink); strokeWeight(2); fill(THEME.change);
+            estrella(xOf(tr.ini.t), yOf(tr.ini.T), 9, 4);
+        }
+    }
+
     // Punto actual
     const u = historial[historial.length - 1];
     const c = color(colorTramo(u.tramo));
+    if (THEME.fun) {
+        const pulso = MOV_REDUCIDO ? 0 : (millis() % 1200) / 1200;
+        c.setAlpha(110 * (1 - pulso)); noStroke(); fill(c);
+        circle(xOf(u.t), yOf(u.T), 16 + 18 * pulso);
+        fill(colorTramo(u.tramo)); stroke(THEME.ink); strokeWeight(2.5);
+        circle(xOf(u.t), yOf(u.T), 14);
+        noStroke(); fill(255, 255, 255, 170); circle(xOf(u.t) - 2.5, yOf(u.T) - 2.5, 4);
+        return;
+    }
     c.setAlpha(70); noStroke(); fill(c);
     circle(xOf(u.t), yOf(u.T), 18);
     fill(colorTramo(u.tramo)); stroke(THEME.canvasBg); strokeWeight(2);
@@ -1326,7 +1559,7 @@ function drawThermometer(T) {
     const yOf = (t) => map(t, sus.tMin, sus.tMax, bottom - 6, top + 8);
 
     // Tubo y bulbo
-    stroke(THEME.thermoGlass); strokeWeight(2); fill(THEME.thermoTube);
+    stroke(THEME.fun ? THEME.ink : THEME.thermoGlass); strokeWeight(THEME.fun ? 3 : 2); fill(THEME.thermoTube);
     rect(x - tubeW / 2, top, tubeW, bottom - top, tubeW / 2);
     circle(x, bottom + bulbR - 4, bulbR * 2);
 
@@ -1335,6 +1568,11 @@ function drawThermometer(T) {
     noStroke(); fill(THEME.thermoFill);
     rect(x - 3, yT, 6, bottom - yT + 4, 3);
     circle(x, bottom + bulbR - 4, bulbR * 2 - 8);
+    if (THEME.fun) {
+        fill(255, 255, 255, 170);
+        ellipse(x - 5, bottom + bulbR - 10, 6, 8);
+        rect(x - 4.5, top + 6, 2.5, bottom - top - 16, 2);
+    }
 
     // Escala
     textSize(11); textAlign(RIGHT, CENTER);
@@ -1524,35 +1762,40 @@ function updateTheme() {
             bond:       'rgba(3,105,161,0.55)',
         };
     } else if (isLight) {
+        // Día: azules de SimulaCiencia con el estilo del juego (piloto).
         THEME = {
-            canvasBg:   '#ccd6e8',
-            panelBg:    '#bccadd',
-            border:     '#8898b0',
-            text:       '#0d1520',
-            textDim:    '#4a5a6a',
-            accent:     '#0077a0',
-            solid:      '#2a4ab0',
-            liquid:     '#137a55',
-            gas:        '#c0620f',
-            change:     '#9a6c00',
-            thermoGlass:'#6a7a90',
-            thermoTube: '#e8eef6',
-            thermoTick: '#6a7a90',
-            thermoFill: '#d83030',
-            jarWall:    '#4a5a70',
-            jarLid:     '#9aa8bc',
-            jarShine:   'rgba(255,255,255,0.55)',
-            plateBody:  '#3a4250',
-            plateTop:   '#6a7484',
-            plateText:  '#f0f4f8',
+            canvasBg:   '#eef5fb',
+            panelBg:    '#f7fbff',
+            border:     '#a9c6de',
+            text:       '#13304a',
+            textDim:    '#3f5f7a',
+            accent:     '#0369a1',
+            title:      '#0b2236',
+            solid:      '#1f5fbf',
+            liquid:     '#0a7d58',
+            gas:        '#c2410c',
+            change:     '#b45309',
+            thermoGlass:'#3f5f7a',
+            thermoTube: '#ffffff',
+            thermoTick: '#5d5280',
+            thermoFill: '#e53950',
+            jarWall:    '#13304a',
+            jarLid:     '#bfe3f7',
+            jarShine:   'rgba(255,255,255,0.8)',
+            plateBody:  '#13304a',
+            plateTop:   '#6f8ba3',
+            plateText:  '#f7fbff',
             heat:       '#e0401e',
             cold:       '#1a72d0',
-            lensBg:     '#dfe6f0',
-            grid:       '#b4c0d2',
-            axis:       '#5a6a80',
-            particle:   '#3a4c66',
-            particleEdge:'#1a2638',
-            bond:       'rgba(0,110,160,0.75)',
+            lensBg:     '#e4eff8',
+            grid:       '#d3e2ef',
+            axis:       '#3f5f7a',
+            particle:   '#fffaf0',
+            particleEdge:'#13304a',
+            bond:       'rgba(3,105,161,0.55)',
+            ink:        '#13304a',
+            jarInside:  '#dbe8f3',
+            fun:        true,
         };
     } else if (isContrast) {
         THEME = {
@@ -1586,35 +1829,40 @@ function updateTheme() {
             bond:       '#00ffff',
         };
     } else {
+        // Pizarra: azules de SimulaCiencia con el estilo del juego «Carga cero» (piloto).
         THEME = {
-            canvasBg:   '#141414',
-            panelBg:    '#141c24',
-            border:     '#22303c',
-            text:       '#d8d8d8',
-            textDim:    '#666666',
+            canvasBg:   '#11314f',
+            panelBg:    '#15395a',
+            border:     '#2d6996',
+            text:       '#eef7ff',
+            textDim:    '#b5d3ec',
             accent:     '#00c8ff',
-            solid:      '#8aa8ff',
-            liquid:     '#3ccf9a',
-            gas:        '#ff9a4a',
-            change:     '#ffd24a',
-            thermoGlass:'#585858',
-            thermoTube: '#1a1a1a',
-            thermoTick: '#555555',
-            thermoFill: '#ff4a4a',
-            jarWall:    '#6a7480',
-            jarLid:     '#2a3038',
-            jarShine:   'rgba(255,255,255,0.12)',
-            plateBody:  '#2a2e34',
-            plateTop:   '#4a5058',
-            plateText:  '#c8c8c8',
-            heat:       '#ff5a3a',
-            cold:       '#3a9cff',
-            lensBg:     '#0b1016',
-            grid:       '#1e2630',
-            axis:       '#4a5868',
-            particle:   '#dde6f0',
-            particleEdge:'#6a7a8c',
+            title:      '#ffffff',
+            solid:      '#9ec9ff',
+            liquid:     '#34e3a8',
+            gas:        '#ffa25a',
+            change:     '#ffd84a',
+            thermoGlass:'#b5d3ec',
+            thermoTube: '#0b2236',
+            thermoTick: '#b5d3ec',
+            thermoFill: '#ff5d73',
+            jarWall:    '#e6f4ff',
+            jarLid:     '#2d6996',
+            jarShine:   'rgba(255,255,255,0.35)',
+            plateBody:  '#071a2b',
+            plateTop:   '#2d6996',
+            plateText:  '#eef7ff',
+            heat:       '#ff7043',
+            cold:       '#4aa8ff',
+            lensBg:     '#0f2d49',
+            grid:       '#1c4366',
+            axis:       '#b5d3ec',
+            particle:   '#f4fbff',
+            particleEdge:'#071a2b',
             bond:       'rgba(0,200,255,0.6)',
+            ink:        '#071a2b',
+            jarInside:  '#0e2a44',
+            fun:        true,
         };
     }
 }
