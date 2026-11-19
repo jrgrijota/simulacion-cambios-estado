@@ -35,7 +35,7 @@ body.theme-light:not(.theme-marca) {
     --text: #13304a;  --muted: #3f5f7a; --title: #0b2236;
     --accent: #0369a1; --accent-ink: #ffffff; --accent-suave: rgba(3,105,161,0.14);
     --cyan: #0369a1;
-    --solid: #1f5fbf; --liquid: #0a7d58; --gas: #c2410c; --change: #8a5a00;
+    --solid: #1f5fbf; --liquid: #0a7d58; --gas: #c2410c; --change: #b45309;
     --hot: #c0402a;   --cold: #1a6ab0;
     --boton-sombra: #a9c6de;
     --shadow: 0 10px 24px rgba(11, 34, 54, 0.14);
@@ -105,7 +105,7 @@ body:not(.theme-contrast):not(.theme-marca) h2 {
 }
 body:not(.theme-contrast):not(.theme-marca) h2::before {
     content: ''; width: 10px; height: 10px; border-radius: 50%;
-    background: var(--accent); box-shadow: 0 0 0 3px var(--accent-suave);
+    background: var(--muted); opacity: 0.8;
     flex: none;
 }
 body:not(.theme-contrast):not(.theme-marca) label { color: var(--text); font-size: 0.9rem; }
@@ -244,7 +244,7 @@ body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn {
 }
 body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn:hover { background: var(--panel-2); color: var(--title); }
 body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn.seg-hot.active  { background: #ff7043; border-color: #ff7043; color: #3a0d00; }
+body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn.seg-hot.active  { background: #ff6b6b; border-color: #ff6b6b; color: #3a0000; }
 body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn.seg-cold.active { background: #4aa8ff; border-color: #4aa8ff; color: #00264a; }
 body:not(.theme-contrast):not(.theme-marca) .dock-seg-btn.seg-off.active  { background: var(--panel-2); border-color: var(--line); color: var(--title); }
 body:not(.theme-contrast):not(.theme-marca) .canvas-btn {
@@ -262,12 +262,12 @@ body:not(.theme-contrast):not(.theme-marca) .canvas-btn[aria-pressed="true"] {
 }
 
 /* ── Lienzo: tablero redondeado ───────────────────── */
+/* El marco del tablero lo dibuja el propio lienzo (escala con él y no choca con
+   los tableros internos en el móvil); aquí solo una sombra suave. */
 body:not(.theme-contrast):not(.theme-marca) #canvas-container canvas {
-    border-radius: 24px;
-    box-shadow: 0 0 0 2px var(--line), 0 14px 40px rgba(0,0,0,0.35);
+    border-radius: 0; box-shadow: none;
 }
 body.theme-light:not(.theme-marca) #canvas-container canvas {
-    box-shadow: 0 0 0 2px var(--line), 0 14px 36px rgba(120,70,20,0.18);
 }
 
 /* ── Botón y panel de tema ────────────────────────── */
