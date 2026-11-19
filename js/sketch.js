@@ -133,6 +133,7 @@ function setup() {
     fitCanvas();
     frameRate(60);
     textFont('monospace');
+    if (document.fonts) document.fonts.load('600 12px Fredoka');
 
     document.getElementById('mode-curva').addEventListener('click', () => setMode('curva'));
     document.getElementById('mode-fases').addEventListener('click', () => setMode('fases'));
@@ -171,6 +172,7 @@ function setup() {
 function draw() {
     updateTheme();
     background(THEME.canvasBg);
+    textFont(THEME.fun ? 'Fredoka' : 'monospace');
 
     if (currentMode === 'curva') {
         actualizarModelo();
@@ -495,10 +497,11 @@ function drawBanner(m) {
     anunciar(m);
     const { x, y, w, h } = BANNER;
     const borde = color(m.col);
-    stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
-    rect(x, y, w, h, 10);
+    const rad = THEME.fun ? 16 : 10;
+    stroke(THEME.border); strokeWeight(THEME.fun ? 2 : 1); fill(THEME.panelBg);
+    rect(x, y, w, h, rad);
     noStroke(); fill(borde);
-    rect(x, y, 5, h, 10, 0, 0, 10);
+    if (!THEME.fun) rect(x, y, 5, h, 10, 0, 0, 10);
 
     // Etiqueta del estado o del cambio
     textStyle(BOLD); textSize(13);
@@ -510,7 +513,7 @@ function drawBanner(m) {
     text(m.tag, x + 16 + tw / 2, y + h / 2 + 1);
     textStyle(NORMAL);
 
-    fill(THEME.text); textSize(13); textAlign(LEFT, CENTER); textLeading(17);
+    fill(THEME.text); textSize(THEME.fun ? 14 : 13); textAlign(LEFT, CENTER); textLeading(17);
     const tx = x + 16 + tw + 16;
     text(m.txt, tx, y + 4, x + w - tx - 14, h - 8);
 }
@@ -543,6 +546,19 @@ function drawMacroView() {
 }
 
 function drawPanelFrame(r, titulo, sub) {
+    if (THEME.fun) {
+        // Tablero del juego: borde grueso y una «sombra» sólida debajo
+        noStroke(); fill(THEME.ink); rect(r.x, r.y + 4, r.w, r.h, 18);
+        stroke(THEME.border); strokeWeight(2); fill(THEME.panelBg);
+        rect(r.x, r.y, r.w, r.h, 18);
+        noStroke(); fill(THEME.accent); circle(r.x + 18, r.y + 18, 9);
+        textAlign(LEFT, CENTER); textStyle(BOLD); textSize(14); fill(THEME.title);
+        text(titulo, r.x + 30, r.y + 18);
+        const w = textWidth(titulo);
+        textStyle(NORMAL); textSize(12); fill(THEME.textDim);
+        text('· ' + sub, r.x + 36 + w, r.y + 18);
+        return;
+    }
     stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
     rect(r.x, r.y, r.w, r.h, 10);
     noStroke(); textAlign(LEFT, CENTER); textStyle(BOLD); textSize(12); fill(THEME.accent);
@@ -610,17 +626,20 @@ function drawSolid(ySup, hLiq) {
     }
     c.setAlpha(235);
     const borde = lerpColor(c, color(0), 0.35);
-    const radio = 3 + (1 - estado.fs) * s * 0.35;
+    const radio = (THEME.fun ? 7 : 3) + (1 - estado.fs) * s * 0.35;
 
     const fila1 = [-2, -1, 0, 1, 2], fila2 = [-1, 0, 1];
     const sep = 45;
-    stroke(borde); strokeWeight(1.5); fill(c);
+    if (THEME.fun) { stroke(THEME.ink); strokeWeight(2.5); } else { stroke(borde); strokeWeight(1.5); }
+    fill(c);
     for (const i of fila1) rect(cx + i * sep - s / 2, base - s, s, s, radio);
     for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, 42) - 2, s, s, radio);
 
     // Reflejo
-    noStroke(); fill(255, 255, 255, 80);
-    for (const i of fila1) rect(cx + i * sep - s / 2 + 4, base - s + 4, s * 0.25, 3, 2);
+    noStroke(); fill(255, 255, 255, THEME.fun ? 150 : 80);
+    const brillo = THEME.fun ? 5 : 3;
+    for (const i of fila1) rect(cx + i * sep - s / 2 + 5, base - s + 5, s * 0.3, brillo, 2);
+    if (THEME.fun) for (const i of fila2) rect(cx + i * sep - s / 2 + 5, base - s - min(s, 42) + 3, s * 0.3, brillo, 2);
 }
 
 function drawBubbles(ySup, hLiq) {
@@ -1065,7 +1084,7 @@ function dibujarParticulas() {
 
 function drawParticleWindow() {
     stroke(THEME.border); strokeWeight(1); fill(THEME.lensBg);
-    rect(LENS.x, LENS.y, LENS.w, LENS.h, 8);
+    rect(LENS.x, LENS.y, LENS.w, LENS.h, THEME.fun ? 14 : 8);
 
     drawingContext.save();
     drawingContext.beginPath();
@@ -1149,7 +1168,7 @@ function drawLeyendaEstados() {
 
         const fondo = color(THEME[L.st]); fondo.setAlpha(activo ? 34 : 0);
         stroke(activo ? col : THEME.border); strokeWeight(activo ? 2 : 1); fill(fondo);
-        rect(LEGEND.x, y, LEGEND.w, h, 8);
+        rect(LEGEND.x, y, LEGEND.w, h, THEME.fun ? 14 : 8);
 
         noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT, TOP);
         fill(activo ? col : THEME.textDim);
@@ -1524,35 +1543,39 @@ function updateTheme() {
             bond:       'rgba(3,105,161,0.55)',
         };
     } else if (isLight) {
+        // Día: paleta del juego «Carga cero» (piloto de estilo).
         THEME = {
-            canvasBg:   '#ccd6e8',
-            panelBg:    '#bccadd',
-            border:     '#8898b0',
-            text:       '#0d1520',
-            textDim:    '#4a5a6a',
-            accent:     '#0077a0',
-            solid:      '#2a4ab0',
-            liquid:     '#137a55',
-            gas:        '#c0620f',
-            change:     '#9a6c00',
-            thermoGlass:'#6a7a90',
-            thermoTube: '#e8eef6',
-            thermoTick: '#6a7a90',
-            thermoFill: '#d83030',
-            jarWall:    '#4a5a70',
-            jarLid:     '#9aa8bc',
-            jarShine:   'rgba(255,255,255,0.55)',
-            plateBody:  '#3a4250',
-            plateTop:   '#6a7484',
-            plateText:  '#f0f4f8',
+            canvasBg:   '#fffaf2',
+            panelBg:    '#ffffff',
+            border:     '#f0cfae',
+            text:       '#2a2350',
+            textDim:    '#5d5280',
+            accent:     '#6d3df5',
+            title:      '#1d1b3a',
+            solid:      '#1f6fd0',
+            liquid:     '#0a7d58',
+            gas:        '#c2510c',
+            change:     '#9a6500',
+            thermoGlass:'#5d5280',
+            thermoTube: '#ffffff',
+            thermoTick: '#5d5280',
+            thermoFill: '#e53950',
+            jarWall:    '#2a2350',
+            jarLid:     '#d9ccff',
+            jarShine:   'rgba(255,255,255,0.8)',
+            plateBody:  '#2a2350',
+            plateTop:   '#8a7fb0',
+            plateText:  '#fffaf2',
             heat:       '#e0401e',
             cold:       '#1a72d0',
-            lensBg:     '#dfe6f0',
-            grid:       '#b4c0d2',
-            axis:       '#5a6a80',
-            particle:   '#3a4c66',
-            particleEdge:'#1a2638',
-            bond:       'rgba(0,110,160,0.75)',
+            lensBg:     '#f6efff',
+            grid:       '#f2e2d0',
+            axis:       '#5d5280',
+            particle:   '#fffaf0',
+            particleEdge:'#2a2350',
+            bond:       'rgba(109,61,245,0.55)',
+            ink:        '#2a2350',
+            fun:        true,
         };
     } else if (isContrast) {
         THEME = {
@@ -1586,35 +1609,39 @@ function updateTheme() {
             bond:       '#00ffff',
         };
     } else {
+        // Noche: paleta del juego «Carga cero» (piloto de estilo).
         THEME = {
-            canvasBg:   '#141414',
-            panelBg:    '#141c24',
-            border:     '#22303c',
-            text:       '#d8d8d8',
-            textDim:    '#666666',
-            accent:     '#00c8ff',
-            solid:      '#8aa8ff',
-            liquid:     '#3ccf9a',
+            canvasBg:   '#221a5c',
+            panelBg:    '#2c2270',
+            border:     '#4d3fa0',
+            text:       '#f3efff',
+            textDim:    '#c3baf0',
+            accent:     '#ffd84a',
+            title:      '#ffffff',
+            solid:      '#86b4ff',
+            liquid:     '#2ee6a6',
             gas:        '#ff9a4a',
-            change:     '#ffd24a',
-            thermoGlass:'#585858',
-            thermoTube: '#1a1a1a',
-            thermoTick: '#555555',
-            thermoFill: '#ff4a4a',
-            jarWall:    '#6a7480',
-            jarLid:     '#2a3038',
-            jarShine:   'rgba(255,255,255,0.12)',
-            plateBody:  '#2a2e34',
-            plateTop:   '#4a5058',
-            plateText:  '#c8c8c8',
-            heat:       '#ff5a3a',
-            cold:       '#3a9cff',
-            lensBg:     '#0b1016',
-            grid:       '#1e2630',
-            axis:       '#4a5868',
-            particle:   '#dde6f0',
-            particleEdge:'#6a7a8c',
-            bond:       'rgba(0,200,255,0.6)',
+            change:     '#ffd84a',
+            thermoGlass:'#b7acec',
+            thermoTube: '#1b1446',
+            thermoTick: '#b7acec',
+            thermoFill: '#ff5d73',
+            jarWall:    '#e9e4ff',
+            jarLid:     '#5a4bb0',
+            jarShine:   'rgba(255,255,255,0.35)',
+            plateBody:  '#120d36',
+            plateTop:   '#5a4bb0',
+            plateText:  '#f3efff',
+            heat:       '#ff7043',
+            cold:       '#4aa8ff',
+            lensBg:     '#170f45',
+            grid:       '#3a2d86',
+            axis:       '#b7acec',
+            particle:   '#fffaf0',
+            particleEdge:'#1d1b3a',
+            bond:       'rgba(255,216,74,0.55)',
+            ink:        '#120d36',
+            fun:        true,
         };
     }
 }
