@@ -596,20 +596,20 @@ function drawBannerJuego(m) {
     triangle(bx - 7, my, bx + 3, my - 6, bx + 3, my + 6);        // tapa la junta: una sola forma
 
     // Etiqueta que da un salto al cambiar
-    textStyle(BOLD); textSize(14);
+    textStyle(BOLD); textSize(16);
     const tw = textWidth(m.tag) + 26;
     push();
     translate(bx + 14 + tw / 2, y + h / 2);
     scale(salto(bannerDesde));
-    noStroke(); fill(THEME.ink); rect(-tw / 2, -13, tw, 28, 14);
-    fill(m.col); rect(-tw / 2, -15, tw, 28, 14);
+    noStroke(); fill(THEME.ink); rect(-tw / 2, -14, tw, 30, 15);
+    fill(m.col); rect(-tw / 2, -16, tw, 30, 15);
     fill(lightness(color(m.col)) > 55 ? THEME.ink : '#ffffff'); textAlign(CENTER, CENTER);
     text(m.tag, 0, -1);
     pop();
     textStyle(NORMAL);
 
     textFont(FUENTE_TEXTO);
-    fill(THEME.text); textSize(14); textAlign(LEFT, CENTER); textLeading(17);
+    fill(THEME.text); textSize(16); textAlign(LEFT, CENTER); textLeading(19);
     const tx = bx + 14 + tw + 14;
     text(m.txt, tx, y + 3, x + w - tx - 14, h - 6);
     textFont('Fredoka');
@@ -938,7 +938,7 @@ function drawComposicion() {
         { f: estado.fg, col: THEME.gas,    txt: i18n.t('gas') },
     ];
     let cx = x;
-    textSize(11); textAlign(CENTER, CENTER); textStyle(BOLD);
+    textSize(THEME.fun ? 13 : 11); textAlign(CENTER, CENTER); textStyle(BOLD);
     for (const p of partes) {
         const pw = w * p.f;
         if (pw <= 0) continue;
@@ -1364,7 +1364,7 @@ function drawLeyendaEstados() {
         fill(fondo);
         rect(LEGEND.x, y, LEGEND.w, h, THEME.fun ? 14 : 8);
 
-        noStroke(); textStyle(BOLD); textSize(13); textAlign(LEFT, TOP);
+        noStroke(); textStyle(BOLD); textSize(THEME.fun ? 16 : 13); textAlign(LEFT, TOP);
         fill(activo ? col : THEME.textDim);
         text(frase(i18n.t(L.titulo)), LEGEND.x + 12, y + 10);
         textAlign(RIGHT, TOP);
@@ -1492,22 +1492,22 @@ function drawGraph() {
         const xm = xOf((tr.ini.t + tr.fin.t) / 2);
         if (tr.meseta && xOf(tr.fin.t) - xOf(tr.ini.t) > 40) {
             const nombre = nombreMeseta(tr);
-            textStyle(BOLD); textSize(12);
+            textStyle(BOLD); textSize(THEME.fun ? 16 : 12);
             const ancho = max(textWidth(nombre), 120);
             const piso = (xm - ancho / 2 < finRotulo + 8) ? 1 - pisoAnterior : 0;
             const y = yOf(tr.ini.T) - piso * 28;
             noStroke(); textAlign(CENTER, BOTTOM);
             fill(THEME.change);
-            text(nombre, xm, y - 16);
-            textStyle(NORMAL); textSize(10); fill(THEME.textDim);
+            text(nombre, xm, y - (THEME.fun ? 18 : 16));
+            textStyle(NORMAL); textSize(THEME.fun ? 11 : 10); fill(THEME.textDim);
             text(i18n.t('temperatura constante'), xm, y - 5);
             finRotulo = xm + ancho / 2;
             pisoAnterior = piso;
         } else if (!tr.meseta && dur > tMax * 0.06 && abs(tr.fin.T - tr.ini.T) > 0) {
             const nombre = i18n.t({ solido: 'sólido', liquido: 'líquido', gas: 'gas' }[tr.tramo]);
             const ym = yOf((tr.ini.T + tr.fin.T) / 2);
-            noStroke(); fill(colorTramo(tr.tramo)); textSize(11); textAlign(LEFT, CENTER);
-            text(nombre, xm + 8, ym + 10);
+            noStroke(); fill(colorTramo(tr.tramo)); textSize(THEME.fun ? 14 : 11); textAlign(LEFT, CENTER);
+            text(nombre, xm + 8, ym + 12);
         }
     }
 
@@ -1544,9 +1544,9 @@ function lineaReferencia(y, etiqueta, valor, col) {
     drawingContext.setLineDash([5, 5]);
     line(PLOT.x0, y, PLOT.x1 + 4, y);
     drawingContext.setLineDash([]);
-    noStroke(); fill(col); textSize(11); textAlign(LEFT, CENTER);
-    text(etiqueta, PLOT.x1 + 8, y - 7);
-    text(valor, PLOT.x1 + 8, y + 7);
+    noStroke(); fill(col); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, CENTER);
+    text(etiqueta, PLOT.x1 + 8, y - (THEME.fun ? 8 : 7));
+    text(valor, PLOT.x1 + 8, y + (THEME.fun ? 8 : 7));
 }
 
 
@@ -1594,8 +1594,9 @@ function drawThermometer(T) {
     }
 
     // Lectura digital
-    noStroke(); fill(THEME.text); textAlign(CENTER, BOTTOM); textSize(15); textStyle(BOLD);
-    text(fmtT(T) + ' °C', x, top - 10);
+    noStroke(); fill(THEME.fun ? THEME.title : THEME.text); textAlign(CENTER, BOTTOM);
+    textSize(THEME.fun ? 26 : 15); textStyle(BOLD);
+    text(fmtT(T) + ' °C', THEME.fun ? x + 18 : x, top - (THEME.fun ? 6 : 10));
     textStyle(NORMAL);
 }
 
@@ -1603,9 +1604,9 @@ function marcaTermometro(y, etiqueta, t, col) {
     const x0 = TH.x + 8;
     stroke(col); strokeWeight(1.5);
     line(x0, y, x0 + 12, y);
-    noStroke(); fill(col); textSize(11); textAlign(LEFT, CENTER);
-    text(etiqueta, x0 + 15, y - 7);
-    text(fmtT(t) + " °C", x0 + 15, y + 7);
+    noStroke(); fill(col); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, CENTER);
+    text(etiqueta, x0 + 15, y - (THEME.fun ? 8 : 7));
+    text(fmtT(t) + " °C", x0 + 15, y + (THEME.fun ? 8 : 7));
 }
 
 // Paso "redondo" para las marcas de una escala de amplitud dada.

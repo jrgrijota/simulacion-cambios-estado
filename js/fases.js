@@ -445,7 +445,7 @@ function drawFasesParticulas() {
     // Estado actual bajo la ventana (varios nombres si conviven)
     const sit = situacion();
     const y = LENS.y + LENS.h + 12;
-    noStroke(); textAlign(LEFT, TOP); textStyle(BOLD); textSize(13);
+    noStroke(); textAlign(LEFT, TOP); textStyle(BOLD); textSize(THEME.fun ? 16 : 13);
     let x = LENS.x;
     sit.fases.forEach((f, i) => {
         if (i > 0) { fill(THEME.textDim); text('+', x, y); x += textWidth('+ '); }
@@ -470,7 +470,7 @@ function drawRetos() {
         circle(RETOS.x + 26, y + 9, 22);
         fill(THEME.canvasBg);
         text(i + 1, RETOS.x + 26, y + 10);
-        textStyle(NORMAL); fill(THEME.text); textSize(12); textAlign(LEFT, TOP); textLeading(17);
+        textStyle(NORMAL); fill(THEME.text); textSize(THEME.fun ? 13 : 12); textAlign(LEFT, TOP); textLeading(17);
         text(i18n.t(txt), RETOS.x + 46, y, RETOS.w - 60, 54);
         y += 58;
     });
@@ -633,7 +633,7 @@ function rotuloCurva(txt, curva, u, desplaz) {
     push();
     translate(xm, ym);
     rotate(ang);
-    textSize(11); textAlign(CENTER, CENTER); textStyle(BOLD);
+    textSize(THEME.fun ? 13 : 11); textAlign(CENTER, CENTER); textStyle(BOLD);
     stroke(THEME.canvasBg); strokeWeight(4); fill(THEME.text);
     text(txt, 0, desplaz);
     pop();
@@ -645,7 +645,7 @@ function drawPuntosNotables() {
     // Punto triple
     stroke(THEME.canvasBg); strokeWeight(2); fill(THEME.change);
     circle(dx(dg.tt), dy(pt), 10);
-    noStroke(); fill(THEME.change); textSize(11); textAlign(LEFT, TOP); textStyle(BOLD);
+    noStroke(); fill(THEME.change); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, TOP); textStyle(BOLD);
     text(i18n.t('punto triple'), dx(dg.tt) + 8, dy(pt) + 4);
     textStyle(NORMAL);
 
@@ -657,7 +657,7 @@ function drawPuntosNotables() {
         if (T < dg.tMin || T > dg.tMax) continue;
         stroke(THEME.canvasBg); strokeWeight(2); fill(THEME.text);
         circle(dx(T), dy(1), 8);
-        noStroke(); fill(THEME.text); textSize(11); textAlign(LEFT, TOP);
+        noStroke(); fill(THEME.text); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, TOP);
         text(i18n.t(verbo + ' a {T} °C', { T: fmtT(T) }), dx(T) + 6, dy(1) + 5);
     }
 }
@@ -699,11 +699,13 @@ function drawRastroYPunto() {
 }
 
 function etiquetaEje(txt, x, y, alin) {
-    textSize(11); textStyle(BOLD);
-    const w = textWidth(txt) + 10;
+    // Temperatura y presión del punto: lo que sigue la clase, en grande
+    const g = THEME.fun;
+    textSize(g ? 15 : 11); textStyle(BOLD);
+    const w = textWidth(txt) + (g ? 16 : 10);
     const xr = alin === CENTER ? x - w / 2 : x;
     noStroke(); fill(THEME.accent);
-    rect(xr, y - 8, w, 17, 4);
+    rect(xr, y - (g ? 11 : 8), w, g ? 23 : 17, g ? 11 : 4);
     fill(THEME.canvasBg); textAlign(CENTER, CENTER);
     text(txt, xr + w / 2, y + 1);
     textStyle(NORMAL);
