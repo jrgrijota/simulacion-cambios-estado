@@ -1197,17 +1197,19 @@ function setMode(mode) {
     if (mode === 'fases') {
         cerrarRetos();
         CV_W = FASES_W; CV_H = FASES_H;
-        resizeCanvas(CV_W, CV_H);
         P_R = 9; K_VEL = 1; P_COLS = 16; P_ROWS = 4; P_N = P_COLS * P_ROWS;
         LENS = LENS_FASES;
         entrarFases();
     } else {
         calcularEscena();
-        resizeCanvas(CV_W, CV_H);
         LENS = LENS_CURVA;
+        trozosVivos = null;
         colocarParticulas(estado.fs === 1 ? 'solid' : estado.fl === 1 ? 'liquid' : estado.fg === 1 ? 'gas' : 'solid');
         asignarEstados(estado);
     }
+    // resizeCanvas vuelve a dibujar al momento: las partículas ya deben
+    // corresponder al modo nuevo (si no, draw() falla y el lienzo queda vacío)
+    resizeCanvas(CV_W, CV_H);
     fitCanvas();
     // En el diagrama se arrastra el punto: el canvas no debe desplazar la página
     document.querySelector('#canvas-container canvas').style.touchAction = mode === 'fases' ? 'none' : '';
