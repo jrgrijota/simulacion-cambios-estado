@@ -20,11 +20,12 @@ const DIAGRAMAS = {
         kSub: 6140,                        // pendiente de la curva de sublimación
         pendFus: -0.0075,                  // °C por atm de la línea de fusión
         rotuloSub: null,                   // la curva de sublimación apenas se ve: sin rótulo
+        rotuloVap: 0.35,
         marcasP: [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5],
         rotulos: { solid: { T: -24, P: 0.6 }, liquid: { T: 48, P: 2.4 }, gas: { T: 104, P: 0.03 } },
         ejemplos: [
             { txt: 'Nivel del mar',    sub: '1 atm · 20 °C',    T: 20, P: 1 },
-            { txt: 'Cima del Everest', sub: '0,33 atm · 20 °C', T: 20, P: 0.33 },
+            { txt: 'Cima del Everest', corto: 'Everest', sub: '0,33 atm · 20 °C', T: 20, P: 0.33 },
             { txt: 'Olla a presión',   sub: '2 atm · 20 °C',    T: 20, P: 2 },
             { txt: 'Punto triple',     sub: '0,006 atm · 0 °C', triple: true },
         ],
@@ -37,13 +38,14 @@ const DIAGRAMAS = {
         vap: { T: -56.6, P: 5.11, k: 2000 },   // llega al punto crítico (31 °C, 73 atm)
         kSub: 3146,                            // pasa por (−78,46 °C, 1 atm): sublima a −78 °C
         pendFus: 0.02,
-        rotuloSub: 0.84,                   // posición (0–1) del rótulo sobre la curva de sublimación
+        rotuloSub: 0.84,
+        rotuloVap: 0.62,                   // posición (0–1) del rótulo sobre la curva de sublimación
         marcasP: [0.5, 1, 2, 5, 10, 20, 50, 100],
         rotulos: { solid: { T: -98, P: 20 }, liquid: { T: -12, P: 55 }, gas: { T: -2, P: 1.6 } },
         ejemplos: [
             { txt: 'Hielo seco',      sub: '1 atm · −100 °C', T: -100, P: 1 },
             { txt: 'Aire libre',      sub: '1 atm · 20 °C',   T: 20, P: 1 },
-            { txt: 'Extintor de CO₂', sub: '65 atm · 20 °C',  T: 20, P: 65 },
+            { txt: 'Extintor de CO₂', corto: 'Extintor', sub: '65 atm · 20 °C',  T: 20, P: 65 },
             { txt: 'Punto triple',    sub: '5,1 atm · −57 °C', triple: true },
         ],
         hint: 'A 1 atm el CO₂ nunca es líquido: el hielo seco pasa directamente a gas a −78 °C.',
@@ -56,11 +58,12 @@ const DIAGRAMAS = {
         kSub: 7396,                            // presión de vapor del sólido: 0,0004 atm a 25 °C
         pendFus: 0.03,
         rotuloSub: 0.55,
+        rotuloVap: 0.5,
         marcasP: [0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
         rotulos: { solid: { T: 55, P: 0.6 }, liquid: { T: 150, P: 2.5 }, gas: { T: 175, P: 0.004 } },
         ejemplos: [
-            { txt: 'En el laboratorio', sub: '1 atm · 80 °C',     T: 80, P: 1 },
-            { txt: 'Con poca presión',  sub: '0,01 atm · 80 °C',  T: 80, P: 0.01 },
+            { txt: 'En el laboratorio', corto: 'Laboratorio', sub: '1 atm · 80 °C',     T: 80, P: 1 },
+            { txt: 'Con poca presión', corto: 'Poca presión', sub: '0,01 atm · 80 °C',  T: 80, P: 0.01 },
             { txt: 'Yodo fundido',      sub: '1 atm · 130 °C',    T: 130, P: 1 },
             { txt: 'Punto triple',      sub: '0,12 atm · 114 °C', triple: true },
         ],
@@ -68,14 +71,9 @@ const DIAGRAMAS = {
     },
 };
 
-// Panel y área del diagrama en el canvas
-const DIAG = { x: 20, y: 72, w: 612, h: 616 };
-const DPLOT = { x0: 100, x1: 612, y0: 108, y1: 624 };
-
-// Columna derecha: partículas y retos
-const FMICRO     = { x: 646, y: 72, w: 384, h: 380 };
-const LENS_FASES = { x: 660, y: 100, w: 356, h: 276 };
-const RETOS      = { x: 646, y: 464, w: 384, h: 224 };
+// Área del diagrama y ventana de partículas (las fija calcularFases)
+let DPLOT = { x0: 100, x1: 612, y0: 108, y1: 624 };
+let LENS_FASES = { x: 660, y: 100, w: 356, h: 276 };
 
 let dg = DIAGRAMAS.agua;   // diagrama actual
 let fT = 20, fP = 1;       // punto actual
@@ -87,6 +85,8 @@ let fasesFr = { fs: 0, fl: 1, fg: 0 };
 let faseAnterior = null;   // para detectar cuándo se cruza una frontera
 let prevT = 20, prevP = 1;
 let ultimoCambio = null;   // { de, a, causa, t }
+let llegada = null;        // al llegar a una línea: { tipo, de, causa, t }
+let porEjemplo = false;    // el punto se ha colocado con un botón de ejemplo
 
 
 // ─── Curvas del diagrama ─────────────────────────────────────────
@@ -169,19 +169,39 @@ function fraccionesObjetivo(sit) {
 //  CONTROLES
 // ═══════════════════════════════════════════════════════════════════
 function setupFasesControls() {
-    document.getElementById('select-fases-sustancia')
-        .addEventListener('change', (e) => cambiarDiagrama(e.target.value));
+    document.querySelectorAll('[data-fsus]').forEach(b =>
+        b.addEventListener('click', () => cambiarDiagrama(b.dataset.fsus)));
 
     const slT = document.getElementById('slider-fases-T');
     const slP = document.getElementById('slider-fases-P');
     slT.addEventListener('input', () => { fijarPunto(parseFloat(slT.value), fP, false); marcarEjemplo(-1); });
     slP.addEventListener('input', () => { fijarPunto(fT, presionDeSlider(slP.value), false); marcarEjemplo(-1); });
 
+    // «Cómo leer el diagrama»
+    const leer = document.getElementById('panel-leer'), bLeer = document.getElementById('btn-leer');
+    const cerrarLeer = () => { leer.hidden = true; bLeer.setAttribute('aria-expanded', 'false'); bLeer.classList.remove('active'); };
+    bLeer.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const abrir = leer.hidden;
+        leer.hidden = !abrir;
+        bLeer.setAttribute('aria-expanded', String(abrir)); bLeer.classList.toggle('active', abrir);
+    });
+    document.addEventListener('click', (e) => { if (!leer.hidden && !leer.contains(e.target) && !bLeer.contains(e.target)) cerrarLeer(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !leer.hidden) { cerrarLeer(); bLeer.focus(); } });
+    leer.querySelector('[data-cerrar]').addEventListener('click', cerrarLeer);
+
     cambiarDiagrama('agua');
 }
 
+function claveDiagrama() { return Object.keys(DIAGRAMAS).find(k => DIAGRAMAS[k] === dg); }
+
 function cambiarDiagrama(clave) {
     dg = DIAGRAMAS[clave];
+    document.querySelectorAll('[data-fsus]').forEach(b => {
+        const on = b.dataset.fsus === clave;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-checked', String(on));
+    });
     document.getElementById('fases-hint').textContent = i18n.t(dg.hint);
 
     const slT = document.getElementById('slider-fases-T');
@@ -190,31 +210,41 @@ function cambiarDiagrama(clave) {
     document.getElementById('max-fases-T').textContent = fmtT(dg.tMax) + ' °C';
     document.getElementById('min-fases-P').textContent = fmtP(dg.pMin) + ' atm';
     document.getElementById('max-fases-P').textContent = fmtP(dg.pMax) + ' atm';
+    // Marca de 1 atm en la pista de la presión (el tirador mide 22 px)
+    const f1 = (Math.log(1) - Math.log(dg.pMin)) / (Math.log(dg.pMax) - Math.log(dg.pMin));
+    document.getElementById('marca-1atm').style.left = `calc(${f1 * 100}% + ${11 - 22 * f1}px)`;
 
     const caja = document.getElementById('fases-ejemplos');
     caja.innerHTML = '';
     dg.ejemplos.forEach((ej, i) => {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = 'preset-btn';
-        b.innerHTML = `${i18n.t(ej.txt)}<small>${i18n.t(ej.sub)}</small>`;
+        b.className = 'boton-ej';
+        const pTxt = i18n.t(ej.sub).split(' · ')[0];
+        b.innerHTML = `<span></span><small>${pTxt}</small>`;
+        b.querySelector('span').textContent = i18n.t(ej.corto || ej.txt);
+        b.title = i18n.t(ej.txt) + ' · ' + i18n.t(ej.sub);
+        b.setAttribute('aria-label', b.title);
         b.addEventListener('click', () => aplicarEjemplo(i));
         caja.appendChild(b);
     });
 
     rastro = [];
     aplicarEjemplo(0);
+    if (currentMode === 'fases') colocarParticulas(situacion().fases[0]);
+    if (typeof pintarRetos === 'function') pintarRetos();
 }
 
 function aplicarEjemplo(i) {
     const ej = dg.ejemplos[i];
     if (ej.triple) fijarPunto(dg.tt, pTriple(), true);
     else fijarPunto(ej.T, ej.P, true);
+    porEjemplo = true;
     marcarEjemplo(i);
 }
 
 function marcarEjemplo(i) {
-    document.querySelectorAll('#fases-ejemplos .preset-btn')
+    document.querySelectorAll('#fases-ejemplos .boton-ej')
         .forEach((b, k) => b.classList.toggle('active', k === i));
 }
 
@@ -227,7 +257,10 @@ function fijarPunto(T, P, salto) {
         rastro = [];
         faseAnterior = faseEn(fT, fP);
         ultimoCambio = null;
-    }
+        llegada = null;
+        tipoAnterior = situacion(fT, fP).tipo;
+        prevT = fT; prevP = fP;
+    } else porEjemplo = false;
 
     const slT = document.getElementById('slider-fases-T');
     const slP = document.getElementById('slider-fases-P');
@@ -249,22 +282,6 @@ function setFill(sl) {
 function updateFasesUI() {
     document.getElementById('val-fases-T').textContent = fmtT(fT) + ' °C';
     document.getElementById('val-fases-P').textContent = fmtP(fP) + ' atm';
-    document.getElementById('metric-fases-T').textContent = fmtT(fT);
-    document.getElementById('metric-fases-P').textContent = fmtP(fP);
-
-    const sit = situacion();
-    const el = document.getElementById('metric-fases-estado');
-    if (sit.tipo) {
-        const txt = sit.fases.map(f => i18n.t(NOMBRE_ESTADO[f])).join(' + ');
-        el.textContent = txt[0].toUpperCase() + txt.slice(1) + (sit.tipo === 'triple' ? ' (' + i18n.t('punto triple') + ')' : '');
-        el.className = 'estado-value st-change';
-    } else {
-        const f = sit.fases[0];
-        el.textContent = i18n.t({ solid: 'Sólido', liquid: 'Líquido', gas: 'Gas' }[f]);
-        el.className = 'estado-value st-' + f;
-    }
-
-    document.getElementById('fases-a-esta-presion').innerHTML = textoAEstaPresion();
 }
 
 // Explicación de qué cambios de estado ocurren a la presión actual.
@@ -311,23 +328,52 @@ function entrarFases() {
     fasesFr = fraccionesObjetivo(sit);
     faseAnterior = faseEn(fT, fP);
     ultimoCambio = null;
+    llegada = null;
+    tipoAnterior = sit.tipo;
     colocarParticulas(sit.fases[0]);
 }
 
+// Causa de un movimiento del punto: lo que más ha cambiado (en proporción)
+function causaMovimiento() {
+    const dT = abs(fT - prevT) / (dg.tMax - dg.tMin);
+    const dP = abs(Math.log(fP / prevP)) / Math.log(dg.pMax / dg.pMin);
+    return dT >= dP ? (fT > prevT ? 'calentar' : 'enfriar') : (fP > prevP ? 'comprimir' : 'descomprimir');
+}
+
+// Dónde se cruzó la frontera entre dos posiciones (bisección en T y log P)
+function puntoCruce(T0, P0, T1, P1, f0) {
+    let a = 0, b = 1;
+    const en = (u) => [lerp(T0, T1, u), Math.exp(lerp(Math.log(P0), Math.log(P1), u))];
+    for (let i = 0; i < 24; i++) {
+        const m = (a + b) / 2, [T, P] = en(m);
+        if (faseEn(T, P) === f0) a = m; else b = m;
+    }
+    return en(b);
+}
+
 // Detecta si el punto ha cruzado una frontera y si ha sido por la temperatura o
-// por la presión. Mientras está sobre una línea no cuenta: el cambio se anuncia
-// al salir al otro lado (y no se anuncia si vuelve al mismo estado).
+// por la presión. Al llegar a una línea se anota la llegada (es el momento que
+// se celebra); el cambio se anuncia al salir al otro lado (y no se anuncia si
+// vuelve al mismo estado).
+let tipoAnterior = null;
 function detectarCambio() {
-    if (situacion().tipo) return;
+    const sit = situacion();
+    if (sit.tipo) {
+        if (sit.tipo !== tipoAnterior && (fT !== prevT || fP !== prevP)) {
+            llegada = { tipo: sit.tipo, de: faseAnterior, causa: causaMovimiento(), t: millis(), T: fT, P: fP };
+            if (typeof retosFasesEvento === 'function') retosFasesEvento('llegada', llegada);
+        }
+        tipoAnterior = sit.tipo;
+        return;
+    }
+    tipoAnterior = null;
     const f = faseEn(fT, fP);
     if (faseAnterior && f !== faseAnterior) {
-        const dT = abs(fT - prevT) / (dg.tMax - dg.tMin);
-        const dP = abs(Math.log(fP / prevP)) / Math.log(dg.pMax / dg.pMin);
-        ultimoCambio = {
-            de: faseAnterior, a: f, t: millis(),
-            causa: dT >= dP ? (fT > prevT ? 'calentar' : 'enfriar') : (fP > prevP ? 'comprimir' : 'descomprimir'),
-        };
+        const [cT, cP] = puntoCruce(prevT, prevP, fT, fP, faseAnterior);
+        ultimoCambio = { de: faseAnterior, a: f, t: millis(), T: cT, P: cP, causa: llegada && llegada.de === faseAnterior ? llegada.causa : causaMovimiento() };
+        if (typeof retosFasesEvento === 'function') retosFasesEvento('cambio', ultimoCambio);
     }
+    llegada = null;
     faseAnterior = f;
     prevT = fT; prevP = fP;
 }
@@ -380,6 +426,9 @@ function mensajeFases() {
     if (sit.tipo) {
         const tag = sit.tipo === 'triple' ? i18n.t('PUNTO TRIPLE')
                   : sit.fases.map(s => i18n.t(NOMBRE_ESTADO[s]).toUpperCase()).join(' + ');
+        if (sit.tipo === 'vaporizacion' && llegada && llegada.de === 'liquid' && llegada.causa === 'descomprimir') {
+            return { tag, col: THEME.change, txt: i18n.t('¡Al bajar la presión, el líquido hierve sin calentarlo! A {P} hierve a solo {T} °C.', { P, T: fmtT(fT) }) };
+        }
         return { tag, col: THEME.change, txt: TXT_COEXISTENCIA[sit.tipo](fmtT(fT) + ' °C', P) };
     }
     if (ultimoCambio && millis() - ultimoCambio.t < 8000) {
@@ -404,7 +453,7 @@ function mensajeFases() {
                 txt = i18n.t('Las partículas pierden energía y se ordenan en una red: el líquido se solidifica a {T} °C.', { T: fmtT(tFus(fP)) });
                 break;
             case 'solid>gas':
-                txt = i18n.t('A {P} no puede existir el líquido: el sólido pasa directamente a gas (como el hielo seco).', { P });
+                txt = i18n.t('A {P} no puede existir el líquido: el sólido pasa directamente a gas (como el hielo seco).', { P: fmtP(ultimoCambio.P) + ' atm' });
                 break;
             case 'gas>solid':
                 txt = i18n.t('El gas pasa directamente a sólido sin ser líquido (así se forma la escarcha).');
@@ -415,8 +464,8 @@ function mensajeFases() {
     const sust = i18n.t(dg.sujeto);
     return {
         tag: i18n.t(NOMBRE_ESTADO[f]).toUpperCase(), col: THEME[f],
-        txt: i18n.t('{sust} está en estado {estado}. {presion} Mueve el punto hasta cruzar una línea.',
-                    { sust, estado: i18n.t(NOMBRE_ESTADO[f]), presion: textoPlano(textoAEstaPresion()) }),
+        txt: i18n.t('{sust} está en estado {estado}. Mueve el punto del diagrama hasta cruzar una línea.',
+                    { sust, estado: i18n.t(NOMBRE_ESTADO[f]) }),
     };
 }
 
@@ -437,45 +486,6 @@ const RETOS_TXT = {
         '¿Qué estados conviven en el punto triple?',
     ],
 };
-
-function drawFasesParticulas() {
-    drawPanelFrame(FMICRO, i18n.t('LAS PARTÍCULAS'), i18n.t('qué ocurre por dentro'));
-    drawParticleWindow();
-
-    // Estado actual bajo la ventana (varios nombres si conviven)
-    const sit = situacion();
-    const y = LENS.y + LENS.h + 12;
-    noStroke(); textAlign(LEFT, TOP); textStyle(BOLD); textSize(THEME.fun ? 16 : 13);
-    let x = LENS.x;
-    sit.fases.forEach((f, i) => {
-        if (i > 0) { fill(THEME.textDim); text('+', x, y); x += textWidth('+ '); }
-        const titulo = i18n.t(LEYENDA.find(l => l.st === f).titulo);
-        fill(THEME[f]); text(titulo, x, y);
-        x += textWidth(titulo + ' ');
-    });
-    textStyle(NORMAL); textSize(12); fill(THEME.text);
-    const desc = sit.tipo
-        ? i18n.t('Conviven a la vez. Los anillos marcan las partículas que cambian de estado.')
-        : i18n.t(LEYENDA.find(l => l.st === sit.fases[0]).txt);
-    if (sit.tipo) text(desc, LENS.x, y + 20, LENS.w, 40);
-    else          text(desc, x + 4, y, LENS.x + LENS.w - x - 4, 40);
-}
-
-function drawRetos() {
-    drawPanelFrame(RETOS, i18n.t('PIENSA Y COMPRUEBA'), i18n.t('usa el diagrama'));
-    const lista = RETOS_TXT[Object.keys(DIAGRAMAS).find(k => DIAGRAMAS[k] === dg)];
-    let y = RETOS.y + 40;
-    lista.forEach((txt, i) => {
-        noStroke(); fill(THEME.accent); textStyle(BOLD); textSize(13); textAlign(CENTER, CENTER);
-        circle(RETOS.x + 26, y + 9, 22);
-        fill(THEME.canvasBg);
-        text(i + 1, RETOS.x + 26, y + 10);
-        textStyle(NORMAL); fill(THEME.text); textSize(THEME.fun ? 13 : 12); textAlign(LEFT, TOP); textLeading(17);
-        text(i18n.t(txt), RETOS.x + 46, y, RETOS.w - 60, 54);
-        y += 58;
-    });
-}
-
 
 // ═══════════════════════════════════════════════════════════════════
 //  INTERACCIÓN: arrastrar el punto
@@ -514,202 +524,6 @@ function moverPuntoAlRaton() {
     marcarEjemplo(-1);
 }
 
-
-// ═══════════════════════════════════════════════════════════════════
-//  DIBUJO DEL DIAGRAMA
-// ═══════════════════════════════════════════════════════════════════
-function drawFasesMode() {
-    drawPanelFrame(DIAG, i18n.t('DIAGRAMA DE FASES'), i18n.t('del {s} (esquemático)', { s: i18n.t(dg.nombre) }));
-
-    const { x0, x1, y0, y1 } = DPLOT;
-    const pt = pTriple();
-
-    // Curvas como listas de puntos (en píxeles, recortadas al área del diagrama)
-    const sub = [], vap = [], fus = [];
-    for (let T = dg.tMin; T <= dg.tt; T += (dg.tt - dg.tMin) / 60) sub.push([dx(T), dyc(pSub(T))]);
-    sub.push([dx(dg.tt), dyc(pt)]);
-    for (let T = dg.tt; T <= dg.tMax; T += (dg.tMax - dg.tt) / 80) vap.push([dx(T), dyc(pVap(T))]);
-    vap.push([dx(dg.tMax), dyc(pVap(dg.tMax))]);
-    for (let i = 0; i <= 40; i++) {
-        const P = Math.exp(lerp(Math.log(pt), Math.log(dg.pMax), i / 40));
-        fus.push([dx(tFus(P)), dyc(P)]);
-    }
-
-    // Regiones coloreadas
-    noStroke();
-    fill(conAlfa(THEME.gas, 45));
-    poligono([[x0, y1], ...sub, ...vap, [x1, y1]]);
-    fill(conAlfa(THEME.solid, 45));
-    poligono([[x0, y0], [x0, sub[0][1]], ...sub, ...fus]);
-    fill(conAlfa(THEME.liquid, 45));
-    poligono([...fus, [x1, y0], ...[...vap].reverse()]);
-
-    drawEjesFases();
-
-    // Línea de 1 atm
-    const y1atm = dy(1);
-    stroke(THEME.textDim); strokeWeight(1.2);
-    drawingContext.setLineDash([6, 5]);
-    line(x0, y1atm, x1, y1atm);
-    drawingContext.setLineDash([]);
-    // El rótulo va justo a la derecha del primer cruce con 1 atm, donde siempre hay sitio
-    const xRot = dx(1 > pt ? tFus(1) : tSub(1)) + 8;
-    noStroke(); fill(THEME.textDim); textSize(11); textAlign(LEFT, BOTTOM);
-    text(i18n.t('1 atm (nivel del mar)'), xRot, y1atm - 4);
-
-    // Fronteras
-    noFill(); stroke(THEME.text); strokeWeight(2.5);
-    polilinea(sub); polilinea(vap); polilinea(fus);
-
-    drawRotulosFases();
-    drawPuntosNotables();
-    drawRastroYPunto();
-
-    detectarCambio();
-    const sit = situacion();
-    if (avanzarFracciones(sit)) equilibrioDinamico(sit);
-    updateParticles(fasesFr, agitacionFases());
-    drawFasesParticulas();
-    drawRetos();
-    drawBanner(mensajeFases());
-}
-
-function drawEjesFases() {
-    const { x0, x1, y0, y1 } = DPLOT;
-    textSize(11);
-    const paso = escalaPaso(dg.tMax - dg.tMin);
-    for (let T = Math.ceil(dg.tMin / paso) * paso; T <= dg.tMax; T += paso) {
-        stroke(THEME.grid); strokeWeight(1);
-        line(dx(T), y0, dx(T), y1);
-        noStroke(); fill(THEME.textDim); textAlign(CENTER, TOP);
-        text(fmtT(T), dx(T), y1 + 6);
-    }
-    for (const P of dg.marcasP) {
-        stroke(THEME.grid); strokeWeight(1);
-        line(x0, dy(P), x1, dy(P));
-        noStroke(); fill(THEME.textDim); textAlign(RIGHT, CENTER);
-        text(fmtP(P), x0 - 8, dy(P));
-    }
-    stroke(THEME.axis); strokeWeight(1.5);
-    line(x0, y0, x0, y1); line(x0, y1, x1, y1);
-
-    noStroke(); fill(THEME.textDim); textSize(12);
-    textAlign(CENTER, TOP);
-    text(i18n.t('Temperatura (°C)'), (x0 + x1) / 2, y1 + 24);
-    push();
-    translate(DIAG.x + 16, (y0 + y1) / 2);
-    rotate(-HALF_PI);
-    textAlign(CENTER, CENTER);
-    text(i18n.t('Presión (atm) · escala comprimida'), 0, 0);
-    pop();
-}
-
-function drawRotulosFases() {
-    // Nombre de cada región
-    textStyle(BOLD); textSize(20); textAlign(CENTER, CENTER); noStroke();
-    for (const st of ['solid', 'liquid', 'gas']) {
-        const r = dg.rotulos[st];
-        fill(THEME[st]);
-        text(i18n.t({ solid: 'SÓLIDO', liquid: 'LÍQUIDO', gas: 'GAS' }[st]), dx(r.T), dy(r.P));
-    }
-    textStyle(NORMAL);
-
-    // Nombre de cada frontera, girado según la curva
-    rotuloCurva(i18n.t('fusión ⇄ solidificación'),
-        (u) => { const P = Math.exp(lerp(Math.log(pTriple()), Math.log(dg.pMax), u)); return [dx(tFus(P)), dy(P)]; }, 0.62, 10);
-    rotuloCurva(i18n.t('vaporización ⇄ condensación'),
-        (u) => { const T = lerp(dg.tt, dg.tMax, u); return [dx(T), dy(pVap(T))]; }, dg === DIAGRAMAS.agua ? 0.5 : 0.55, -10);
-    if (dg.rotuloSub) rotuloCurva(i18n.t('sublimación ⇄ sublimación inversa'),
-        (u) => { const T = lerp(dg.tMin, dg.tt, u); return [dx(T), dy(pSub(T))]; }, dg.rotuloSub, -10);
-}
-
-// Escribe un texto paralelo a una curva paramétrica, en la posición u (0–1).
-function rotuloCurva(txt, curva, u, desplaz) {
-    const [xa, ya] = curva(u - 0.02), [xb, yb] = curva(u + 0.02), [xm, ym] = curva(u);
-    if (ym < DPLOT.y0 + 10 || ym > DPLOT.y1 - 10) return;
-    let ang = Math.atan2(yb - ya, xb - xa);
-    if (ang > HALF_PI) ang -= PI;
-    if (ang < -HALF_PI) ang += PI;
-    push();
-    translate(xm, ym);
-    rotate(ang);
-    textSize(THEME.fun ? 13 : 11); textAlign(CENTER, CENTER); textStyle(BOLD);
-    stroke(THEME.canvasBg); strokeWeight(4); fill(THEME.text);
-    text(txt, 0, desplaz);
-    pop();
-    textStyle(NORMAL);
-}
-
-function drawPuntosNotables() {
-    const pt = pTriple();
-    // Punto triple
-    stroke(THEME.canvasBg); strokeWeight(2); fill(THEME.change);
-    circle(dx(dg.tt), dy(pt), 10);
-    noStroke(); fill(THEME.change); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, TOP); textStyle(BOLD);
-    text(i18n.t('punto triple'), dx(dg.tt) + 8, dy(pt) + 4);
-    textStyle(NORMAL);
-
-    // Cruces con la línea de 1 atm
-    const marcas = 1 > pt
-        ? [[tFus(1), 'funde'], [tVap(1), 'hierve']]
-        : [[tSub(1), 'sublima']];
-    for (const [T, verbo] of marcas) {
-        if (T < dg.tMin || T > dg.tMax) continue;
-        stroke(THEME.canvasBg); strokeWeight(2); fill(THEME.text);
-        circle(dx(T), dy(1), 8);
-        noStroke(); fill(THEME.text); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, TOP);
-        text(i18n.t(verbo + ' a {T} °C', { T: fmtT(T) }), dx(T) + 6, dy(1) + 5);
-    }
-}
-
-function drawRastroYPunto() {
-    const x = dx(fT), y = dy(fP);
-    const ult = rastro[rastro.length - 1];
-    if (!ult || dist(ult[0], ult[1], x, y) > 2) {
-        rastro.push([x, y]);
-        if (rastro.length > 300) rastro.shift();
-    }
-
-    // Camino recorrido
-    noFill(); strokeWeight(2);
-    for (let i = 1; i < rastro.length; i++) {
-        stroke(conAlfa(THEME.accent, 40 + 160 * i / rastro.length));
-        line(rastro[i - 1][0], rastro[i - 1][1], rastro[i][0], rastro[i][1]);
-    }
-
-    // Guías hasta los ejes
-    stroke(conAlfa(THEME.accent, 150)); strokeWeight(1);
-    drawingContext.setLineDash([3, 4]);
-    line(x, y, x, DPLOT.y1); line(x, y, DPLOT.x0, y);
-    drawingContext.setLineDash([]);
-
-    // Punto
-    const sitP = situacion();
-    const col = sitP.tipo ? THEME.change : THEME[sitP.fases[0]];
-    noStroke(); fill(conAlfa(col, 70));
-    circle(x, y, 30);
-    stroke(THEME.canvasBg); strokeWeight(2.5); fill(THEME.accent);
-    circle(x, y, 14);
-
-    // Etiquetas de los valores en los ejes
-    etiquetaEje(fmtT(fT) + ' °C', x, DPLOT.y1 - 12, CENTER);
-    etiquetaEje(fmtP(fP) + ' atm', DPLOT.x0 + 4, y - 11, LEFT);
-
-    cursor(dist(mouseX, mouseY, x, y) < 18 || arrastrando ? 'grab' : (dentroDiagrama(mouseX, mouseY) ? 'crosshair' : ARROW));
-}
-
-function etiquetaEje(txt, x, y, alin) {
-    // Temperatura y presión del punto: lo que sigue la clase, en grande
-    const g = THEME.fun;
-    textSize(g ? 15 : 11); textStyle(BOLD);
-    const w = textWidth(txt) + (g ? 16 : 10);
-    const xr = alin === CENTER ? x - w / 2 : x;
-    noStroke(); fill(THEME.accent);
-    rect(xr, y - (g ? 11 : 8), w, g ? 23 : 17, g ? 11 : 4);
-    fill(THEME.canvasBg); textAlign(CENTER, CENTER);
-    text(txt, xr + w / 2, y + 1);
-    textStyle(NORMAL);
-}
 
 // ─── Utilidades de dibujo ────────────────────────────────────────
 function poligono(pts) {

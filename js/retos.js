@@ -21,7 +21,19 @@ const ALBUM_HIELO_SECO = [
     { id: 'sublimacion',         nombre: 'Sublimación',         corto: 'S→G', col: '#d7c6ff' },
     { id: 'sublimacionInversa', nombre: 'Sublimación inversa', corto: 'G→S', col: '#b9a3f5' },
 ];
-const ALBUM_TOTAL = ALBUM_SUSTANCIAS.length * ALBUM_CAMBIOS.length + ALBUM_HIELO_SECO.length;
+// El yodo solo aparece en «Presión y temperatura»
+const ALBUM_YODO = ALBUM_HIELO_SECO;
+const ALBUM_TOTAL = ALBUM_SUSTANCIAS.length * ALBUM_CAMBIOS.length + ALBUM_HIELO_SECO.length + ALBUM_YODO.length;
+function nombreAlbum(sc) { return sc === 'yodo' ? i18n.t('Yodo (I₂)') : i18n.t(SUSTANCIAS[sc].nombre); }
+
+// Retos del modo «Presión y temperatura» (se guardan juntos, con la clave 'fases')
+const RETOS_FASES = [
+    'Haz que el agua hierva sin calentarla',
+    'Busca a qué temperatura hierve el agua en la cima del Everest',
+    'Lleva el agua justo al punto triple (sin el botón de ejemplo)',
+    'Consigue CO₂ líquido, como en un extintor',
+    'Sublima yodo sin que llegue a fundirse',
+];
 
 // Temperatura objetivo del reto «déjalo justo a…» (dentro del tramo líquido;
 // en el hielo seco, del gas)
@@ -105,8 +117,44 @@ function retosComprobar() {
     else if (frameCount % 30 === 0) pintarProgreso();
 }
 
+// ── «Presión y temperatura»: llegadas a una línea y cruces ─────────
+function ganarFases(i) {
+    const hechos = retosDatos.retos.fases || [false, false, false, false, false];
+    if (hechos[i]) return false;
+    hechos[i] = true; retosDatos.retos.fases = hechos;
+    return true;
+}
+function retosFasesEvento(tipo, ev) {
+    const k = claveDiagrama();
+    let cambio = false;
+    if (tipo === 'llegada') {
+        if (k === 'agua' && ev.tipo === 'vaporizacion' && ev.de === 'liquid' && ev.causa === 'descomprimir') cambio = ganarFases(0) || cambio;
+        if (k === 'agua' && ev.tipo === 'triple' && !porEjemplo) cambio = ganarFases(2) || cambio;
+    } else {
+        if (k === 'agua' && ev.de === 'liquid' && ev.a === 'gas' && ev.causa === 'descomprimir') cambio = ganarFases(0) || cambio;
+        if (k === 'co2' && ev.a === 'liquid') cambio = ganarFases(3) || cambio;
+        if (k === 'yodo' && ev.de === 'solid' && ev.a === 'gas') cambio = ganarFases(4) || cambio;
+        // Sellos: cruzar una línea del agua, del CO₂ (fila del hielo seco) o del yodo
+        const id = { 'solid>liquid': 'fusion', 'liquid>solid': 'solidificacion', 'liquid>gas': 'vaporizacion',
+                     'gas>liquid': 'condensacion', 'solid>gas': 'sublimacion', 'gas>solid': 'sublimacionInversa' }[ev.de + '>' + ev.a];
+        const fila = { agua: ['agua', ALBUM_CAMBIOS], co2: ['hieloSeco', ALBUM_HIELO_SECO], yodo: ['yodo', ALBUM_YODO] }[k];
+        if (fila && fila[1].some(c => c.id === id) && !retosDatos.sellos[fila[0] + '-' + id]) {
+            retosDatos.sellos[fila[0] + '-' + id] = true; cambio = true;
+        }
+    }
+    if (cambio) { guardarRetos(); pintarRetos(); }
+}
+// Se llama unas 15 veces por segundo: el reto del Everest se comprueba sobre la línea
+function retosFasesComprobar() {
+    if (claveDiagrama() !== 'agua') return;
+    if (situacion().tipo === 'vaporizacion' && Math.abs(fP - 0.33) < 0.025) {
+        if (ganarFases(1)) { guardarRetos(); pintarRetos(); }
+    }
+}
+
 // Progreso del reto 1 mientras dura el cambio de estado
 function progresoReto(i) {
+    if (currentMode === 'fases') return (retosDatos.retos.fases || [])[i] ? 1 : 0;
     const hechos = retosDatos.retos[sus.clave] || [];
     if (hechos[i]) return 1;
     if (i === 0) return estado.tramo === (sus.sublima ? 'sublimacion' : 'fusion') ? (sus.sublima ? estado.fg : estado.fl) : 0;
@@ -124,9 +172,12 @@ function pintarProgreso() {
 function pintarRetos() {
     const lista = document.getElementById('lista-retos');
     if (!lista || !sus) return;
-    const hechos = retosDatos.retos[sus.clave] || [];
+    const fases = currentMode === 'fases';
+    const hechos = retosDatos.retos[fases ? 'fases' : sus.clave] || [];
+    const modo = document.getElementById('retos-modo');
+    if (modo) modo.textContent = '· ' + (fases ? i18n.t('Presión y temperatura') : i18n.t(sus.nombre));
     lista.innerHTML = '';
-    retosDe(sus).forEach((txt, i) => {
+    (fases ? RETOS_FASES.map(t => i18n.t(t)) : retosDe(sus)).forEach((txt, i) => {
         const li = document.createElement('li');
         li.className = hechos[i] ? 'hecho' : '';
         li.innerHTML = `<span class="anillo" aria-hidden="true"></span><span class="reto-txt"></span><span class="reto-estrella" aria-hidden="true">${hechos[i] ? '★' : '☆'}</span>`;
@@ -147,11 +198,12 @@ function pintarRetos() {
         el.className = 'sello' + (ok ? ' ganado' : '');
         el.style.setProperty('--col', c.col);
         el.textContent = ok ? c.corto : '';
-        el.title = i18n.t(SUSTANCIAS[susClave].nombre) + ' · ' + i18n.t(c.nombre) + (ok ? '' : ' · ' + i18n.t('pendiente'));
+        el.title = nombreAlbum(susClave) + ' · ' + i18n.t(c.nombre) + (ok ? '' : ' · ' + i18n.t('pendiente'));
         return el;
     };
     ALBUM_SUSTANCIAS.forEach(sc => ALBUM_CAMBIOS.forEach(c => mini.appendChild(sello(sc, c))));
     ALBUM_HIELO_SECO.forEach(c => mini.appendChild(sello('hieloSeco', c)));
+    ALBUM_YODO.forEach(c => mini.appendChild(sello('yodo', c)));
     document.getElementById('album-cuenta').textContent = `${n} / ${ALBUM_TOTAL}`;
 }
 
@@ -169,9 +221,12 @@ function pintarAlbum() {
         ALBUM_CAMBIOS.forEach(c => { h += celda(sc, c); });
         h += '</tr>';
     });
-    h += `<tr><th scope="row">${i18n.t(SUSTANCIAS.hieloSeco.nombre)}</th>`;
-    ALBUM_HIELO_SECO.forEach(c => { h += celda('hieloSeco', c).replace('<td>', `<td><small>${i18n.t(c.nombre)}</small>`); });
-    h += '<td></td><td></td></tr></tbody></table>';
+    [['hieloSeco', ALBUM_HIELO_SECO], ['yodo', ALBUM_YODO]].forEach(([sc, lista]) => {
+        h += `<tr><th scope="row">${nombreAlbum(sc)}</th>`;
+        lista.forEach(c => { h += celda(sc, c).replace('<td>', `<td><small>${i18n.t(c.nombre)}</small>`); });
+        h += '<td></td><td></td></tr>';
+    });
+    h += '</tbody></table>';
     tabla.innerHTML = h;
 }
 

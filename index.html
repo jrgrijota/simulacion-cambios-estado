@@ -51,7 +51,7 @@
         </div>
         <div class="botones-sup">
             <button id="btn-ayuda" type="button" class="boton-suelto boton-redondo" aria-expanded="false" aria-controls="panel-ayuda" title="¿Qué es un cambio de estado?" aria-label="¿Qué es un cambio de estado?">?</button>
-            <button id="btn-retos" type="button" class="boton-suelto boton-retos only-curva" aria-expanded="false" aria-controls="panel-retos"><span aria-hidden="true">★</span> <span class="btn-retos-txt">Retos</span></button>
+            <button id="btn-retos" type="button" class="boton-suelto boton-retos" aria-expanded="false" aria-controls="panel-retos"><span aria-hidden="true">★</span> <span class="btn-retos-txt">Retos</span></button>
             <button id="theme-btn" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema" aria-expanded="false">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58
@@ -110,93 +110,19 @@
         <button id="btn-reiniciar" type="button" class="boton-suelto" aria-keyshortcuts="R" title="Volver al principio (tecla R)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 3.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M1.6 2.2l1.5 4.3 4.2-1.6z"/></svg><span class="btn-txt">Reiniciar</span></button>
     </div>
 
+    <!-- ── SUSTANCIA (modo presión y temperatura) ──────────────── -->
+    <div class="barra-sus only-fases">
+        <span class="barra-sus-label" id="lbl-fsustancia">Sustancia</span>
+        <div class="carril sustancias" role="radiogroup" aria-labelledby="lbl-fsustancia">
+            <button type="button" class="carril-btn" data-fsus="agua" role="radio" aria-checked="true"><i class="punto"></i>Agua</button>
+            <button type="button" class="carril-btn" data-fsus="co2" role="radio" aria-checked="false"><i class="punto"></i><span class="solo-ancho">Dióxido de carbono (CO₂)</span><span class="solo-movil">CO₂</span></button>
+            <button type="button" class="carril-btn" data-fsus="yodo" role="radio" aria-checked="false"><i class="punto"></i><span class="solo-ancho">Yodo (I₂)</span><span class="solo-movil">Yodo</span></button>
+        </div>
+        <p id="fases-hint" class="sus-info"></p>
+        <button id="btn-leer" type="button" class="boton-suelto" aria-expanded="false" aria-controls="panel-leer"><span aria-hidden="true">ⓘ</span>&nbsp;<span class="solo-ancho">Cómo leer el diagrama</span><span class="solo-movil">Cómo leer</span></button>
+    </div>
+
     <div class="app-container">
-
-        <!-- ── PANEL DE CONTROL (solo presión y temperatura) ─────── -->
-        <aside class="control-panel only-fases">
-            <!-- ═══ MODO DIAGRAMA DE FASES ═══ -->
-            <section class="control-group only-fases">
-                <h2>Sustancia</h2>
-                <div class="input-wrapper">
-                    <label for="select-fases-sustancia">Diagrama de fases de…</label>
-                    <select id="select-fases-sustancia" class="custom-select">
-                        <option value="agua" selected>Agua</option>
-                        <option value="co2">Dióxido de carbono (CO₂)</option>
-                        <option value="yodo">Yodo (I₂)</option>
-                    </select>
-                    <p id="fases-hint" class="field-hint"></p>
-                </div>
-            </section>
-
-            <hr class="divider only-fases">
-
-            <section class="control-group only-fases">
-                <h2>Condiciones</h2>
-                <div class="input-wrapper">
-                    <div class="label-container">
-                        <label for="slider-fases-T">Temperatura</label>
-                        <span id="val-fases-T" class="value-badge">20 °C</span>
-                    </div>
-                    <input type="range" id="slider-fases-T" min="-40" max="160" value="20" step="1">
-                    <div class="slider-bounds"><span id="min-fases-T">−40 °C</span><span id="max-fases-T">160 °C</span></div>
-                </div>
-                <div class="input-wrapper">
-                    <div class="label-container">
-                        <label for="slider-fases-P">Presión</label>
-                        <span id="val-fases-P" class="value-badge">1,00 atm</span>
-                    </div>
-                    <input type="range" id="slider-fases-P" min="0" max="1000" value="500" step="1">
-                    <div class="slider-bounds"><span id="min-fases-P">0,003 atm</span><span id="max-fases-P">5 atm</span></div>
-                </div>
-                <p class="field-hint">También puedes arrastrar el punto sobre el diagrama.</p>
-            </section>
-
-            <hr class="divider only-fases">
-
-            <section class="control-group only-fases">
-                <h2>Ejemplos</h2>
-                <div id="fases-ejemplos" class="preset-grid"></div>
-            </section>
-
-            <hr class="divider only-fases">
-
-            <details class="custom-details only-fases" open>
-                <summary>Lectura del diagrama</summary>
-                <div class="details-content">
-                    <div class="metrics-grid metrics-grid-2">
-                        <div class="card card-data">
-                            <h3>Temperatura</h3>
-                            <div class="metric"><span id="metric-fases-T">20</span> <small>°C</small></div>
-                        </div>
-                        <div class="card card-data">
-                            <h3>Presión</h3>
-                            <div class="metric"><span id="metric-fases-P">1,00</span> <small>atm</small></div>
-                        </div>
-                    </div>
-                    <div class="card card-estado">
-                        <h3>Estado</h3>
-                        <span id="metric-fases-estado" class="estado-value st-liquid">Líquido</span>
-                    </div>
-                    <div class="card at-pressure">
-                        <h3>A esta presión, la sustancia…</h3>
-                        <p id="fases-a-esta-presion"></p>
-                    </div>
-                </div>
-            </details>
-
-            <details class="custom-details only-fases">
-                <summary>Cómo leer un diagrama de fases</summary>
-                <div class="details-content">
-                    <ul class="key-ideas">
-                        <li data-i18n="idea-region">Cada <strong>región</strong> indica el estado de la sustancia para esa temperatura y esa presión.</li>
-                        <li data-i18n="idea-lineas">Las <strong>líneas</strong> son los cambios de estado: al cruzarlas, la sustancia cambia de estado.</li>
-                        <li data-i18n="idea-ebullicion">La temperatura de ebullición <strong>depende de la presión</strong>: con menos presión, el agua hierve antes.</li>
-                        <li data-i18n="idea-triple">En el <strong>punto triple</strong> pueden existir a la vez sólido, líquido y gas.</li>
-                    </ul>
-                    <p class="field-hint">El diagrama es esquemático: la escala de presión está comprimida para que quepan a la vez valores muy pequeños y muy grandes.</p>
-                </div>
-            </details>
-        </aside>
 
         <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
         <main class="simulation-panel">
@@ -214,6 +140,26 @@
                         <input type="range" id="slider-potencia" class="power-slider" min="-100" max="100" value="0" step="5" aria-describedby="val-potencia">
                         <span id="val-potencia" class="valor-potencia">0 %</span>
                     </div>
+                </div>
+                <!-- Mandos del diagrama de fases, colocados bajo el cilindro -->
+                <div class="mandos-fases only-fases">
+                    <div class="fila-slider">
+                        <label for="slider-fases-T">Temperatura</label>
+                        <span id="val-fases-T" class="valor-slider">20 °C</span>
+                    </div>
+                    <input type="range" id="slider-fases-T" min="-40" max="160" value="20" step="1">
+                    <div class="slider-bounds"><span id="min-fases-T">−40 °C</span><span id="max-fases-T">160 °C</span></div>
+                    <div class="fila-slider">
+                        <label for="slider-fases-P">Presión</label>
+                        <span id="val-fases-P" class="valor-slider">1,00 atm</span>
+                    </div>
+                    <div class="pista-presion">
+                        <input type="range" id="slider-fases-P" min="0" max="1000" value="500" step="1">
+                        <span id="marca-1atm" class="marca-1atm" aria-hidden="true"><i></i>1 atm</span>
+                    </div>
+                    <div class="slider-bounds"><span id="min-fases-P">0,003 atm</span><span id="max-fases-P">5 atm</span></div>
+                    <p class="nota-arrastrar">También puedes arrastrar el punto del diagrama.</p>
+                    <div id="fases-ejemplos" class="ejemplos-fases"></div>
                 </div>
             </div>
             <div id="anuncio" class="sr-only" aria-live="polite"></div>
@@ -248,10 +194,21 @@
     </div>
 
     <!-- ── RETOS Y ÁLBUM (ocultos por defecto) ──────────────────── -->
+    <div id="panel-leer" class="panel-flotante panel-ayuda panel-leer" hidden aria-labelledby="titulo-leer">
+        <div class="panel-cab"><h2 id="titulo-leer">Cómo leer un diagrama de fases</h2><button type="button" class="boton-cerrar" data-cerrar="panel-leer" aria-label="Cerrar">✕</button></div>
+        <ul class="key-ideas">
+            <li data-i18n="idea-region">Cada <strong>región</strong> indica el estado de la sustancia para esa temperatura y esa presión.</li>
+            <li data-i18n="idea-lineas">Las <strong>líneas</strong> son los cambios de estado: al cruzarlas, la sustancia cambia de estado.</li>
+            <li data-i18n="idea-ebullicion">La temperatura de ebullición <strong>depende de la presión</strong>: con menos presión, el agua hierve antes.</li>
+            <li data-i18n="idea-triple">En el <strong>punto triple</strong> pueden existir a la vez sólido, líquido y gas.</li>
+        </ul>
+        <p class="field-hint">El diagrama es esquemático: la escala de presión está comprimida para que quepan a la vez valores muy pequeños y muy grandes.</p>
+    </div>
+
     <aside id="panel-retos" class="panel-retos" hidden aria-labelledby="titulo-retos">
-        <div class="panel-cab"><h2 id="titulo-retos">Retos</h2><button type="button" class="boton-cerrar" data-cerrar="panel-retos" aria-label="Cerrar">✕</button></div>
+        <div class="panel-cab"><h2 id="titulo-retos">Retos <small id="retos-modo" class="retos-modo"></small></h2><button type="button" class="boton-cerrar" data-cerrar="panel-retos" aria-label="Cerrar">✕</button></div>
         <ol id="lista-retos" class="lista-retos"></ol>
-        <div class="album-cab"><h2>Álbum de cambios</h2><span id="album-cuenta" class="album-cuenta">0 / 18</span></div>
+        <div class="album-cab"><h2>Álbum de cambios</h2><span id="album-cuenta" class="album-cuenta">0 / 20</span></div>
         <div id="album-mini" class="album-mini"></div>
         <p class="nota">Cada sello se gana viendo de verdad un cambio de estado.</p>
         <div class="retos-botones">
@@ -278,6 +235,7 @@
     <script src="js/parametros.js"></script>
     <script src="js/retos.js"></script>
     <script src="js/escena.js"></script>
+    <script src="js/escena-fases.js"></script>
     <script src="js/sketch.js"></script>
 </body>
 </html>

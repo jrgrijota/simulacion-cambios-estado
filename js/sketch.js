@@ -149,7 +149,7 @@ function setup() {
                                   const b = t && document.querySelector(`.theme-opt[data-theme="${t}"]`); if (b) b.click(); },
         modo:        urlParam.click({ curva: 'mode-curva', fases: 'mode-fases' }),
         sustancia:   (v) => {
-            if (currentMode === 'fases') return urlParam.select('select-fases-sustancia')(v);
+            if (currentMode === 'fases') { const b = document.querySelector(`[data-fsus="${v === 'hielo-seco' || v === 'hieloseco' ? 'co2' : v}"]`); if (b) b.click(); return; }
             const clave = { 'hielo-seco': 'hieloSeco', 'hieloseco': 'hieloSeco' }[v] || v;
             const b = document.querySelector(`[data-sus="${clave}"]`); if (b) b.click();
         },
@@ -179,24 +179,28 @@ function draw() {
         if (frameCount % 4 === 0) updateCurvaUI();
         return;
     }
-    if (THEME.fun) {
-        // El marco exterior se dibuja dentro del lienzo: así encoge con él y nunca
-        // choca con los tableros (en el móvil el lienzo se reduce mucho).
-        clear();
-        stroke(THEME.border); strokeWeight(2); fill(THEME.canvasBg);
-        rect(1, 1, CV_W - 2, CV_H - 2, 34);
-    } else {
-        background(THEME.canvasBg);
-    }
-    textFont(THEME.fun ? 'Fredoka' : 'monospace');
-
-    drawFasesMode();
+    clear();
+    textFont(THEME.fun ? 'Fredoka' : FUENTE_TEXTO);
+    drawFasesEscena();
 }
 
 // Ratón y pantalla táctil (p5 traduce los toques a eventos de ratón)
 function mousePressed()  { if (currentMode === 'fases') fasesPressed(); }
 function mouseDragged()  { if (currentMode === 'fases') fasesDragged(); }
 function mouseReleased() { arrastrando = false; }
+// En el móvil el lienzo es largo: solo se bloquea el desplazamiento de la
+// página cuando el dedo empieza dentro del diagrama.
+function touchStarted(e) {
+    if (currentMode !== 'fases' || !e || e.target.tagName !== 'CANVAS') return true;
+    if (!dentroDiagrama(mouseX, mouseY)) return true;
+    fasesPressed();
+    return false;
+}
+function touchMoved(e) {
+    if (currentMode === 'fases' && arrastrando) { fasesDragged(); return false; }
+    return true;
+}
+function touchEnded() { arrastrando = false; return true; }
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -993,7 +997,7 @@ function dibujarParticulas() {
 }
 
 function drawParticleWindow() {
-    const circulo = currentMode === 'curva';
+    const circulo = true;   // en los dos modos, el modelo es un círculo
     drawingContext.save();
     if (circulo) {
         noStroke(); fill(THEME.modelBg || THEME.lensBg);
@@ -1148,19 +1152,15 @@ function fitCanvas() {
     const cont = document.getElementById('canvas-container');
     const cv = cont.querySelector('canvas');
     if (!cv) return;
-    if (currentMode === 'curva') { ajustarEscena(cv); return; }
-    document.getElementById('escena').style.width = '';
-    const cs = getComputedStyle(cont);
-    const w = cont.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const apilado = window.matchMedia('(max-width: 1100px)').matches;
-    const h = apilado ? Infinity : cont.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    const s = Math.max(0.1, Math.min(w / CV_W, h / CV_H));
-    cv.style.width  = Math.floor(CV_W * s) + 'px';
-    cv.style.height = Math.floor(CV_H * s) + 'px';
+    ajustarEscena(cv);
 }
 
 function windowResized() {
-    if (currentMode === 'curva' && calcularEscena()) {
+    if (currentMode === 'fases') {
+        const antes = ESC_MOVIL;
+        calcularFases();
+        if (ESC_MOVIL !== antes) { resizeCanvas(CV_W, CV_H); colocarParticulas(situacion().fases[0]); embY = null; }
+    } else if (currentMode === 'curva' && calcularEscena()) {
         resizeCanvas(CV_W, CV_H);
         LENS = LENS_CURVA;
         colocarParticulas(estado.fs === 1 ? 'solid' : estado.fl === 1 ? 'liquid' : estado.fg === 1 ? 'gas' : 'solid');
@@ -1195,10 +1195,8 @@ function setMode(mode) {
 
     // Cada modo tiene su lienzo y su ventana de partículas
     if (mode === 'fases') {
-        cerrarRetos();
-        CV_W = FASES_W; CV_H = FASES_H;
-        P_R = 9; K_VEL = 1; P_COLS = 16; P_ROWS = 4; P_N = P_COLS * P_ROWS;
-        LENS = LENS_FASES;
+        calcularFases();
+        embY = null;
         entrarFases();
     } else {
         calcularEscena();
@@ -1210,9 +1208,11 @@ function setMode(mode) {
     // resizeCanvas vuelve a dibujar al momento: las partículas ya deben
     // corresponder al modo nuevo (si no, draw() falla y el lienzo queda vacío)
     resizeCanvas(CV_W, CV_H);
+    if (typeof pintarRetos === 'function') pintarRetos();
     fitCanvas();
-    // En el diagrama se arrastra el punto: el canvas no debe desplazar la página
-    document.querySelector('#canvas-container canvas').style.touchAction = mode === 'fases' ? 'none' : '';
+    // En el diagrama se arrastra el punto: en la pantalla grande el lienzo no
+    // desplaza la página; en el móvil sí (touchStarted lo bloquea solo en el diagrama)
+    document.querySelector('#canvas-container canvas').style.touchAction = mode === 'fases' && !ESC_MOVIL ? 'none' : '';
 }
 
 
