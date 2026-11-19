@@ -269,6 +269,7 @@ function reiniciar() {
     historial = [];
     burbujasV = [];
     gotasV = [];
+    trozosVivos = null;
     initParticles();
     estado = estadoDesdeEnergia(energia, sus);
     if (typeof retosReiniciar === 'function') retosReiniciar();
