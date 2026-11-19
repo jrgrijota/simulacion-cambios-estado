@@ -1,4 +1,4 @@
-# Cambios de Estado — Simulación Interactiva
+# Cambios de estado — Simulación interactiva
 
 Simulación para **Física y Química de la ESO** sobre los cambios de estado de la materia
 (fusión, solidificación, vaporización, condensación, sublimación y sublimación inversa) desde

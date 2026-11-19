@@ -1,10 +1,10 @@
 // Traducciones al catalán (se usan con ?lang=ca). Ver js/i18n.js.
 window.I18N_CA = {
     // Título de la página
-    'Cambios de Estado — Simulación Interactiva': 'Canvis d\'estat — Simulació interactiva',
+    'Cambios de estado — Simulación interactiva': 'Canvis d\'estat — Simulació interactiva',
 
     // Cabecera
-    'Cambios de Estado': 'Canvis d\'estat',
+    'Cambios de estado': 'Canvis d\'estat',
     'Sólido · Líquido · Gas': 'Sòlid · Líquid · Gas',
     '¿Qué es un cambio de estado?': 'Què és un canvi d\'estat?',
     'intro-materia': 'La matèria pot estar en estat sòlid, líquid o gasós. Quan l\'escalfem o la refredem canvia d\'estat, però <strong>les seves partícules continuen sent les mateixes</strong>: només canvia com de juntes estan i com es mouen.',

@@ -1,10 +1,10 @@
 // Traducciones al gallego (se usan con ?lang=gl). Ver js/i18n.js.
 window.I18N_GL = {
     // Título de la página
-    'Cambios de Estado — Simulación Interactiva': 'Cambios de estado — Simulación interactiva',
+    'Cambios de estado — Simulación interactiva': 'Cambios de estado — Simulación interactiva',
 
     // Cabecera
-    'Cambios de Estado': 'Cambios de estado',
+    'Cambios de estado': 'Cambios de estado',
     'Sólido · Líquido · Gas': 'Sólido · Líquido · Gas',
     '¿Qué es un cambio de estado?': 'Que é un cambio de estado?',
     'intro-materia': 'A materia pode estar en estado sólido, líquido ou gasoso. Cando a quentamos ou a arrefriamos cambia de estado, pero <strong>as súas partículas seguen sendo as mesmas</strong>: só cambia o xuntas que están e como se moven.',
