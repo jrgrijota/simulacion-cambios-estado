@@ -40,25 +40,25 @@ function sepRed() {
 // col: colores de la vista macroscópica. flota: si el sólido flota en su líquido.
 const SUSTANCIAS = {
     agua: {
-        nombre: 'Agua', molecula: 'h2o', tf: 0, teb: 100, tMin: -40, tMax: 250, tIni: -20,
+        nombre: 'Agua', molecula: 'h2o', tf: 0, teb: 100, tMin: -40, tMax: 250, tIni: -30,
         nombres: { solid: 'hielo', liquid: 'agua líquida', gas: 'vapor de agua' },
         col: { solid: '#d6ecff', liquid: '#3a8ee6', gas: '#cfe0f0' }, flota: true,
         curiosidad: 'El hielo flota porque es menos denso que el agua líquida: algo muy raro entre los sólidos.',
     },
     alcohol: {
-        nombre: 'Alcohol', tf: -114, teb: 78, tMin: -160, tMax: 240, tIni: -140,
+        nombre: 'Alcohol', tf: -114, teb: 78, tMin: -160, tMax: 240, tIni: -150,
         nombres: { solid: 'alcohol sólido', liquid: 'alcohol líquido', gas: 'vapor de alcohol' },
         col: { solid: '#f2eed8', liquid: '#d9c46a', gas: '#efe6c0' }, flota: false,
         curiosidad: 'Hierve antes que el agua: por eso el alcohol de las heridas se evapora tan rápido.',
     },
     nitrogeno: {
-        nombre: 'Nitrógeno', molecula: 'n2', tf: -210, teb: -196, tMin: -226, tMax: -150, tIni: -220,
+        nombre: 'Nitrógeno', molecula: 'n2', tf: -210, teb: -196, tMin: -226, tMax: -150, tIni: -223,
         nombres: { solid: 'nitrógeno sólido', liquid: 'nitrógeno líquido', gas: 'nitrógeno gas' },
         col: { solid: '#eef6ff', liquid: '#9fd4ee', gas: '#d8eef8' }, flota: false,
         curiosidad: 'A temperatura ambiente es un gas: forma el 78 % del aire que respiramos.',
     },
     hierro: {
-        nombre: 'Hierro', tf: 1538, teb: 2862, tMin: 1000, tMax: 4200, tIni: 1200,
+        nombre: 'Hierro', tf: 1538, teb: 2862, tMin: 1000, tMax: 4200, tIni: 1100,
         nombres: { solid: 'hierro sólido', liquid: 'hierro fundido', gas: 'hierro gas' },
         col: { solid: '#8a6a5a', liquid: '#ff8a2a', gas: '#ffb070' }, flota: false,
         curiosidad: 'Para fundirlo hacen falta hornos a más de 1500 °C, como los altos hornos de las acerías.',
@@ -67,7 +67,7 @@ const SUSTANCIAS = {
     // (tf = teb = temperatura de sublimación; ver calcularTramos).
     hieloSeco: {
         nombre: 'Hielo seco (CO₂)', molecula: 'co2', sublima: true,
-        tf: -78.5, teb: -78.5, tMin: -120, tMax: 20, tIni: -110,
+        tf: -78.5, teb: -78.5, tMin: -120, tMax: 20, tIni: -115,
         nombres: { solid: 'hielo seco', liquid: 'CO₂ líquido', gas: 'CO₂ gas' },
         col: { solid: '#eef2f6', liquid: '#cfe0f0', gas: '#e4ecf4' }, flota: false,
         curiosidad: 'Se usa para conservar alimentos congelados y para hacer «niebla» en los escenarios: no deja charco porque no pasa por líquido.',
@@ -108,8 +108,8 @@ let sus;                 // sustancia actual
 let energia = 0;         // energía almacenada (unidades didácticas)
 let energiaInicial = 0;  // energía al reiniciar (para contar solo la aportada)
 let tiempo  = 0;         // tiempo simulado (min)
-let potencia = 0.5;      // -1 (enfriar al máximo) … +1 (calentar al máximo)
-const velocidad = 1;     // multiplicador de tiempo (fijo: sin botones de velocidad)
+let potencia = 0;        // -1 (enfriar al máximo) … +1 (calentar al máximo)
+const velocidad = 1.3;   // multiplicador de tiempo (fijo, sin botones: un 30 % más rápido que antes)
 let estado;              // resultado de estadoDesdeEnergia()
 let limite = 0;          // +1 / −1: la placa se apagó sola al llegar al tope / al fondo
 
@@ -246,7 +246,14 @@ function energiaSolido(T, s) {
 }
 
 function actualizarModelo() {
-    const dt = min(deltaTime / 1000, 0.1);
+    // El reloj no arranca hasta que se enciende la placa por primera vez:
+    // así la gráfica no se llena de una línea plana mientras nadie toca nada.
+    if (tiempo === 0 && potencia === 0) {
+        estado = estadoDesdeEnergia(energia, sus);
+        if (!historial.length) registrarMuestra();
+        return;
+    }
+    const dt = min(deltaTime / 1000, 0.1) * velocidad;
     tiempo += dt;
     energia = constrain(energia + potencia * POT_MAX * dt, 0, sus.eTot);
     // Al llegar al extremo del termómetro se apaga la placa: si siguiera
