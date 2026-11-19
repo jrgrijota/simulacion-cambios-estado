@@ -172,15 +172,18 @@ function drawRecipiente() {
     ctx.save();
     caminoVaso(ctx); ctx.closePath(); ctx.clip();
     noStroke(); fill(255, 255, 255, THEME.fun ? 14 : 20); rect(VASO.x, VASO.y, VASO.w, VASO.h);
+    drawGasTinte(ySup);
     drawAireTemblor(ySup);
     drawLiquido(ySup, hLiq);
     const sol = drawTrozos(ySup, hLiq);
+    drawNieblaHieloSeco(sol);
     drawBurbujasV(ySup, hLiq);
     drawGotasV(ySup);
     ctx.restore();
 
     drawCristal();
     drawTermometro(estado.T);
+    drawRotulosGas(ySup, sol);
     pop();
 
     PUNTO = aEscena(puntoAmpliado(ySup, hLiq, sol));
@@ -265,6 +268,70 @@ function drawLiquido(ySup, hLiq) {
 }
 
 // El gas no se ve: solo un leve temblor del aire cuando lo hay
+// El gas real es transparente; aquí se representa con un tinte liso del color
+// del estado gas (uniforme, sin forma de nube) y un rótulo que lo aclara.
+function drawGasTinte(ySup) {
+    if (estado.fg <= 0.01) return;
+    const c = color(THEME.gas); c.setAlpha(Math.round(255 * (0.16 + 0.30 * estado.fg)));
+    noStroke(); fill(c); rect(VASO.x, VASO.y, VASO.w, ySup - VASO.y + 4);
+}
+
+// Hielo seco: la niebla blanca que se ve NO es CO₂ (que es invisible), sino
+// gotitas de agua del aire que se condensan por el frío. Se pega al bloque y
+// cae hacia el fondo. Solo mientras queda hielo seco sublimándose.
+let nieblaHS = [];
+function nieblaActiva(sol) {
+    return sus === SUSTANCIAS.hieloSeco && sol && estado.tramo === 'sublimacion';
+}
+function drawNieblaHieloSeco(sol) {
+    if (!nieblaActiva(sol)) { nieblaHS = []; return; }
+    const suelo = VASO.y + VASO.h;
+    const ritmo = 0.25 + 0.75 * max(0, potencia);
+    if (!MOV_REDUCIDO && nieblaHS.length < 46 && random() < ritmo) {
+        const x = random(VASO.x + 30, TH.x - 30);
+        nieblaHS.push({ x, y: random(sol.techo, suelo - 20), vx: random(-0.35, 0.35), vy: random(0.15, 0.45), r: random(26, 44), vida: 0, max: random(160, 260) });
+    }
+    if (MOV_REDUCIDO && !nieblaHS.length) {
+        for (let i = 0; i < 14; i++) nieblaHS.push({ x: VASO.x + 30 + i * 16, y: suelo - 30 - (i % 3) * 14, vx: 0, vy: 0, r: 40, vida: 60, max: 1e9 });
+    }
+    const ctx = drawingContext;
+    for (let i = nieblaHS.length - 1; i >= 0; i--) {
+        const b = nieblaHS[i];
+        b.vida++; b.x += b.vx; b.y = min(b.y + b.vy, suelo - b.r * 0.4); b.r += 0.12;
+        if (b.y >= suelo - b.r * 0.4) b.vx *= 1.01;   // al llegar al fondo se extiende
+        if (b.vida > b.max) { nieblaHS.splice(i, 1); continue; }
+        const a = 0.5 * min(1, b.vida / 30) * min(1, (b.max - b.vida) / 60);
+        const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        g.addColorStop(0, `rgba(240,246,252,${a})`); g.addColorStop(1, 'rgba(240,246,252,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TWO_PI); ctx.fill();
+    }
+}
+
+// Rótulos que avisan de lo que no se ve así en la realidad
+function drawRotulosGas(ySup, sol) {
+    const x0 = VASO.x + 10, w = TH.x - TH.tubo / 2 - 8 - x0;
+    const pill = (txt, y) => {
+        textFont(FUENTE_TEXTO); textSize(15); textLeading(18); textAlign(CENTER, CENTER);
+        const lineas = Math.ceil(textWidth(txt) / (w - 20)) > 1 ? 2 : 1;
+        const h = lineas * 18 + 10;
+        stroke(THEME.ink || '#000'); strokeWeight(1.5); fill(THEME.pillBg || THEME.panelBg);
+        rect(x0, y, w, h, 10);
+        noStroke(); fill(THEME.text); text(txt, x0 + 8, y + 1, w - 16, h);
+        textFont(THEME.fun ? 'Fredoka' : FUENTE_TEXTO);
+        return y + h + 6;
+    };
+    // Sin tapar la marca de ebullición del termómetro (a la izquierda del tubo)
+    const yEb = sus.sublima ? -1e9 : map(sus.teb, sus.tMin, sus.tMax, TH.bottom - 4, TH.top + 6);
+    const sitio = (y, h) => (y < yEb + 14 && y + h > yEb - 14) ? yEb + 16 : y;
+    let y = VASO.y + 32;
+    if (estado.fg > 0.05) {
+        // Con todo en gas, abajo: el centro queda para el punto que se amplía
+        y = sitio(estado.fg > 0.99 ? VASO.y + VASO.h - 60 : y, 46);
+        if (y + 46 < ySup - 6) y = pill(i18n.t('gas (en realidad es transparente)'), y);
+    }
+    if (nieblaActiva(sol) && nieblaHS.length > 6) pill(i18n.t('niebla: gotitas de agua del aire, no es CO₂'), sitio(y, 46));
+}
+
 function drawAireTemblor(ySup) {
     if (estado.fg <= 0.02 || MOV_REDUCIDO) return;
     noFill(); stroke(255, 255, 255, 34 * estado.fg); strokeWeight(2.5);

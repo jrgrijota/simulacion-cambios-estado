@@ -275,6 +275,7 @@ function reiniciar() {
     tiempo = 0;
     historial = [];
     burbujasV = [];
+    nieblaHS = [];
     gotasV = [];
     trozosVivos = null;
     initParticles();
