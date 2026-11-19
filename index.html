@@ -16,19 +16,16 @@
     <script src="js/vendor/p5.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/estilo-juego.css">
+    <link rel="stylesheet" href="css/escena.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="js/estadisticas.js" data-sim="sim-cambios-estado"></script>
-    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="bl"></script>
+    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="br" data-margen-derecho="14"></script>
 </head>
 <body class="mode-curva">
-    <div class="app-container">
-
-        <!-- ── PANEL DE CONTROL ──────────────────────────────────── -->
-        <aside class="control-panel">
-
-            <header>
-                <div class="header-top">
-                    <svg class="header-icon-svg" width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <!-- ── CABECERA COMÚN ─────────────────────────────────────── -->
+    <header class="barra-sup">
+        <div class="marca-sim">
+            <svg class="header-icon-svg" width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <!-- Vapor -->
                         <path d="M13 9 Q10 6 13 2.5" stroke="#ff9a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
                         <path d="M21 9 Q18 5.5 21 2" stroke="#ff9a4a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
@@ -46,78 +43,32 @@
                         <!-- Placa calefactora -->
                         <rect x="4" y="37.8" width="34" height="3.4" rx="1.7" fill="#ff7043" stroke="#1d1b3a" stroke-width="1.2"/>
                     </svg>
-                    <h1>Cambios de estado</h1>
-                </div>
-                <p class="subtitle">Sólido · Líquido · Gas</p>
-                <details class="header-details">
-                    <summary>¿Qué es un cambio de estado?</summary>
-                    <div class="header-details-body">
-                        <p class="section-note" data-i18n="intro-materia">
-                            La materia puede estar en estado sólido, líquido o gaseoso. Al calentarla o
-                            enfriarla cambia de estado, pero <strong>sus partículas siguen siendo las mismas</strong>:
-                            solo cambia cómo de juntas están y cómo se mueven.
-                        </p>
-                        <div class="quick-rule">
-                            <span class="qr-solid">Sólido → partículas fijas que vibran</span>
-                            <span class="qr-liquid">Líquido → partículas juntas que se deslizan</span>
-                            <span class="qr-gas">Gas → partículas separadas y libres</span>
-                        </div>
-                    </div>
-                </details>
-            </header>
-
-            <hr class="divider">
-
-            <!-- SELECTOR DE MODO -->
-            <div class="mode-switch" role="tablist">
-                <button id="mode-curva" type="button" class="mode-btn active" role="tab" aria-selected="true">
-                    Calentar y enfriar
-                    <span class="mode-sub">curva de calentamiento</span>
-                </button>
-                <button id="mode-fases" type="button" class="mode-btn" role="tab" aria-selected="false">
-                    Presión y temperatura
-                    <span class="mode-sub">diagrama de fases</span>
-                </button>
-            </div>
-
-            <hr class="divider">
-
-            <!-- ═══ MODO CURVA DE CALENTAMIENTO ═══ -->
-            <section class="control-group only-curva">
-                <h2>Sustancia</h2>
-                <div class="input-wrapper">
-                    <label for="select-sustancia">Sustancia del recipiente</label>
-                    <select id="select-sustancia" class="custom-select">
-                        <option value="agua" selected>Agua</option>
-                        <option value="alcohol">Alcohol (etanol)</option>
-                        <option value="nitrogeno">Nitrógeno</option>
-                        <option value="hierro">Hierro</option>
-                        <option value="hieloSeco">Hielo seco (CO₂)</option>
-                    </select>
-                    <p id="sustancia-hint" class="field-hint"></p>
-                </div>
-            </section>
-
-            <hr class="divider only-curva">
-
-            <section class="control-group only-curva">
-                <h2>Placa: calentar o enfriar</h2>
-                <div class="input-wrapper">
-                    <div class="label-container">
-                        <label for="slider-potencia">Potencia <span class="label-hint">(energía por segundo)</span></label>
-                        <span id="val-potencia" class="value-badge">+50 %</span>
-                    </div>
-                    <input type="range" id="slider-potencia" class="power-slider" min="-100" max="100" value="50" step="5">
-                    <div class="slider-bounds"><span class="bound-cold">❄ Enfriar</span><span>Apagada</span><span class="bound-hot">Calentar 🔥</span></div>
-                </div>
-
-                <p class="field-hint">El recipiente está aislado y cerrado con una tapa móvil: no se escapa materia ni energía y la presión se mantiene en 1 atm. Si apagas la placa, todo se queda como está.</p>
-            </section>
-
-            <hr class="divider only-curva">
-
-            <section class="control-group only-curva">
-                <h2>Vista de partículas</h2>
+            <h1>Cambios de estado</h1>
+        </div>
+        <div class="carril modos" role="tablist" aria-label="Modo">
+            <button id="mode-curva" type="button" class="carril-btn active" role="tab" aria-selected="true">Calentar y enfriar</button>
+            <button id="mode-fases" type="button" class="carril-btn" role="tab" aria-selected="false">Presión y temperatura</button>
+        </div>
+        <div class="botones-sup">
+            <button id="btn-ayuda" type="button" class="boton-suelto boton-redondo" aria-expanded="false" aria-controls="panel-ayuda" title="¿Qué es un cambio de estado?" aria-label="¿Qué es un cambio de estado?">?</button>
+            <button id="btn-retos" type="button" class="boton-suelto boton-retos only-curva" aria-expanded="false" aria-controls="panel-retos"><span aria-hidden="true">★</span> <span class="btn-retos-txt">Retos</span></button>
+            <button id="theme-btn" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema" aria-expanded="false">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58
+                    c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96
+                    c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84
+                    c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33
+                    c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58
+                    C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61
+                    l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94
+                    l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54
+                    c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32
+                    c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z
+                    M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                </svg>
+            </button>
+            <div id="theme-panel" class="theme-panel" aria-hidden="true">
+                <p class="theme-panel-title">Vista de partículas</p>
                 <label class="check-row" for="check-uniones">
                     <input type="checkbox" id="check-uniones" checked>
                     <span>Mostrar las atracciones entre partículas</span>
@@ -126,46 +77,43 @@
                     <input type="checkbox" id="check-estelas" checked>
                     <span>Mostrar la velocidad (estelas)</span>
                 </label>
-            </section>
-
-            <hr class="divider only-curva">
-
-            <!-- MÉTRICAS EN TIEMPO REAL (plegable) -->
-            <details class="custom-details only-curva" open>
-                <summary>Monitorización en tiempo real</summary>
-                <div class="details-content metrics-content">
-                    <div class="metrics-grid">
-                        <div class="card card-data">
-                            <h3>Temperatura</h3>
-                            <div class="metric"><span id="metric-temp">−20</span> <small>°C</small></div>
-                        </div>
-                        <div class="card card-data">
-                            <h3>Tiempo</h3>
-                            <div class="metric"><span id="metric-tiempo">0,0</span> <small>min</small></div>
-                        </div>
-                        <div class="card card-data">
-                            <h3>Placa</h3>
-                            <div class="metric metric-text"><span id="metric-placa">Calienta</span></div>
-                        </div>
-                    </div>
-                    <div class="card card-estado">
-                        <h3>Estado de la sustancia</h3>
-                        <span id="metric-estado" class="estado-value">Sólido</span>
-                    </div>
-                    <div class="card energy-card">
-                        <h3 id="energy-titulo">¿En qué se ha gastado la energía aportada?</h3>
-                        <div class="energy-bar" aria-hidden="true">
-                            <div id="bar-sensible" class="energy-seg seg-sensible" style="width:0%"></div>
-                            <div id="bar-latente" class="energy-seg seg-latente" style="width:0%"></div>
-                        </div>
-                        <div class="energy-legend">
-                            <span><i class="dot dot-sensible"></i><span id="txt-sensible">Subir la temperatura</span> <b id="pct-sensible">0 %</b></span>
-                            <span><i class="dot dot-latente"></i><span id="txt-latente">Separar las partículas</span> <b id="pct-latente">0 %</b></span>
-                        </div>
-                    </div>
+                <p class="theme-panel-title">Tema visual</p>
+                <div class="theme-options">
+                    <button class="theme-opt" data-theme="marca">
+                        <span class="theme-swatch marca-swatch"></span>SimulaCiencia
+                    </button>
+                    <button class="theme-opt active" data-theme="dark">
+                        <span class="theme-swatch dark-swatch"></span>Oscuro
+                    </button>
+                    <button class="theme-opt" data-theme="light">
+                        <span class="theme-swatch light-swatch"></span>Claro
+                    </button>
+                    <button class="theme-opt" data-theme="contrast">
+                        <span class="theme-swatch contrast-swatch"></span>Alto contraste
+                    </button>
                 </div>
-            </details>
+            </div>
+        </div>
+    </header>
 
+    <!-- ── SUSTANCIA (modo calentar y enfriar) ──────────────────── -->
+    <div class="barra-sus only-curva">
+        <span class="barra-sus-label" id="lbl-sustancia">Sustancia</span>
+        <div class="carril sustancias" role="radiogroup" aria-labelledby="lbl-sustancia">
+            <button type="button" class="carril-btn" data-sus="agua" role="radio" aria-checked="true"><i class="punto"></i>Agua</button>
+            <button type="button" class="carril-btn" data-sus="alcohol" role="radio" aria-checked="false"><i class="punto"></i>Alcohol</button>
+            <button type="button" class="carril-btn" data-sus="nitrogeno" role="radio" aria-checked="false"><i class="punto"></i>Nitrógeno</button>
+            <button type="button" class="carril-btn" data-sus="hierro" role="radio" aria-checked="false"><i class="punto"></i>Hierro</button>
+            <button type="button" class="carril-btn" data-sus="hieloSeco" role="radio" aria-checked="false"><i class="punto"></i>Hielo seco (CO₂)</button>
+        </div>
+        <p id="sustancia-hint" class="sus-info"></p>
+        <button id="btn-reiniciar" type="button" class="boton-suelto" aria-keyshortcuts="R" title="Volver al principio (tecla R)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 3.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M1.6 2.2l1.5 4.3 4.2-1.6z"/></svg><span class="btn-txt">Reiniciar</span></button>
+    </div>
+
+    <div class="app-container">
+
+        <!-- ── PANEL DE CONTROL (solo presión y temperatura) ─────── -->
+        <aside class="control-panel only-fases">
             <!-- ═══ MODO DIAGRAMA DE FASES ═══ -->
             <section class="control-group only-fases">
                 <h2>Sustancia</h2>
@@ -248,12 +196,40 @@
                     <p class="field-hint">El diagrama es esquemático: la escala de presión está comprimida para que quepan a la vez valores muy pequeños y muy grandes.</p>
                 </div>
             </details>
+        </aside>
 
-            <!-- CONCEPTOS CLAVE -->
-            <details class="custom-details only-curva">
-                <summary>Conceptos clave</summary>
-                <div class="details-content">
-                    <div class="card edu-card">
+        <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
+        <main class="simulation-panel">
+            <div id="escena" class="escena">
+                <div id="canvas-container"></div>
+                <!-- Controles de la placa, colocados bajo la placa dibujada -->
+                <div class="mandos-placa only-curva">
+                    <div class="carril placa" role="radiogroup" aria-label="Placa">
+                        <button type="button" class="carril-btn seg-cold" data-placa="-1" role="radio" aria-checked="false">Enfriar</button>
+                        <button type="button" class="carril-btn seg-off" data-placa="0" role="radio" aria-checked="false">Apagar</button>
+                        <button type="button" class="carril-btn seg-hot active" data-placa="1" role="radio" aria-checked="true">Calentar</button>
+                    </div>
+                    <div class="fila-potencia">
+                        <label for="slider-potencia">Potencia</label>
+                        <input type="range" id="slider-potencia" class="power-slider" min="-100" max="100" value="50" step="5" aria-describedby="val-potencia">
+                        <span id="val-potencia" class="valor-potencia">+50 %</span>
+                    </div>
+                </div>
+            </div>
+            <div id="anuncio" class="sr-only" aria-live="polite"></div>
+        </main>
+    </div>
+
+    <!-- ── AYUDA: ¿QUÉ ES UN CAMBIO DE ESTADO? ─────────────────── -->
+    <div id="panel-ayuda" class="panel-flotante panel-ayuda" hidden>
+        <div class="panel-cab"><h2>¿Qué es un cambio de estado?</h2><button type="button" class="boton-cerrar" data-cerrar="panel-ayuda" aria-label="Cerrar">✕</button></div>
+        <p data-i18n="intro-materia">
+            La materia puede estar en estado sólido, líquido o gaseoso. Al calentarla o
+            enfriarla cambia de estado, pero <strong>sus partículas siguen siendo las mismas</strong>:
+            solo cambia cómo de juntas están y cómo se mueven.
+        </p>
+        <h3>Conceptos clave</h3>
+        <div class="card edu-card">
                         <div class="formula-list">
                             <div class="formula"><span class="formula-name">Fusión</span><span class="formula-eq">sólido → líquido</span></div>
                             <div class="formula"><span class="formula-name">Solidificación</span><span class="formula-eq">líquido → sólido</span></div>
@@ -268,79 +244,40 @@
                         <li data-i18n="idea-caracteristicas">Cada sustancia funde y hierve a su propia temperatura: son <strong>propiedades características</strong> que sirven para identificarla.</li>
                         <li data-i18n="idea-particulas">En un cambio de estado <strong>no cambian las partículas</strong>, solo su orden, su separación y su movimiento.</li>
                     </ul>
-                </div>
-            </details>
-
-        </aside>
-
-        <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
-        <main class="simulation-panel">
-
-            <!-- Controles principales, junto a la simulación -->
-            <div class="sim-dock only-curva">
-                <div class="dock-group">
-                    <button id="btn-reiniciar" type="button" class="canvas-btn" aria-keyshortcuts="R" title="Volver al principio (tecla R)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 3.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M1.6 2.2l1.5 4.3 4.2-1.6z"/></svg><span class="btn-txt">Reiniciar</span></button>
-                </div>
-                <div class="dock-group">
-                    <span class="dock-label" id="lbl-placa">Placa</span>
-                    <div class="dock-seg" role="radiogroup" aria-labelledby="lbl-placa">
-                        <button type="button" class="dock-seg-btn seg-cold" data-placa="-1" role="radio" aria-checked="false">❄ Enfriar</button>
-                        <button type="button" class="dock-seg-btn seg-off" data-placa="0" role="radio" aria-checked="false">Apagar</button>
-                        <button type="button" class="dock-seg-btn seg-hot" data-placa="1" role="radio" aria-checked="true">🔥 Calentar</button>
-                    </div>
-                </div>
-                <div class="dock-group">
-                    <span class="dock-label" id="lbl-velocidad">Velocidad</span>
-                    <div class="dock-seg" role="radiogroup" aria-labelledby="lbl-velocidad">
-                        <button type="button" class="dock-seg-btn active" data-speed="1" role="radio" aria-checked="true" aria-label="Velocidad ×1">×1</button>
-                        <button type="button" class="dock-seg-btn" data-speed="2" role="radio" aria-checked="false" aria-label="Velocidad ×2">×2</button>
-                        <button type="button" class="dock-seg-btn" data-speed="4" role="radio" aria-checked="false" aria-label="Velocidad ×4">×4</button>
-                    </div>
-                </div>
-            </div>
-            <p class="girar-movil">Gira el móvil para ver la simulación más grande.</p>
-
-            <!-- Botón de tema -->
-            <button id="theme-btn" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema" aria-expanded="false">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58
-                    c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96
-                    c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84
-                    c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33
-                    c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58
-                    C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61
-                    l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94
-                    l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54
-                    c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32
-                    c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z
-                    M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
-                </svg>
-            </button>
-            <div id="theme-panel" class="theme-panel" aria-hidden="true">
-                <p class="theme-panel-title">Tema visual</p>
-                <div class="theme-options">
-                    <button class="theme-opt" data-theme="marca">
-                        <span class="theme-swatch marca-swatch"></span>SimulaCiencia
-                    </button>
-                    <button class="theme-opt active" data-theme="dark">
-                        <span class="theme-swatch dark-swatch"></span>Oscuro
-                    </button>
-                    <button class="theme-opt" data-theme="light">
-                        <span class="theme-swatch light-swatch"></span>Claro
-                    </button>
-                    <button class="theme-opt" data-theme="contrast">
-                        <span class="theme-swatch contrast-swatch"></span>Alto contraste
-                    </button>
-                </div>
-            </div>
-
-            <div id="canvas-container"></div>
-            <div id="anuncio" class="sr-only" aria-live="polite"></div>
-        </main>
-
+        <p class="nota-recipiente">El recipiente está aislado y cerrado con una tapa móvil: no se escapa materia ni energía y la presión se mantiene en 1 atm. Si apagas la placa, todo se queda como está.</p>
     </div>
+
+    <!-- ── RETOS Y ÁLBUM (ocultos por defecto) ──────────────────── -->
+    <aside id="panel-retos" class="panel-retos" hidden aria-labelledby="titulo-retos">
+        <div class="panel-cab"><h2 id="titulo-retos">Retos</h2><button type="button" class="boton-cerrar" data-cerrar="panel-retos" aria-label="Cerrar">✕</button></div>
+        <ol id="lista-retos" class="lista-retos"></ol>
+        <div class="album-cab"><h2>Álbum de cambios</h2><span id="album-cuenta" class="album-cuenta">0 / 18</span></div>
+        <div id="album-mini" class="album-mini"></div>
+        <p class="nota">Cada sello se gana viendo de verdad un cambio de estado.</p>
+        <div class="retos-botones">
+            <button type="button" id="btn-ver-album" class="boton-suelto">Ver el álbum</button>
+            <button type="button" id="btn-borrar" class="boton-suelto boton-peligro">↺ Borrar lo conseguido</button>
+        </div>
+        <div id="confirmar-borrar" class="confirmar" hidden>
+            <p>¿Borrar los retos y sellos conseguidos en este navegador?</p>
+            <div class="retos-botones">
+                <button type="button" id="btn-borrar-si" class="boton-suelto boton-peligro">Sí, borrar</button>
+                <button type="button" id="btn-borrar-no" class="boton-suelto">Cancelar</button>
+            </div>
+        </div>
+    </aside>
+    <div id="album" class="album-modal" hidden role="dialog" aria-modal="true" aria-labelledby="titulo-album">
+        <div class="album-caja">
+            <div class="panel-cab"><h2 id="titulo-album">Álbum de cambios de estado</h2><button type="button" class="boton-cerrar" data-cerrar="album" aria-label="Cerrar">✕</button></div>
+            <p class="nota">Cada sello se gana al ver de verdad un cambio de estado en la simulación.</p>
+            <div id="album-tabla" class="album-tabla"></div>
+        </div>
+    </div>
+
     <script src="js/fases.js"></script>
     <script src="js/parametros.js"></script>
+    <script src="js/retos.js"></script>
+    <script src="js/escena.js"></script>
     <script src="js/sketch.js"></script>
 </body>
 </html>

@@ -8,30 +8,23 @@
 // ═══════════════════════════════════════════════════════════════════
 
 // --- LAYOUT DEL CANVAS ---
-const CV_W = 1050, CV_H = 700;
+// El modo «Presión y temperatura» usa un lienzo de 1050 × 700. El modo «Calentar y
+// enfriar» es una escena con su propio tamaño (portátil o móvil): ver js/escena.js,
+// que fija estas medidas en calcularEscena().
+const FASES_W = 1050, FASES_H = 700;
+let CV_W = FASES_W, CV_H = FASES_H;
 
-// Vista macroscópica: panel, recipiente cerrado, placa y termómetro
-const MACRO = { x: 20, y: 72, w: 425, h: 358 };
-const JAR   = { x: 54, y: 140, w: 236, h: 205 };   // interior del recipiente
-const PLATE = { x: 38, y: 352, w: 268, h: 22 };
-const TH    = { x: 352, top: 118, bottom: 384 };
-const LIQ_MAX_H = 112;                              // altura del líquido con todo fundido
-
-// Vista microscópica: panel, ventana de partículas y leyenda de estados
-const MICRO  = { x: 458, y: 72, w: 572, h: 358 };
-const LENS_CURVA = { x: 474, y: 100, w: 322, h: 314 };
-let LENS = LENS_CURVA;     // ventana de partículas activa (cada modo tiene la suya)
-const LEGEND = { x: 810, y: 100, w: 206, h: 314 };
-
-// Gráfica temperatura–tiempo
-const GRAPH = { x: 20, y: 442, w: 1010, h: 246 };
-const PLOT  = { x0: 84, x1: 932, y0: 494, y1: 654 };
+// Recipiente, placa y termómetro; ventana de partículas; gráfica (las fija calcularEscena)
+let JAR, PLATE, TH, LIQ_MAX_H, LENS_CURVA, GRAPH, PLOT;
+let LENS;     // ventana de partículas activa (cada modo tiene la suya)
 
 // Partículas: red de 16 × 4 en el sólido. Es ancha y baja, como el líquido que
 // forma al fundirse: así, al solidificar, las partículas se ordenan en el fondo,
 // donde ya están, sin subir a ocupar huecos por encima del líquido.
-const P_COLS = 16, P_ROWS = 4, P_N = P_COLS * P_ROWS;
-const P_R    = 9;          // radio
+let P_COLS = 16;
+let P_ROWS = 4, P_N = P_COLS * P_ROWS;
+let P_R    = 9;            // radio (en la escena depende del tamaño del modelo)
+let K_VEL  = 1;            // escala de las velocidades con el radio (P_R / 9)
 // Separación en la red cristalina. En casi todas las sustancias el sólido es
 // más compacto que el líquido (partículas tocándose); el agua es la excepción:
 // el hielo tiene una red abierta y por eso flota. La lupa lo enseña así.
@@ -116,7 +109,7 @@ let energia = 0;         // energía almacenada (unidades didácticas)
 let energiaInicial = 0;  // energía al reiniciar (para contar solo la aportada)
 let tiempo  = 0;         // tiempo simulado (min)
 let potencia = 0.5;      // -1 (enfriar al máximo) … +1 (calentar al máximo)
-let velocidad = 1;       // multiplicador de tiempo
+const velocidad = 1;     // multiplicador de tiempo (fijo: sin botones de velocidad)
 let estado;              // resultado de estadoDesdeEnergia()
 let limite = 0;          // +1 / −1: la placa se apagó sola al llegar al tope / al fondo
 
@@ -126,7 +119,9 @@ let THEME = {};
 
 // ─────────────────────────────────────────────────────────────────
 function setup() {
+    calcularEscena();
     const canvas = createCanvas(CV_W, CV_H);
+    pixelDensity(Math.min(3, Math.max(2, displayDensity())));
     canvas.parent('canvas-container');
     canvas.elt.setAttribute('role', 'img');
     canvas.elt.setAttribute('aria-label', i18n.t('Simulación de cambios de estado: recipiente, partículas y gráfica. Los mensajes de la simulación se leen en voz alta.'));
@@ -142,6 +137,7 @@ function setup() {
     setupFasesControls();
     setupThemeSelector();
 
+    setupEscenaControles();
     cambiarSustancia('agua');
 
     // Ajustes de la dirección (fichas del alumnado): ver js/parametros.js.
@@ -152,11 +148,14 @@ function setup() {
         tema:        (v) => { const t = { simulaciencia: 'marca', marca: 'marca', claro: 'light', oscuro: 'dark', contraste: 'contrast' }[v];
                                   const b = t && document.querySelector(`.theme-opt[data-theme="${t}"]`); if (b) b.click(); },
         modo:        urlParam.click({ curva: 'mode-curva', fases: 'mode-fases' }),
-        sustancia:   (v) => urlParam.select(currentMode === 'fases' ? 'select-fases-sustancia' : 'select-sustancia')(
-                         { 'hielo-seco': 'hieloseco', 'hieloseco': 'hieloseco' }[v] || v),
+        sustancia:   (v) => {
+            if (currentMode === 'fases') return urlParam.select('select-fases-sustancia')(v);
+            const clave = { 'hielo-seco': 'hieloSeco', 'hieloseco': 'hieloSeco' }[v] || v;
+            const b = document.querySelector(`[data-sus="${clave}"]`); if (b) b.click();
+        },
         potencia:    urlParam.range('slider-potencia'),
         placa:       pulsar((v) => `[data-placa="${{ enfriar: -1, apagar: 0, calentar: 1 }[v]}"]`),
-        velocidad:   pulsar((v) => `[data-speed="${parseInt(v, 10)}"]`),
+        retos:       (v) => { if (['1', 'si', 'sí', 'true'].includes(v)) abrirRetos(true); },
         uniones:     urlParam.toggle('check-uniones', (c) => c.checked),
         estelas:     urlParam.toggle('check-estelas', (c) => c.checked),
         temperatura: urlParam.range('slider-fases-T'),
@@ -171,6 +170,15 @@ function setup() {
 
 function draw() {
     updateTheme();
+    if (currentMode === 'curva') {
+        clear();
+        textFont(THEME.fun ? 'Fredoka' : FUENTE_TEXTO);
+        actualizarModelo();
+        updateParticles(estado, agitacion(estado.T, sus.tMin, sus.tf, sus.teb, sus.tMax));
+        drawEscena();
+        if (frameCount % 4 === 0) updateCurvaUI();
+        return;
+    }
     if (THEME.fun) {
         // El marco exterior se dibuja dentro del lienzo: así encoge con él y nunca
         // choca con los tableros (en el móvil el lienzo se reduce mucho).
@@ -182,17 +190,7 @@ function draw() {
     }
     textFont(THEME.fun ? 'Fredoka' : 'monospace');
 
-    if (currentMode === 'curva') {
-        actualizarModelo();
-        drawMacroView();
-        updateParticles(estado, agitacion(estado.T, sus.tMin, sus.tf, sus.teb, sus.tMax));
-        drawMicroView();
-        drawGraph();
-        drawBanner(mensajeDidactico());
-        if (frameCount % 4 === 0) updateCurvaUI();
-    } else {
-        drawFasesMode();
-    }
+    drawFasesMode();
 }
 
 // Ratón y pantalla táctil (p5 traduce los toques a eventos de ratón)
@@ -248,7 +246,7 @@ function energiaSolido(T, s) {
 }
 
 function actualizarModelo() {
-    const dt = min(deltaTime / 1000, 0.1) * velocidad;
+    const dt = min(deltaTime / 1000, 0.1);
     tiempo += dt;
     energia = constrain(energia + potencia * POT_MAX * dt, 0, sus.eTot);
     // Al llegar al extremo del termómetro se apaga la placa: si siguiera
@@ -273,6 +271,7 @@ function reiniciar() {
     gotas = [];
     initParticles();
     estado = estadoDesdeEnergia(energia, sus);
+    if (typeof retosReiniciar === 'function') retosReiniciar();
 }
 
 // Marca como activo un botón de un grupo de opciones (role="radio")
@@ -285,11 +284,15 @@ function marcarGrupo(selector, activo) {
 
 function cambiarSustancia(clave) {
     sus = SUSTANCIAS[clave];
+    sus.clave = clave;
+    marcarGrupo('[data-sus]', document.querySelector(`[data-sus="${clave}"]`));
     document.getElementById('sustancia-hint').innerHTML =
         i18n.t(sus.sublima
                    ? 'A 1 atm no es líquido: sublima a <strong>{tf} °C</strong><br><em>¿Sabías que…?</em> {c}'
                    : 'Funde a <strong>{tf} °C</strong> · Hierve a <strong>{teb} °C</strong><br><em>¿Sabías que…?</em> {c}',
                { tf: fmtT(sus.tf), teb: fmtT(sus.teb), c: i18n.t(sus.curiosidad) });
+    const hint = document.getElementById('sustancia-hint');
+    hint.innerHTML = hint.innerHTML.replace('<br>', '<span class="curiosidad"><br>') + '</span>';
     reiniciar();
     updateCurvaUI();
 }
@@ -321,19 +324,14 @@ function describirEstado(e) {
 //  CONTROLES DEL MODO CURVA
 // ═══════════════════════════════════════════════════════════════════
 function setupCurvaControls() {
-    document.getElementById('select-sustancia')
-        .addEventListener('change', (e) => cambiarSustancia(e.target.value));
+    document.querySelectorAll('[data-sus]').forEach(btn => {
+        btn.addEventListener('click', () => cambiarSustancia(btn.dataset.sus));
+    });
 
     const slPot = document.getElementById('slider-potencia');
     slPot.addEventListener('input', () => setPotencia(parseInt(slPot.value, 10)));
     setPotencia(parseInt(slPot.value, 10));
 
-    document.querySelectorAll('[data-speed]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            velocidad = parseFloat(btn.dataset.speed);
-            marcarGrupo('[data-speed]', btn);
-        });
-    });
 
     // Botones rápidos de la placa: cambian el sentido y conservan la intensidad
     // elegida en el deslizador (al encender desde «Apagar», al 50 %).
@@ -347,7 +345,7 @@ function setupCurvaControls() {
     });
 
     // En los grupos de opciones, las flechas pasan a la opción vecina (como en un grupo de radio)
-    document.querySelectorAll('.dock-seg[role="radiogroup"]').forEach(grupo => {
+    document.querySelectorAll('.carril[role="radiogroup"], .carril[role="tablist"]').forEach(grupo => {
         grupo.addEventListener('keydown', (e) => {
             const paso = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
             if (!paso) return;
@@ -392,42 +390,12 @@ function setPotencia(v) {
     const signo = Math.sign(v);
     marcarGrupo('[data-placa]', document.querySelector('[data-placa="' + signo + '"]'));
 
-    const placa = document.getElementById('metric-placa');
-    placa.textContent = i18n.t(v > 0 ? 'Calienta' : v < 0 ? 'Enfría' : 'Apagada');
-    placa.parentElement.className = 'metric metric-text ' + (v > 0 ? 'hot' : v < 0 ? 'cold' : '');
 }
 
 function updateCurvaUI() {
     if (!estado) return;
-    document.getElementById('metric-temp').textContent = fmtT(estado.T);
-    document.getElementById('metric-tiempo').textContent = i18n.num(tiempo, 1);
-    const d = describirEstado(estado);
-    const el = document.getElementById('metric-estado');
-    const cambia = el.textContent !== d.txt;
-    el.textContent = d.txt;
-    el.className = 'estado-value ' + d.cls;
-    if (cambia && THEME.fun && !MOV_REDUCIDO) { void el.offsetWidth; el.classList.add('bump'); }
-
-    // Solo cuenta la energía que ha entrado (o salido) desde el inicio: la que
-    // ya tenía la sustancia a su temperatura inicial no es «aportada».
-    const ahora = repartoEnergia(energia), antes = repartoEnergia(energiaInicial);
-    let sensible = ahora.sensible - antes.sensible;
-    let latente  = ahora.latente  - antes.latente;
-    const retirada = sensible + latente < 0;
-    if (retirada) { sensible = -sensible; latente = -latente; }
-    sensible = max(0, sensible); latente = max(0, latente);
-    const total = sensible + latente;
-    const pS = total > 1e-6 ? Math.round(100 * sensible / total) : 0;
-    const pL = total > 1e-6 ? 100 - pS : 0;
-    document.getElementById('energy-titulo').textContent = i18n.t(retirada
-        ? '¿De dónde ha salido la energía retirada?'
-        : '¿En qué se ha gastado la energía aportada?');
-    document.getElementById('txt-sensible').textContent = i18n.t(retirada ? 'Bajar la temperatura' : 'Subir la temperatura');
-    document.getElementById('txt-latente').textContent  = i18n.t(retirada ? 'Unir las partículas'  : 'Separar las partículas');
-    document.getElementById('bar-sensible').style.width = pS + '%';
-    document.getElementById('bar-latente').style.width = pL + '%';
-    document.getElementById('pct-sensible').textContent = pS + ' %';
-    document.getElementById('pct-latente').textContent = pL + ' %';
+    anunciar(mensajeDidactico());
+    if (typeof retosComprobar === 'function') retosComprobar();
 }
 
 // Reparte la energía almacenada entre la que subió la temperatura (tramos con
@@ -659,26 +627,6 @@ let burbujas = [];   // burbujas de vapor durante la ebullición
 let gotas    = [];   // gotas que se forman en la tapa al condensar
 let motas    = [];   // motas que sugieren el gas que llena el recipiente
 
-function drawMacroView() {
-    drawPanelFrame(MACRO, i18n.t('LO QUE VEMOS'), i18n.t('el recipiente a simple vista'));
-    if (THEME.fun) { noStroke(); fill(THEME.jarInside); rect(JAR.x, JAR.y, JAR.w, JAR.h, 0, 0, 10, 10); }
-
-    const fondo = JAR.y + JAR.h;
-    const hLiq  = LIQ_MAX_H * estado.fl;
-    const ySup  = fondo - hLiq;          // superficie del líquido
-
-    drawGas(ySup);
-    drawLiquid(ySup, hLiq);
-    drawSolid(ySup, hLiq);
-    drawBubbles(ySup, hLiq);
-    drawDroplets(ySup);
-    drawJarGlass();
-    drawPlate();
-    drawHeatArrows();
-    drawComposicion();
-    drawThermometer(estado.T);
-}
-
 function drawPanelFrame(r, titulo, sub) {
     if (THEME.fun) {
         // Tablero del juego: borde grueso y una «sombra» sólida debajo
@@ -747,10 +695,13 @@ function drawLiquid(ySup, hLiq) {
 // Trozos de sólido: se encogen y se redondean al fundirse.
 // El hielo flota en el agua; los demás sólidos se quedan en el fondo.
 function drawSolid(ySup, hLiq) {
-    if (estado.fs <= 0) return;
-    const s = 42 * sqrt(estado.fs);
+    if (estado.fs <= 0) return null;
+    // En la escena, los trozos se reparten en el hueco que deja el termómetro
+    const x1 = currentMode === 'curva' ? TH.x - TH.tubo / 2 - 6 : JAR.x + JAR.w;
+    const s0 = Math.min(42, (x1 - JAR.x - 8) / 5.6);
+    const s = s0 * sqrt(estado.fs);
     const fondo = JAR.y + JAR.h;
-    const cx = JAR.x + JAR.w / 2;
+    const cx = (JAR.x + x1) / 2;
     let base = fondo;
     if (sus.flota && hLiq > 0) base = min(fondo, ySup + s * 0.85);
 
@@ -764,17 +715,18 @@ function drawSolid(ySup, hLiq) {
     const radio = (THEME.fun ? 7 : 3) + (1 - estado.fs) * s * 0.35;
 
     const fila1 = [-2, -1, 0, 1, 2], fila2 = [-1, 0, 1];
-    const sep = 45;
+    const sep = s0 * 1.07;
     if (THEME.fun) { stroke(THEME.ink); strokeWeight(2.5); } else { stroke(borde); strokeWeight(1.5); }
     fill(c);
     for (const i of fila1) rect(cx + i * sep - s / 2, base - s, s, s, radio);
-    for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, 42) - 2, s, s, radio);
+    for (const i of fila2) rect(cx + i * sep - s / 2, base - s - min(s, s0) - 2, s, s, radio);
 
     // Reflejo
     noStroke(); fill(255, 255, 255, THEME.fun ? 150 : 80);
     const brillo = THEME.fun ? 5 : 3;
     for (const i of fila1) rect(cx + i * sep - s / 2 + 5, base - s + 5, s * 0.3, brillo, 2);
-    if (THEME.fun) for (const i of fila2) rect(cx + i * sep - s / 2 + 5, base - s - min(s, 42) + 3, s * 0.3, brillo, 2);
+    if (THEME.fun) for (const i of fila2) rect(cx + i * sep - s / 2 + 5, base - s - min(s, s0) + 3, s * 0.3, brillo, 2);
+    return { base, techo: base - s - min(s, s0) - 2 };
 }
 
 function drawBubbles(ySup, hLiq) {
@@ -827,8 +779,12 @@ function drawJarGlass() {
         line(JAR.x + 12, JAR.y + 14, JAR.x + 12, JAR.y + JAR.h - 40);
         strokeWeight(3);
         line(JAR.x + 21, JAR.y + 14, JAR.x + 21, JAR.y + 50);
-        noStroke(); fill(THEME.textDim); textSize(12); textAlign(CENTER, BOTTOM);
-        text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 27);
+        if (currentMode === 'curva' && ESC_MOVIL) return;   // en el móvil lo dice la ayuda (?)
+        noStroke(); fill(THEME.textDim); textSize(12.5); textAlign(LEFT, TOP);
+        textFont(FUENTE_TEXTO);
+        if (currentMode === 'curva') { textSize(12); textAlign(LEFT, BOTTOM); text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x - 12, JAR.y - 28); }
+        else text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + 30, JAR.y + 10, JAR.w - 40);
+        textFont('Fredoka');
         return;
     }
     // Tapa
@@ -841,8 +797,8 @@ function drawJarGlass() {
     stroke(THEME.jarShine); strokeWeight(2);
     line(JAR.x + 9, JAR.y + 12, JAR.x + 9, JAR.y + JAR.h - 22);
 
-    noStroke(); fill(THEME.textDim); textSize(11); textAlign(CENTER, BOTTOM);
-    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + JAR.w / 2, JAR.y - 18);
+    noStroke(); fill(THEME.textDim); textSize(11); textAlign(LEFT, TOP);
+    text(i18n.t('recipiente cerrado · tapa móvil a 1 atm'), JAR.x + 14, JAR.y + 10);
 }
 
 function paredesJarra() {
@@ -891,72 +847,6 @@ function drawPlate() {
     text(txt, x + w / 2, y + 13);
 }
 
-// Flechas onduladas: la energía entra (calentar) o sale (enfriar) del recipiente.
-function drawHeatArrows() {
-    if (potencia === 0) return;
-    const entra = potencia > 0;
-    const c = color(entra ? THEME.heat : THEME.cold);
-    c.setAlpha(90 + 140 * abs(potencia));
-    const y0 = PLATE.y - 4, y1 = PLATE.y - 50;
-    const fase = frameCount * 0.15 * (entra ? 1 : -1);
-
-    noFill(); stroke(c); strokeWeight(2.5);
-    if (THEME.fun) {
-        for (const fx of [0.2, 0.5, 0.8]) {
-            const x = JAR.x + JAR.w * fx;
-            for (const [col, peso] of [[THEME.ink, 6.5], [c, 3.2]]) {
-                noFill(); stroke(col); strokeWeight(peso); strokeCap(ROUND);
-                beginShape();
-                for (let y = y0; y >= y1 + 6; y -= 3) vertex(x + sin(y * 0.25 + fase) * 3, y);
-                endShape();
-            }
-            stroke(THEME.ink); strokeWeight(2); strokeJoin(ROUND); fill(c);
-            if (entra) triangle(x, y1 - 4, x - 7, y1 + 8, x + 7, y1 + 8);
-            else       triangle(x, y0 + 6, x - 7, y0 - 6, x + 7, y0 - 6);
-        }
-        return;
-    }
-    for (const fx of [0.2, 0.5, 0.8]) {
-        const x = JAR.x + JAR.w * fx;
-        beginShape();
-        for (let y = y0; y >= y1 + 6; y -= 3) vertex(x + sin(y * 0.25 + fase) * 3, y);
-        endShape();
-        // Punta: hacia arriba si entra, hacia abajo si sale
-        noStroke(); fill(c);
-        if (entra) triangle(x, y1 - 2, x - 6, y1 + 8, x + 6, y1 + 8);
-        else       triangle(x, y0 + 4, x - 6, y0 - 6, x + 6, y0 - 6);
-        noFill(); stroke(c);
-    }
-}
-
-// Barra de composición: qué parte de la sustancia está en cada estado.
-function drawComposicion() {
-    const x = PLATE.x, y = 388, w = PLATE.w, h = 20;
-    const partes = [
-        { f: estado.fs, col: THEME.solid,  txt: i18n.t('sólido') },
-        { f: estado.fl, col: THEME.liquid, txt: i18n.t('líquido') },
-        { f: estado.fg, col: THEME.gas,    txt: i18n.t('gas') },
-    ];
-    let cx = x;
-    textSize(THEME.fun ? 13 : 11); textAlign(CENTER, CENTER); textStyle(BOLD);
-    for (const p of partes) {
-        const pw = w * p.f;
-        if (pw <= 0) continue;
-        noStroke(); fill(p.col);
-        rect(cx, y, pw, h);
-        fill(THEME.canvasBg);
-        const etiqueta = `${p.txt} ${Math.round(p.f * 100)} %`;
-        if (pw > textWidth(etiqueta) + 8) text(etiqueta, cx + pw / 2, y + h / 2 + 1);
-        else if (pw > textWidth(p.txt) + 6) text(p.txt, cx + pw / 2, y + h / 2 + 1);
-        cx += pw;
-    }
-    textStyle(NORMAL);
-    noFill();
-    if (THEME.fun) { stroke(THEME.canvasBg); strokeWeight(4); rect(x - 2, y - 2, w + 4, h + 4, 8); stroke(THEME.ink); strokeWeight(2.5); rect(x, y, w, h, 7); }
-    else { stroke(THEME.border); strokeWeight(1); rect(x, y, w, h, 4); }
-}
-
-
 // ═══════════════════════════════════════════════════════════════════
 //  VISTA MICROSCÓPICA: "LO QUE NO VEMOS" (modelo de partículas)
 //
@@ -969,6 +859,7 @@ let sitios = [];          // huecos de la red cristalina
 let sitiosPorOrden = [];  // ordenados: los primeros se funden antes (los de fuera)
 let verUniones = true;
 let verEstelas = true;
+let flotacion = 0;        // cuánto ha subido la red del sólido que flota (hielo)
 
 function initParticles() {
     const P_SEP = sepRed();
@@ -978,11 +869,14 @@ function initParticles() {
     for (let i = 0; i < P_N; i++) {
         const fila = Math.floor(i / P_COLS), col = i % P_COLS;   // fila 0 = abajo
         // Se funden antes las partículas de arriba y de los bordes
-        const orden = fila + abs(col - (P_COLS - 1) / 2) * 0.45 + ((i * 7919) % 13) / 40;
+        // (si el sólido flota, como el hielo, se funde antes por abajo, donde toca el líquido)
+        const flota = currentMode === 'curva' && sus.flota;
+        const orden = (flota ? P_ROWS - 1 - fila : fila) + abs(col - (P_COLS - 1) / 2) * 0.45 + ((i * 7919) % 13) / 40;
         // ang: orientación de la molécula en la red (alterna, como en un cristal)
-        sitios.push({ x: x0 + col * P_SEP, y: yb - fila * P_SEP, fila, col, orden, ocupa: i, ang: HALF_PI * ((fila + col) % 4) });
+        sitios.push({ x: x0 + col * P_SEP, y: yb - fila * P_SEP, y0: yb - fila * P_SEP, fila, col, orden, ocupa: i, ang: HALF_PI * ((fila + col) % 4) });
     }
     sitiosPorOrden = [...sitios].sort((a, b) => b.orden - a.orden);
+    flotacion = 0;
 
     particulas = sitios.map((s, i) => ({
         x: s.x, y: s.y, vx: 0, vy: 0, st: 'solid', sitio: s,
@@ -1059,7 +953,8 @@ function asignarEstados(est) {
         const s = sitiosPorOrden[P_N - cS];
         const p = particulas[s.ocupa];
         p.st = 'liquid'; p.sitio = null; s.ocupa = -1;
-        p.vy = -0.8; p.vx = random(-0.8, 0.8);
+        p.vy = -0.8 * K_VEL; p.vx = random(-0.8, 0.8) * K_VEL;
+        p.flash = millis();
         cS--;
     }
     // Solidificación: la partícula libre más cercana ocupa el siguiente hueco de la red
@@ -1082,7 +977,8 @@ function asignarEstados(est) {
         const liq = particulas.filter(p => p.st === 'liquid');
         if (liq.length === 0) break;
         const p = liq.reduce((a, b) => (b.y < a.y ? b : a));
-        p.st = 'gas'; p.vy = -3; p.vx = random(-2, 2);
+        p.st = 'gas'; p.vy = -3 * K_VEL; p.vx = random(-2, 2) * K_VEL;
+        p.flash = millis();
         cG++;
     }
     // Condensación: la partícula de gas más baja vuelve al líquido
@@ -1109,8 +1005,9 @@ function agitacion(T, tMin, tFus, tEb, tMax) {
 function updateParticles(est, ag) {
     asignarEstados(est);
 
-    const { ampSol, vLiq, vGas } = ag;
+    const ampSol = ag.ampSol * K_VEL, vLiq = ag.vLiq * K_VEL, vGas = ag.vGas * K_VEL;
     const t = millis() * 0.02;
+    flotar();
 
     for (const p of particulas) {
         if (p.st === 'solid') {
@@ -1120,21 +1017,36 @@ function updateParticles(est, ag) {
             p.vx = p.vx * 0.7 + (tx - p.x) * 0.12;
             p.vy = p.vy * 0.7 + (ty - p.y) * 0.12;
             const v = Math.hypot(p.vx, p.vy);
-            if (v > 3) { p.vx *= 3 / v; p.vy *= 3 / v; }
+            if (v > 3 * K_VEL) { p.vx *= 3 * K_VEL / v; p.vy *= 3 * K_VEL / v; }
         } else if (p.st === 'liquid') {
-            p.vy += 0.16;                               // se quedan abajo
-            p.vx += random(-0.25, 0.25); p.vy += random(-0.25, 0.25);
+            p.vy += 0.16 * K_VEL;                       // se quedan abajo
+            p.vx += random(-0.25, 0.25) * K_VEL; p.vy += random(-0.25, 0.25) * K_VEL;
             termostato(p, vLiq);
         } else {
-            p.vx += random(-0.05, 0.05); p.vy += random(-0.05, 0.05);
+            p.vx += random(-0.05, 0.05) * K_VEL; p.vy += random(-0.05, 0.05) * K_VEL;
             termostato(p, vGas);
         }
         p.x += p.vx; p.y += p.vy;
-        girar(p, ampSol, vLiq, vGas, t);
+        girar(p, ag.ampSol, ag.vLiq, ag.vGas, t);
     }
 
     for (let k = 0; k < 2; k++) colisiones();
     paredes();
+}
+
+// El sólido que flota (el hielo) descansa sobre su líquido: la red sube o baja
+// para que su fila más baja toque la superficie del líquido, sin hueco entre ambos.
+function flotar() {
+    if (currentMode !== 'curva' || !sus.flota) return;
+    let j0 = P_ROWS;
+    for (const st of sitios) if (st.ocupa >= 0 && particulas[st.ocupa].st === 'solid') j0 = Math.min(j0, st.fila);
+    if (j0 >= P_ROWS) return;
+    const nL = particulas.filter(p => p.st === 'liquid').length;
+    const porFila = Math.floor((LENS.w - 6) / (2 * P_R));
+    const hLiq = nL / porFila * 2 * P_R * 0.9;
+    const objetivo = hLiq - j0 * sepRed();
+    flotacion += (objetivo - flotacion) * 0.06;
+    for (const st of sitios) st.y = st.y0 - flotacion;
 }
 
 // Giro de las moléculas: en el sólido oscilan alrededor de su orientación en la
@@ -1211,11 +1123,12 @@ function paredes() {
     }
 }
 
-function drawMicroView() {
-    drawPanelFrame(MICRO, i18n.t('LO QUE NO VEMOS'), i18n.t('las partículas de la sustancia'));
-    drawParticleWindow();
-    drawLeyendaEstados();
-}
+// Estados (los usa también el diagrama de fases)
+const LEYENDA = [
+    { st: 'solid',  f: 'fs', titulo: 'SÓLIDO',  txt: 'Partículas muy juntas y ordenadas. Solo vibran en su sitio.' },
+    { st: 'liquid', f: 'fl', titulo: 'LÍQUIDO', txt: 'Partículas juntas pero desordenadas. Se deslizan unas sobre otras.' },
+    { st: 'gas',    f: 'fg', titulo: 'GAS',     txt: 'Partículas muy separadas. Se mueven libres y rápidas en todas direcciones.' },
+];
 
 // Forma de las partículas: el agua, el nitrógeno, el CO₂ y el yodo se dibujan como
 // moléculas (átomos con sus colores habituales: O rojo, H blanco, N azul, C gris, I violeta);
@@ -1270,15 +1183,23 @@ function dibujarParticulas() {
 }
 
 function drawParticleWindow() {
-    stroke(THEME.border); strokeWeight(1); fill(THEME.lensBg);
-    rect(LENS.x, LENS.y, LENS.w, LENS.h, THEME.fun ? 14 : 8);
-
+    const circulo = currentMode === 'curva';
     drawingContext.save();
-    drawingContext.beginPath();
-    drawingContext.rect(LENS.x, LENS.y, LENS.w, LENS.h);
-    drawingContext.clip();
+    if (circulo) {
+        noStroke(); fill(THEME.modelBg || THEME.lensBg);
+        circle(MODELO.cx, MODELO.cy, MODELO.r * 2);
+        drawingContext.beginPath();
+        drawingContext.arc(MODELO.cx, MODELO.cy, MODELO.r, 0, TWO_PI);
+        drawingContext.clip();
+    } else {
+        stroke(THEME.border); strokeWeight(1); fill(THEME.lensBg);
+        rect(LENS.x, LENS.y, LENS.w, LENS.h, THEME.fun ? 14 : 8);
+        drawingContext.beginPath();
+        drawingContext.rect(LENS.x, LENS.y, LENS.w, LENS.h);
+        drawingContext.clip();
+    }
 
-    if (THEME.fun) {
+    if (THEME.fun && !circulo) {
         stroke(THEME.grid); strokeWeight(1);
         for (let gx = LENS.x + 20; gx < LENS.x + LENS.w; gx += 20) line(gx, LENS.y, gx, LENS.y + LENS.h);
         for (let gy = LENS.y + 20; gy < LENS.y + LENS.h; gy += 20) line(LENS.x, gy, LENS.x + LENS.w, gy);
@@ -1296,16 +1217,18 @@ function drawParticleWindow() {
 
     dibujarParticulas();
 
-    // Anillo en las partículas que acaban de cambiar de estado (equilibrio dinámico)
-    noFill(); strokeWeight(2.5);
+    // Contorno suave en las partículas que acaban de cambiar de estado
+    noFill(); strokeWeight(1.6);
+    drawingContext.setLineDash([3, 4]);
     const ahora = millis();
     for (const p of particulas) {
         const edad = ahora - (p.flash || -1e9);
-        if (edad > 1100) continue;
-        const c = color(THEME[p.st]); c.setAlpha(255 * (1 - edad / 1100));
+        if (edad > 1400) continue;
+        const c = color(THEME.text); c.setAlpha(200 * (1 - edad / 1400));
         stroke(c);
-        circle(p.x, p.y, P_R * 2 + 6 + edad * 0.012);
+        circle(p.x, p.y, P_R * 2 + 8);
     }
+    drawingContext.setLineDash([]);
 
     drawingContext.restore();
 }
@@ -1342,42 +1265,6 @@ function drawUniones() {
         }
     }
 }
-
-const LEYENDA = [
-    { st: 'solid',  f: 'fs', titulo: 'SÓLIDO',  txt: 'Partículas muy juntas y ordenadas. Solo vibran en su sitio.' },
-    { st: 'liquid', f: 'fl', titulo: 'LÍQUIDO', txt: 'Partículas juntas pero desordenadas. Se deslizan unas sobre otras.' },
-    { st: 'gas',    f: 'fg', titulo: 'GAS',     txt: 'Partículas muy separadas. Se mueven libres y rápidas en todas direcciones.' },
-];
-
-function drawLeyendaEstados() {
-    const gap = 9;
-    const h = (LEGEND.h - 2 * gap) / 3;
-    LEYENDA.forEach((L, i) => {
-        const y = LEGEND.y + i * (h + gap);
-        const frac = estado[L.f];
-        const activo = frac > 0;
-        const col = color(THEME[L.st]);
-
-        let fondo = color(THEME[L.st]); fondo.setAlpha(activo ? 34 : 0);
-        if (THEME.fun && !activo) noStroke(); else { stroke(activo ? col : THEME.border); strokeWeight(activo ? 2 : 1); }
-        if (THEME.fun && !activo) fondo = color(THEME.lensBg);
-        fill(fondo);
-        rect(LEGEND.x, y, LEGEND.w, h, THEME.fun ? 14 : 8);
-
-        noStroke(); textStyle(BOLD); textSize(THEME.fun ? 16 : 13); textAlign(LEFT, TOP);
-        fill(activo ? col : THEME.textDim);
-        text(frase(i18n.t(L.titulo)), LEGEND.x + 12, y + 10);
-        textAlign(RIGHT, TOP);
-        if (activo) text(Math.round(frac * 100) + ' %', LEGEND.x + LEGEND.w - 12, y + 10);
-        textStyle(NORMAL);
-
-        fill(activo ? THEME.text : THEME.textDim); textSize(12); textAlign(LEFT, TOP); textLeading(16);
-        if (THEME.fun) textFont(FUENTE_TEXTO);
-        text(i18n.t(L.txt), LEGEND.x + 12, y + 32, LEGEND.w - 24, h - 36);
-        if (THEME.fun) textFont('Fredoka');
-    });
-}
-
 
 // ═══════════════════════════════════════════════════════════════════
 //  GRÁFICA TEMPERATURA–TIEMPO
@@ -1428,187 +1315,6 @@ function nombreMeseta(tr) {
     return i18n.t(tr.signo > 0 ? 'VAPORIZACIÓN' : tr.signo < 0 ? 'CONDENSACIÓN' : 'LÍQUIDO + GAS');
 }
 
-function drawGraph() {
-    drawPanelFrame(GRAPH, i18n.t('LA GRÁFICA'), i18n.t('temperatura a lo largo del tiempo · energías del modelo iguales en todas las sustancias: compara tramos de una misma sustancia'));
-    const { x0, x1, y0, y1 } = PLOT;
-    const tMax = ejeTiempoMax();
-    const xOf = (t) => map(t, 0, tMax, x0, x1);
-    const yOf = (T) => map(T, sus.tMin, sus.tMax, y1, y0);
-
-    // Rejilla y ejes
-    textSize(11);
-    const pasoT = escalaPaso(sus.tMax - sus.tMin);
-    for (let T = Math.ceil(sus.tMin / pasoT) * pasoT; T <= sus.tMax; T += pasoT) {
-        stroke(THEME.grid); strokeWeight(1);
-        line(x0, yOf(T), x1, yOf(T));
-        noStroke(); fill(THEME.textDim); textAlign(RIGHT, CENTER);
-        text(fmtT(T), x0 - 8, yOf(T));
-    }
-    const pasoX = tMax / 10;
-    for (let t = 0; t <= tMax + 1e-6; t += pasoX) {
-        stroke(THEME.grid); strokeWeight(1);
-        line(xOf(t), y0, xOf(t), y1);
-        noStroke(); fill(THEME.textDim); textAlign(CENTER, TOP);
-        text(Math.round(t), xOf(t), y1 + 6);
-    }
-    stroke(THEME.axis); strokeWeight(1.5);
-    line(x0, y0, x0, y1); line(x0, y1, x1, y1);
-
-    noStroke(); fill(THEME.textDim); textAlign(LEFT, CENTER);
-    text('T (°C)', GRAPH.x + 14, y0 - 13);
-    textAlign(RIGHT, TOP);
-    text(i18n.t('tiempo simulado (min)'), x1, y1 + 20);
-
-    // Temperaturas de fusión y ebullición
-    if (sus.sublima) {
-        lineaReferencia(yOf(sus.tf), i18n.t('sublimación'), fmtT(sus.tf) + ' °C', THEME.change);
-    } else {
-        lineaReferencia(yOf(sus.tf),  i18n.t('fusión'),     fmtT(sus.tf) + ' °C',  THEME.solid);
-        lineaReferencia(yOf(sus.teb), i18n.t('ebullición'), fmtT(sus.teb) + ' °C', THEME.gas);
-    }
-
-    if (historial.length < 2) return;
-
-    // Curva coloreada por tramos
-    strokeWeight(THEME.fun ? 5.5 : 3.5); noFill(); strokeJoin(ROUND); strokeCap(ROUND);
-    const tramos = tramosHistorial();
-    let prev = null;
-    for (const tr of tramos) {
-        stroke(colorTramo(tr.tramo));
-        beginShape();
-        if (prev) vertex(xOf(prev.t), yOf(prev.T));     // continuidad entre tramos
-        for (let i = tr.iIni; i <= tr.iFin; i++) {
-            vertex(xOf(historial[i].t), yOf(historial[i].T));
-        }
-        endShape();
-        prev = tr.fin;
-    }
-
-    // Rótulos: nombre del cambio sobre cada meseta y del estado en cada rampa.
-    // Si un rótulo de meseta choca con el anterior, sube un piso.
-    let finRotulo = -Infinity, pisoAnterior = 0;
-    for (const tr of tramos) {
-        const dur = tr.fin.t - tr.ini.t;
-        const xm = xOf((tr.ini.t + tr.fin.t) / 2);
-        if (tr.meseta && xOf(tr.fin.t) - xOf(tr.ini.t) > 40) {
-            const nombre = nombreMeseta(tr);
-            textStyle(BOLD); textSize(THEME.fun ? 16 : 12);
-            const ancho = max(textWidth(nombre), 120);
-            const piso = (xm - ancho / 2 < finRotulo + 8) ? 1 - pisoAnterior : 0;
-            const y = yOf(tr.ini.T) - piso * 28;
-            noStroke(); textAlign(CENTER, BOTTOM);
-            fill(THEME.change);
-            text(nombre, xm, y - (THEME.fun ? 18 : 16));
-            textStyle(NORMAL); textSize(THEME.fun ? 11 : 10); fill(THEME.textDim);
-            text(i18n.t('temperatura constante'), xm, y - 5);
-            finRotulo = xm + ancho / 2;
-            pisoAnterior = piso;
-        } else if (!tr.meseta && dur > tMax * 0.06 && abs(tr.fin.T - tr.ini.T) > 0) {
-            const nombre = i18n.t({ solido: 'sólido', liquido: 'líquido', gas: 'gas' }[tr.tramo]);
-            const ym = yOf((tr.ini.T + tr.fin.T) / 2);
-            noStroke(); fill(colorTramo(tr.tramo)); textSize(THEME.fun ? 14 : 11); textAlign(LEFT, CENTER);
-            text(nombre, xm + 8, ym + 12);
-        }
-    }
-
-    // Hitos: una estrella donde empieza cada cambio de estado
-    if (THEME.fun) {
-        for (const tr of tramos) {
-            if (!tr.meseta || tr.iIni === 0) continue;
-            stroke(THEME.ink); strokeWeight(2); fill(THEME.change);
-            estrella(xOf(tr.ini.t), yOf(tr.ini.T), 9, 4);
-        }
-    }
-
-    // Punto actual
-    const u = historial[historial.length - 1];
-    const c = color(colorTramo(u.tramo));
-    if (THEME.fun) {
-        const pulso = MOV_REDUCIDO ? 0 : (millis() % 1200) / 1200;
-        c.setAlpha(110 * (1 - pulso)); noStroke(); fill(c);
-        circle(xOf(u.t), yOf(u.T), 16 + 18 * pulso);
-        fill(colorTramo(u.tramo)); stroke(THEME.ink); strokeWeight(2.5);
-        circle(xOf(u.t), yOf(u.T), 14);
-        noStroke(); fill(255, 255, 255, 170); circle(xOf(u.t) - 2.5, yOf(u.T) - 2.5, 4);
-        return;
-    }
-    c.setAlpha(70); noStroke(); fill(c);
-    circle(xOf(u.t), yOf(u.T), 18);
-    fill(colorTramo(u.tramo)); stroke(THEME.canvasBg); strokeWeight(2);
-    circle(xOf(u.t), yOf(u.T), 9);
-}
-
-// Línea discontinua con su rótulo a la derecha, fuera del área de la curva.
-function lineaReferencia(y, etiqueta, valor, col) {
-    stroke(col); strokeWeight(1);
-    drawingContext.setLineDash([5, 5]);
-    line(PLOT.x0, y, PLOT.x1 + 4, y);
-    drawingContext.setLineDash([]);
-    noStroke(); fill(col); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, CENTER);
-    text(etiqueta, PLOT.x1 + 8, y - (THEME.fun ? 8 : 7));
-    text(valor, PLOT.x1 + 8, y + (THEME.fun ? 8 : 7));
-}
-
-
-// ═══════════════════════════════════════════════════════════════════
-//  TERMÓMETRO
-// ═══════════════════════════════════════════════════════════════════
-function drawThermometer(T) {
-    const { x, top, bottom } = TH;
-    const bulbR = 15, tubeW = 12;
-    const yOf = (t) => map(t, sus.tMin, sus.tMax, bottom - 6, top + 8);
-
-    // Tubo y bulbo
-    stroke(THEME.fun ? THEME.ink : THEME.thermoGlass); strokeWeight(THEME.fun ? 3 : 2); fill(THEME.thermoTube);
-    rect(x - tubeW / 2, top, tubeW, bottom - top, tubeW / 2);
-    circle(x, bottom + bulbR - 4, bulbR * 2);
-
-    // Columna de líquido
-    const yT = yOf(T);
-    noStroke(); fill(THEME.thermoFill);
-    rect(x - 3, yT, 6, bottom - yT + 4, 3);
-    circle(x, bottom + bulbR - 4, bulbR * 2 - 8);
-    if (THEME.fun) {
-        fill(255, 255, 255, 170);
-        ellipse(x - 5, bottom + bulbR - 10, 6, 8);
-        rect(x - 4.5, top + 6, 2.5, bottom - top - 16, 2);
-    }
-
-    // Escala
-    textSize(11); textAlign(RIGHT, CENTER);
-    const paso = escalaPaso(sus.tMax - sus.tMin);
-    for (let t = Math.ceil(sus.tMin / paso) * paso; t <= sus.tMax; t += paso) {
-        const y = yOf(t);
-        stroke(THEME.thermoTick); strokeWeight(1);
-        line(x - tubeW / 2 - 6, y, x - tubeW / 2 - 1, y);
-        noStroke(); fill(THEME.textDim);
-        text(fmtT(t), x - tubeW / 2 - 9, y);
-    }
-
-    // Marcas de fusión y ebullición
-    if (sus.sublima) {
-        marcaTermometro(yOf(sus.tf), i18n.t('sublimación'), sus.tf, THEME.change);
-    } else {
-        marcaTermometro(yOf(sus.tf),  i18n.t('fusión'),     sus.tf,  THEME.solid);
-        marcaTermometro(yOf(sus.teb), i18n.t('ebullición'), sus.teb, THEME.gas);
-    }
-
-    // Lectura digital
-    noStroke(); fill(THEME.fun ? THEME.title : THEME.text); textAlign(CENTER, BOTTOM);
-    textSize(THEME.fun ? 26 : 15); textStyle(BOLD);
-    text(fmtT(T) + ' °C', THEME.fun ? x + 18 : x, top - (THEME.fun ? 6 : 10));
-    textStyle(NORMAL);
-}
-
-function marcaTermometro(y, etiqueta, t, col) {
-    const x0 = TH.x + 8;
-    stroke(col); strokeWeight(1.5);
-    line(x0, y, x0 + 12, y);
-    noStroke(); fill(col); textSize(THEME.fun ? 13 : 11); textAlign(LEFT, CENTER);
-    text(etiqueta, x0 + 15, y - (THEME.fun ? 8 : 7));
-    text(fmtT(t) + " °C", x0 + 15, y + (THEME.fun ? 8 : 7));
-}
-
 // Paso "redondo" para las marcas de una escala de amplitud dada.
 function escalaPaso(rango) {
     const pasos = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
@@ -1632,6 +1338,8 @@ function fitCanvas() {
     const cont = document.getElementById('canvas-container');
     const cv = cont.querySelector('canvas');
     if (!cv) return;
+    if (currentMode === 'curva') { ajustarEscena(cv); return; }
+    document.getElementById('escena').style.width = '';
     const cs = getComputedStyle(cont);
     const w = cont.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const apilado = window.matchMedia('(max-width: 1100px)').matches;
@@ -1641,7 +1349,15 @@ function fitCanvas() {
     cv.style.height = Math.floor(CV_H * s) + 'px';
 }
 
-function windowResized() { fitCanvas(); }
+function windowResized() {
+    if (currentMode === 'curva' && calcularEscena()) {
+        resizeCanvas(CV_W, CV_H);
+        LENS = LENS_CURVA;
+        colocarParticulas(estado.fs === 1 ? 'solid' : estado.fl === 1 ? 'liquid' : estado.fg === 1 ? 'gas' : 'solid');
+        asignarEstados(estado);
+    }
+    fitCanvas();
+}
 
 // Los lectores de pantalla anuncian el mensaje de la franja cuando cambia
 // de estado o de cambio de estado (no en cada fotograma).
@@ -1667,16 +1383,22 @@ function setMode(mode) {
     });
     cursor(ARROW);
 
-    fitCanvas();
-
-    // Cada modo tiene su ventana de partículas
+    // Cada modo tiene su lienzo y su ventana de partículas
     if (mode === 'fases') {
+        cerrarRetos();
+        CV_W = FASES_W; CV_H = FASES_H;
+        resizeCanvas(CV_W, CV_H);
+        P_R = 9; K_VEL = 1; P_COLS = 16; P_ROWS = 4; P_N = P_COLS * P_ROWS;
         LENS = LENS_FASES;
         entrarFases();
     } else {
+        calcularEscena();
+        resizeCanvas(CV_W, CV_H);
         LENS = LENS_CURVA;
         colocarParticulas(estado.fs === 1 ? 'solid' : estado.fl === 1 ? 'liquid' : estado.fg === 1 ? 'gas' : 'solid');
+        asignarEstados(estado);
     }
+    fitCanvas();
     // En el diagrama se arrastra el punto: el canvas no debe desplazar la página
     document.querySelector('#canvas-container canvas').style.touchAction = mode === 'fases' ? 'none' : '';
 }
@@ -1733,6 +1455,10 @@ function updateTheme() {
     if (isMarca) {
         // Paleta SimulaCiencia (la de simulaciencia.es y la de los vídeos del canal).
         THEME = {
+            cardBg: '#ffffff', cardEdge: '#e2e8f0', headBg: '#1e293b', headEdge: '#1e293b', headText: '#ffffff',
+            pillBg: '#ffffff', modelBg: '#f1f5f9', hundido: '#e2e8f0', changeInk: '#ffffff',
+            paper: '#eef4fa', paperGrid: '#d5e1ec', paperInk: '#1e293b', paperLine: '#1e293b', paperChange: '#6d28d9',
+            paperSolid: '#0369a1', paperLiquid: '#0f766e', paperGas: '#c2410c', pen: '#dc2626',
             canvasBg:   '#f8fafc',
             panelBg:    '#ffffff',
             border:     '#e2e8f0',
@@ -1765,6 +1491,11 @@ function updateTheme() {
     } else if (isLight) {
         // Día: azules de SimulaCiencia con el estilo del juego (piloto).
         THEME = {
+            cardBg: '#e9f2fa', cardEdge: '#a9c6de', headBg: '#13304a', headEdge: '#13304a', headText: '#ffffff',
+            pillBg: '#f7fbff', modelBg: '#e4eff8', hundido: '#d3e2ef', changeInk: '#ffffff',
+            paper: '#d6e6f3', paperGrid: '#b9cfe2', paperInk: '#24323f', paperLine: '#13304a', paperChange: '#a5281b',
+            paperSolid: '#1a5f99', paperLiquid: '#0a6b4c', paperGas: '#b4500e', pen: '#ff7a59',
+            curveSolid: '#4aa8f0', curveLiquid: '#1fcf8f', curveGas: '#ff9a4a',
             canvasBg:   '#eef5fb',
             panelBg:    '#f7fbff',
             border:     '#a9c6de',
@@ -1800,6 +1531,10 @@ function updateTheme() {
         };
     } else if (isContrast) {
         THEME = {
+            cardBg: '#000000', cardEdge: '#ffff00', headBg: '#000000', headEdge: '#ffffff', headText: '#ffffff',
+            pillBg: '#000000', modelBg: '#000000', hundido: '#222222', changeInk: '#000000',
+            paper: '#000000', paperGrid: '#333300', paperInk: '#ffffff', paperLine: '#ffffff', paperChange: '#ffff00',
+            paperSolid: '#88aaff', paperLiquid: '#00ff88', paperGas: '#ffaa00', pen: '#ff5533',
             canvasBg:   '#000000',
             panelBg:    '#000000',
             border:     '#ffff00',
@@ -1832,6 +1567,11 @@ function updateTheme() {
     } else {
         // Pizarra: azules de SimulaCiencia con el estilo del juego «Carga cero» (piloto).
         THEME = {
+            cardBg: '#123a5c', cardEdge: '#2b5f88', headBg: '#0e2238', headEdge: '#9fb9cc', headText: '#ffffff',
+            pillBg: '#0f2c45', modelBg: '#111e2a', hundido: '#0e2b45', changeInk: '#061523',
+            paper: '#d6e6f3', paperGrid: '#b9cfe2', paperInk: '#24323f', paperLine: '#061523', paperChange: '#a5281b',
+            paperSolid: '#1a5f99', paperLiquid: '#0a6b4c', paperGas: '#b4500e', pen: '#ff7a59',
+            curveSolid: '#4aa8f0', curveLiquid: '#1fcf8f', curveGas: '#ff9a4a',
             canvasBg:   '#11314f',
             panelBg:    '#15395a',
             border:     '#2d6996',
