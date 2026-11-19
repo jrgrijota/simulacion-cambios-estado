@@ -289,77 +289,98 @@ const TROZOS = [
 const TROZOS_HIERRO = [
     [162, 436, 60, -4, [], 3], [226, 440, 54, 6, [], 4], [288, 438, 48, -8, [], 2],
     [196, 396, 50, 9, [0, 1], 0], [256, 398, 46, -5, [1, 2], 1]];
-let trozosVivos = null;   // posición y giro actuales de cada trozo (se suavizan)
+let trozosVivos = null;   // estado físico de cada trozo (posición, velocidad, giro)
 
 function masaTrozo(orden, n, fundido) {
     const ini = orden * (0.55 / (n - 1)), fin = ini + 0.45;
     return 1 - constrain((fundido - ini) / (fin - ini), 0, 1);
 }
 
+// Física sencilla de los trozos: gravedad, empuje del líquido según la parte
+// sumergida (el hielo, con densidad 0,92 del agua, flota con casi todo su
+// volumen dentro; los demás sólidos son más densos que su líquido y se hunden),
+// rozamiento con el líquido, choques entre trozos y con el vaso y el termómetro.
+const DENS_SOLIDO = { agua: 0.917 };
+function fisicaTrozos(T, ySup, hayLiq) {
+    const g = 0.32, rho = DENS_SOLIDO[sus.clave] || 1.12;
+    const suelo = VASO.y + VASO.h - 3, techo = VASO.y + 24;
+    const izq = VASO.x + 5, der = TH.x - TH.tubo / 2 - 3;
+    const P = trozosVivos.t;
+    const pasos = 3;
+    for (let k = 0; k < pasos; k++) {
+        for (const t of T) {
+            if (!t.vivo) continue;
+            const q = P[t.i];
+            const sum = hayLiq ? constrain((q.y + t.h / 2 - ySup) / t.h, 0, 1) : 0;
+            q.vy += (g - g * sum / rho) / pasos;
+            const roce = 1 - (0.004 + 0.035 * sum) / pasos;
+            q.vx *= roce; q.vy *= roce;
+            q.x += q.vx / pasos; q.y += q.vy / pasos;
+        }
+        // Choques entre trozos (cajas sin girar; los giros son pequeños)
+        for (let a = 0; a < T.length; a++) {
+            const A = T[a]; if (!A.vivo) continue;
+            for (let b = a + 1; b < T.length; b++) {
+                const B = T[b]; if (!B.vivo) continue;
+                const qa = P[a], qb = P[b];
+                const ox = (A.w + B.w) / 2 - Math.abs(qa.x - qb.x);
+                const oy = (A.h + B.h) / 2 - Math.abs(qa.y - qb.y);
+                if (ox <= 0 || oy <= 0) continue;
+                if (oy < ox) {
+                    const sgn = qa.y < qb.y ? -1 : 1;
+                    qa.y += sgn * oy / 2; qb.y -= sgn * oy / 2;
+                    const vm = (qa.vy + qb.vy) / 2; qa.vy = vm; qb.vy = vm;
+                    // El de arriba resbala un poco hacia fuera si está descentrado
+                    const arriba = sgn < 0 ? qa : qb, abajo = sgn < 0 ? qb : qa;
+                    arriba.vx += (arriba.x - abajo.x) * 0.002;
+                } else {
+                    const sgn = qa.x < qb.x ? -1 : 1;
+                    qa.x += sgn * ox / 2; qb.x -= sgn * ox / 2;
+                    const vm = (qa.vx + qb.vx) / 2; qa.vx = vm; qb.vx = vm;
+                }
+            }
+        }
+        // Vaso y termómetro
+        for (const t of T) {
+            if (!t.vivo) continue;
+            const q = P[t.i];
+            if (q.y + t.h / 2 > suelo) { q.y = suelo - t.h / 2; q.vy = Math.min(0, q.vy) * -0.1; q.vx *= 0.9; }
+            if (q.y - t.h / 2 < techo) { q.y = techo + t.h / 2; q.vy = Math.max(0, q.vy); }
+            if (q.x - t.w / 2 < izq) { q.x = izq + t.w / 2; q.vx = Math.abs(q.vx) * 0.2; }
+            if (q.x + t.w / 2 > der) { q.x = der - t.w / 2; q.vx = -Math.abs(q.vx) * 0.2; }
+        }
+    }
+}
+
 function drawTrozos(ySup, hLiq) {
     const hierro = sus === SUSTANCIAS.hierro;
     const lista = hierro ? TROZOS_HIERRO : TROZOS;
     if (!trozosVivos || trozosVivos.lista !== lista) {
-        trozosVivos = { lista, t: lista.map(([x, y, w, rot]) => ({ x, y, rot })) };
+        trozosVivos = { lista, t: lista.map(([x, y, w, rot]) => ({ x, y, vx: 0, vy: 0, rot, vr: 0 })) };
     }
     if (estado.fs <= 0) return null;
     const fundido = 1 - estado.fs, n = lista.length;
-    const fondo = VASO.y + VASO.h - 3;
-    const flota = sus.flota && hLiq > 2;
-
-    // Tamaño de cada trozo
     const T = lista.map(([x, y, w, rot, apoyos, orden], i) => {
         const m = masaTrozo(orden, n, fundido);
-        const k = Math.cbrt(m);
-        const w2 = w * k, h2 = (hierro ? w * 0.76 : w * 0.9) * Math.pow(m, 0.4);
-        return { i, x, y, w: w2, h: h2, rot, apoyos, m, vivo: m > 0.02 };
+        return { i, w: w * Math.cbrt(m), h: (hierro ? w * 0.76 : w * 0.9) * Math.pow(m, 0.4), rot, m, vivo: m > 0.02 };
     });
+    const hayLiq = hLiq > 1;
+    if (!MOV_REDUCIDO) fisicaTrozos(T, ySup, hayLiq);
+    else fisicaTrozos(T, ySup, hayLiq);
 
-    // Posición objetivo: apilados (sobre sus apoyos o el fondo) o flotando
-    const profundidad = fondo - ySup;
-    const flotan = flota && T.some(t => t.vivo) && profundidad > 0.8 * Math.max(...T.filter(t => t.vivo).map(t => t.h));
-    const vivos = T.filter(t => t.vivo);
-    if (flotan) {
-        // Flotan uno junto a otro en la superficie; si no caben, encima de los de abajo
-        const orden = [...vivos].sort((a, b) => a.x - b.x);
-        const x0 = VASO.x + 22, x1 = TH.x - TH.tubo / 2 - 8;
-        let cursor = x0, capa = 0, techoCapa = [];
-        orden.forEach((t) => {
-            if (cursor + t.w > x1) { capa++; cursor = x0 + 18 * capa; }
-            t.tx = cursor + t.w / 2;
-            const yFlota = Math.min(fondo - t.h / 2, ySup + t.h * 0.38);
-            if (capa === 0) { t.ty = yFlota; techoCapa.push([t.tx, yFlota - t.h / 2]); }
-            else {
-                const debajo = techoCapa.reduce((m, [x, y]) => Math.abs(x - t.tx) < m.d ? { d: Math.abs(x - t.tx), y } : m, { d: Infinity, y: yFlota - t.h / 2 });
-                t.ty = debajo.y - t.h / 2 + 4;
-            }
-            cursor += t.w + 3;
-        });
-    } else {
-        const techo = {};
-        for (const t of T) {           // los trozos de abajo van primero en la lista
-            let base = fondo;
-            for (const a of t.apoyos) if (T[a].vivo) base = Math.min(base, techo[a]);
-            t.tx = t.x; t.ty = base - t.h / 2;
-            techo[t.i] = base - t.h;
-        }
-    }
-
-    // Suavizado y dibujo
     const ink = THEME.ink || '#000';
     let solCol = color(sus.col.solid);
     if (hierro) solCol = lerpColor(color('#8a6a5a'), color('#c8402a'), constrain(map(estado.T, sus.tMin, sus.tf, 0, 1), 0, 1));
     let base = -Infinity, techoMin = Infinity;
     for (const t of T) {
-        const v = trozosVivos.t[t.i];
-        if (!t.vivo) { v.y = t.ty; continue; }
-        const vel = MOV_REDUCIDO ? 1 : 0.035;
-        v.x += (t.tx - v.x) * vel; v.y += (t.ty - v.y) * vel;
-        const balanceo = flotan && !MOV_REDUCIDO ? sin(frameCount * 0.03 + t.i * 1.7) * 3 : 0;
-        const giro = flotan ? t.rot * 0.4 + balanceo : t.rot;
-        v.rot += (giro - v.rot) * 0.05;
-        const yb = flotan && !MOV_REDUCIDO ? sin(frameCount * 0.04 + t.i) * 1.2 : 0;
-        push(); translate(v.x, v.y + yb); rotate(radians(v.rot));
+        if (!t.vivo) continue;
+        const q = trozosVivos.t[t.i];
+        // Giro: en el fondo conserva su postura; al flotar se endereza y se mece con el agua
+        const flotando = hayLiq && q.y + t.h / 2 < VASO.y + VASO.h - 6;
+        const objetivo = flotando ? t.rot * 0.35 + (MOV_REDUCIDO ? 0 : sin(frameCount * 0.025 + t.i * 1.9) * 2.5) : t.rot;
+        q.vr = q.vr * 0.9 + (objetivo - q.rot) * 0.01;
+        q.rot += q.vr;
+        push(); translate(q.x, q.y); rotate(radians(q.rot));
         const w = t.w, h = t.h, r = Math.min(w, h) * (0.12 + 0.3 * (1 - t.m));
         stroke(ink); strokeWeight(3);
         fill(sus === SUSTANCIAS.agua ? '#cfeaff' : solCol);
@@ -373,7 +394,7 @@ function drawTrozos(ySup, hLiq) {
             if (sus === SUSTANCIAS.agua && t.m > 0.5) { stroke('#9fd0f5'); strokeWeight(2); line(w / 2 - 12, h / 2 - 10, w / 2 - 6, h / 2 - 20); line(-4, 2, 4, 8); }
         }
         pop();
-        base = Math.max(base, v.y + h / 2); techoMin = Math.min(techoMin, v.y - h / 2);
+        base = Math.max(base, q.y + h / 2); techoMin = Math.min(techoMin, q.y - h / 2);
     }
     if (base === -Infinity) return null;
     return { base, techo: techoMin };
