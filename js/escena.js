@@ -176,7 +176,6 @@ function drawRecipiente() {
     drawAireTemblor(ySup);
     drawLiquido(ySup, hLiq);
     const sol = drawTrozos(ySup, hLiq);
-    drawNieblaHieloSeco(sol);
     drawBurbujasV(ySup, hLiq);
     drawGotasV(ySup);
     ctx.restore();
@@ -281,39 +280,6 @@ function drawGasTinte(ySup) {
     if (estado.fg <= 0.01) return;
     noStroke(); fill(255, 255, 255, 20 + 30 * estado.fg);
     rect(VASO.x, VASO.y, VASO.w, ySup - VASO.y + 4);
-}
-
-// Hielo seco: la niebla blanca que se ve NO es CO₂ (que es invisible), sino
-// gotitas de agua del aire que se condensan por el frío. Se pega al bloque y
-// cae hacia el fondo. Solo mientras queda hielo seco sublimándose.
-let nieblaHS = [];
-function nieblaActiva(sol) {
-    return sus === SUSTANCIAS.hieloSeco && sol && estado.tramo === 'sublimacion' && potencia > 0;
-}
-function drawNieblaHieloSeco(sol) {
-    if (!nieblaActiva(sol)) { nieblaHS = []; return; }
-    const suelo = VASO.y + VASO.h;
-    const ritmo = 0.25 + 0.75 * max(0, potencia);
-    if (!MOV_REDUCIDO && nieblaHS.length < 46 && random() < ritmo) {
-        const x = random(VASO.x + 30, TH.x - 30);
-        nieblaHS.push({ x, y: random(max(sol.techo, suelo - VASO.h / 3), suelo - 20), vx: random(-0.35, 0.35), vy: random(0.15, 0.45), r: random(26, 44), vida: 0, max: random(160, 260) });
-    }
-    if (MOV_REDUCIDO && !nieblaHS.length) {
-        for (let i = 0; i < 14; i++) nieblaHS.push({ x: VASO.x + 30 + i * 16, y: suelo - 30 - (i % 3) * 14, vx: 0, vy: 0, r: 40, vida: 60, max: 1e9 });
-    }
-    const ctx = drawingContext;
-    ctx.save(); ctx.filter = 'blur(6px)';
-    for (let i = nieblaHS.length - 1; i >= 0; i--) {
-        const b = nieblaHS[i];
-        b.vida++; b.x += b.vx; b.y = min(b.y + b.vy, suelo - b.r * 0.4); b.r += 0.12;
-        if (b.y >= suelo - b.r * 0.4) b.vx *= 1.01;   // al llegar al fondo se extiende
-        if (b.vida > b.max) { nieblaHS.splice(i, 1); continue; }
-        const a = 0.5 * min(1, b.vida / 30) * min(1, (b.max - b.vida) / 60);
-        const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-        g.addColorStop(0, `rgba(240,246,252,${a})`); g.addColorStop(1, 'rgba(240,246,252,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TWO_PI); ctx.fill();
-    }
-    ctx.restore();
 }
 
 function drawAireTemblor(ySup) {

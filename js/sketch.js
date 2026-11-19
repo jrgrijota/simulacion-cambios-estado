@@ -275,7 +275,6 @@ function reiniciar() {
     tiempo = 0;
     historial = [];
     burbujasV = [];
-    nieblaHS = [];
     gotasV = [];
     trozosVivos = null;
     initParticles();
@@ -451,7 +450,7 @@ function mensajeDidactico() {
                 txt: i18n.t('Sólido y líquido conviven a {tf}. Mientras no entre ni salga energía, la proporción no cambia.', { tf }) };
         case 'sublimacion':
             if (s > 0) return { tag: i18n.t('SUBLIMACIÓN'), col: THEME.change,
-                txt: i18n.t('Las partículas se separan y pasan de sólido a gas: la temperatura se queda en {tf}. La niebla son gotitas de agua del aire; el CO₂ gas no se ve.', { tf }) };
+                txt: i18n.t('Las partículas escapan del sólido directamente como gas, sin pasar por líquido. La energía se gasta en separarlas: la temperatura se queda en {tf}.', { tf }) };
             if (s < 0) return { tag: i18n.t('SUBLIMACIÓN INVERSA'), col: THEME.change,
                 txt: i18n.t('Las partículas del gas pierden energía y se ordenan directamente en el sólido, sin pasar por líquido. La temperatura se mantiene en {tf}.', { tf }) };
             return { tag: i18n.t('EQUILIBRIO'), col: THEME.change,
