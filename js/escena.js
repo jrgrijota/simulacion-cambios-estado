@@ -13,12 +13,11 @@ let ESC_MOVIL = null;       // composición activa: false (apaisada) · true (m�
 let MODELO, PANEL, MANDOS, TARJETAS;
 let PUNTO = { x: 0, y: 0 }; // punto del vaso que amplía el modelo
 
-const ANCHO_MOVIL = 760;    // por debajo, composición vertical
 
 // Fija el tamaño del lienzo y la posición de cada elemento. Devuelve true si
 // ha cambiado de composición (hay que redimensionar el lienzo).
 function calcularEscena() {
-    const movil = window.matchMedia(`(max-width: ${ANCHO_MOVIL}px)`).matches;
+    const movil = esMovil();
     const cambia = movil !== ESC_MOVIL;
     ESC_MOVIL = movil;
     if (!movil) {
@@ -56,58 +55,14 @@ function calcularEscena() {
 }
 
 function colocarMandos() {
-    const m = document.querySelector('.mandos-placa');
-    if (!m) return;
-    m.style.left  = (100 * MANDOS.x / CV_W) + '%';
-    m.style.top   = (100 * MANDOS.y / CV_H) + '%';
-    m.style.width = (100 * MANDOS.w / CV_W) + '%';
+    colocarSobreLienzo(document.querySelector('.mandos-placa'), MANDOS, CV_W, CV_H);
 }
 
 // Escala la escena para que quepa entera (apaisada) o a lo ancho (móvil).
-function ajustarEscena(cv) {
-    const esc = document.getElementById('escena');
-    const main = esc.parentElement;
-    const cs = getComputedStyle(main);
-    const w = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    let s = w / CV_W;
-    if (!ESC_MOVIL) {
-        const top = esc.getBoundingClientRect().top + window.scrollY;
-        const h = window.innerHeight - top - 40;
-        s = Math.min(s, h / CV_H);
-    }
-    s = Math.max(0.2, s);
-    esc.style.width = Math.floor(CV_W * s) + 'px';
-    esc.style.setProperty('--u', s + 'px');
-    cv.style.width = '100%';
-    cv.style.height = 'auto';
-}
+function ajustarEscena(cv) { encajarEscena(cv, CV_W, CV_H, ESC_MOVIL); }
 
 function setupEscenaControles() {
-    // Botones «?» (ayuda) y cierre de paneles
-    const ayuda = document.getElementById('panel-ayuda');
-    const bAyuda = document.getElementById('btn-ayuda');
-    bAyuda.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const abrir = ayuda.hidden;
-        ayuda.hidden = !abrir;
-        bAyuda.setAttribute('aria-expanded', String(abrir));
-        bAyuda.classList.toggle('active', abrir);
-    });
-    document.addEventListener('click', (e) => {
-        if (!ayuda.hidden && !ayuda.contains(e.target) && e.target !== bAyuda) {
-            ayuda.hidden = true; bAyuda.setAttribute('aria-expanded', 'false'); bAyuda.classList.remove('active');
-        }
-    });
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        if (!ayuda.hidden) { ayuda.hidden = true; bAyuda.setAttribute('aria-expanded', 'false'); bAyuda.classList.remove('active'); bAyuda.focus(); }
-    });
-    document.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', () => {
-        const id = b.dataset.cerrar;
-        if (id === 'panel-retos') cerrarRetos();
-        else if (id === 'album') cerrarAlbum();
-        else { document.getElementById(id).hidden = true; bAyuda.setAttribute('aria-expanded', 'false'); bAyuda.classList.remove('active'); }
-    }));
+    iniciarPopover('btn-ayuda', 'panel-ayuda');   // «?»: ¿Qué es un cambio de estado?
     window.addEventListener('load', () => fitCanvas());
     if (document.fonts) document.fonts.ready.then(() => fitCanvas());
     new ResizeObserver(() => fitCanvas()).observe(document.querySelector('.barra-sus'));
@@ -124,11 +79,7 @@ function drawEscena() {
     drawGrafica();
 }
 
-function tarjeta(t) {
-    if (THEME.fun) { noStroke(); fill(THEME.ink); rect(t.x, t.y + 5, t.w, t.h, 24); }
-    stroke(THEME.cardEdge || THEME.border); strokeWeight(1.5); fill(THEME.cardBg || THEME.panelBg);
-    rect(t.x + 1, t.y + 1, t.w - 2, t.h - 2, 24);
-}
+// tarjeta() está en js/escena-comun.js
 
 // ── El vaso, la placa y el termómetro ───────────────────────────────
 // Se dibujan en sus propias coordenadas (las del boceto aprobado: placa de
@@ -565,19 +516,7 @@ function drawPanelEstado(m) {
 
     // Rótulo del tramo (da un pequeño salto al cambiar)
     if (m.tag !== rotuloTag) { rotuloTag = m.tag; rotuloDesde = millis(); }
-    const fsTag = compacto ? 15 : 17;
-    textSize(fsTag); textStyle(BOLD);
-    const tw = textWidth(m.tag) + 30, th = fsTag * 2;
-    push();
-    translate(x + pad + tw / 2, y + pad + th / 2);
-    scale(salto(rotuloDesde));
-    if (THEME.fun) { noStroke(); fill(THEME.ink); rect(-tw / 2, -th / 2 + 3, tw, th, th / 2); }
-    if (THEME.fun) { stroke(THEME.ink); strokeWeight(2.5); } else noStroke();
-    fill(m.col); rect(-tw / 2, -th / 2, tw, th, th / 2); noStroke();
-    fill(lightness(color(m.col)) > 55 ? (THEME.ink || '#000') : '#ffffff');
-    textAlign(CENTER, CENTER); text(m.tag, 0, 1);
-    pop();
-    textStyle(NORMAL);
+    const th = etiquetaRotulo(m.tag, m.col, x + pad, y + pad, compacto ? 15 : 17, rotuloDesde).h;
 
     // Mensaje didáctico
     const fsMsg = compacto ? 16 : 18, lead = fsMsg * 1.32;

@@ -16,6 +16,7 @@
     <script src="js/vendor/p5.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/estilo-juego.css">
+    <link rel="stylesheet" href="css/escena-comun.css">
     <link rel="stylesheet" href="css/escena.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="js/estadisticas.js" data-sim="sim-cambios-estado"></script>
@@ -129,20 +130,20 @@
             <div id="escena" class="escena">
                 <div id="canvas-container"></div>
                 <!-- Controles de la placa, colocados bajo la placa dibujada -->
-                <div class="mandos-placa only-curva">
-                    <div class="carril placa" role="radiogroup" aria-label="Placa">
+                <div class="mandos-lienzo mandos-placa only-curva">
+                    <div class="carril grande placa" role="radiogroup" aria-label="Placa">
                         <button type="button" class="carril-btn seg-cold" data-placa="-1" role="radio" aria-checked="false">Enfriar</button>
                         <button type="button" class="carril-btn seg-off" data-placa="0" role="radio" aria-checked="true">Apagar</button>
                         <button type="button" class="carril-btn seg-hot" data-placa="1" role="radio" aria-checked="false">Calentar</button>
                     </div>
-                    <div class="fila-potencia">
+                    <div class="fila-deslizador">
                         <label for="slider-potencia">Potencia</label>
                         <input type="range" id="slider-potencia" class="power-slider" min="-100" max="100" value="0" step="5" aria-describedby="val-potencia">
-                        <span id="val-potencia" class="valor-potencia">0 %</span>
+                        <span id="val-potencia" class="valor">0 %</span>
                     </div>
                 </div>
                 <!-- Mandos del diagrama de fases, colocados bajo el cilindro -->
-                <div class="mandos-fases only-fases">
+                <div class="mandos-lienzo mandos-fases only-fases">
                     <div class="fila-slider">
                         <label for="slider-fases-T">Temperatura</label>
                         <span id="val-fases-T" class="valor-slider">20 °C</span>
@@ -153,13 +154,13 @@
                         <label for="slider-fases-P">Presión</label>
                         <span id="val-fases-P" class="valor-slider">1,00 atm</span>
                     </div>
-                    <div class="pista-presion">
+                    <div class="pista">
                         <input type="range" id="slider-fases-P" min="0" max="1000" value="500" step="1">
-                        <span id="marca-1atm" class="marca-1atm" aria-hidden="true"><i></i>1 atm</span>
+                        <span id="marca-1atm" class="marca-ref" aria-hidden="true"><i></i>1 atm</span>
                     </div>
                     <div class="slider-bounds"><span id="min-fases-P">0,003 atm</span><span id="max-fases-P">5 atm</span></div>
-                    <p class="nota-arrastrar">También puedes arrastrar el punto del diagrama.</p>
-                    <div id="fases-ejemplos" class="ejemplos-fases"></div>
+                    <p class="nota-mando">También puedes arrastrar el punto del diagrama.</p>
+                    <div id="fases-ejemplos" class="ejemplos"></div>
                 </div>
             </div>
             <div id="anuncio" class="sr-only" aria-live="polite"></div>
@@ -190,7 +191,7 @@
                         <li data-i18n="idea-caracteristicas">Cada sustancia funde y hierve a su propia temperatura: son <strong>propiedades características</strong> que sirven para identificarla.</li>
                         <li data-i18n="idea-particulas">En un cambio de estado <strong>no cambian las partículas</strong>, solo su orden, su separación y su movimiento.</li>
                     </ul>
-        <p class="nota-recipiente">El recipiente está aislado y cerrado con una tapa móvil: no se escapa materia ni energía y la presión se mantiene en 1 atm. Si apagas la placa, todo se queda como está.</p>
+        <p class="nota">El recipiente está aislado y cerrado con una tapa móvil: no se escapa materia ni energía y la presión se mantiene en 1 atm. Si apagas la placa, todo se queda como está.</p>
     </div>
 
     <!-- ── RETOS Y ÁLBUM (ocultos por defecto) ──────────────────── -->
@@ -231,6 +232,7 @@
         </div>
     </div>
 
+    <script src="js/escena-comun.js"></script>
     <script src="js/fases.js"></script>
     <script src="js/parametros.js"></script>
     <script src="js/retos.js"></script>

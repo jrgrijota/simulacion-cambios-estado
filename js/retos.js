@@ -39,19 +39,11 @@ const RETOS_FASES = [
 // en el hielo seco, del gas)
 const RETO_OBJETIVO = { agua: 50, alcohol: 20, nitrogeno: -200, hierro: 2000, hieloSeco: -20 };
 
-let retosDatos = cargarRetos();
+const ALMACEN = crearAlmacen(RETOS_CLAVE, () => ({ retos: {}, sellos: {} }));   // js/escena-comun.js
+let retosDatos = ALMACEN.leer();
 let retosSesion = null;   // seguimiento de la partida actual (se reinicia con la sustancia)
 
-function cargarRetos() {
-    try {
-        const d = JSON.parse(localStorage.getItem(RETOS_CLAVE));
-        if (d && typeof d === 'object') return { retos: d.retos || {}, sellos: d.sellos || {} };
-    } catch (e) { /* sin almacenamiento: se juega igual, sin guardar */ }
-    return { retos: {}, sellos: {} };
-}
-function guardarRetos() {
-    try { localStorage.setItem(RETOS_CLAVE, JSON.stringify(retosDatos)); } catch (e) { /* nada */ }
-}
+function guardarRetos() { ALMACEN.guardar(retosDatos); }
 
 // Textos de los tres retos de la sustancia actual
 function retosDe(s) {
@@ -230,52 +222,10 @@ function pintarAlbum() {
     tabla.innerHTML = h;
 }
 
-function abrirRetos() {
-    const p = document.getElementById('panel-retos'), b = document.getElementById('btn-retos');
-    pintarRetos();
-    p.hidden = false;
-    document.body.classList.add('retos-abiertos');
-    b.setAttribute('aria-expanded', 'true'); b.classList.add('active');
-    b.querySelector('.btn-retos-txt').textContent = i18n.t('Ocultar');
-}
-function cerrarRetos() {
-    const p = document.getElementById('panel-retos'), b = document.getElementById('btn-retos');
-    if (!p) return;
-    p.hidden = true;
-    document.getElementById('confirmar-borrar').hidden = true;
-    document.body.classList.remove('retos-abiertos');
-    b.setAttribute('aria-expanded', 'false'); b.classList.remove('active');
-    b.querySelector('.btn-retos-txt').textContent = i18n.t('Retos');
-}
-function abrirAlbum() {
-    pintarAlbum();
-    const a = document.getElementById('album');
-    a.hidden = false;
-    a.querySelector('.boton-cerrar').focus();
-}
-function cerrarAlbum() {
-    document.getElementById('album').hidden = true;
-    document.getElementById('btn-ver-album').focus();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const b = document.getElementById('btn-retos');
-    b.addEventListener('click', () => { if (document.getElementById('panel-retos').hidden) abrirRetos(); else cerrarRetos(); });
-    document.getElementById('btn-ver-album').addEventListener('click', abrirAlbum);
-    document.getElementById('album').addEventListener('click', (e) => { if (e.target.id === 'album') cerrarAlbum(); });
-    const conf = document.getElementById('confirmar-borrar');
-    document.getElementById('btn-borrar').addEventListener('click', () => { conf.hidden = false; document.getElementById('btn-borrar-no').focus(); });
-    document.getElementById('btn-borrar-no').addEventListener('click', () => { conf.hidden = true; document.getElementById('btn-borrar').focus(); });
-    document.getElementById('btn-borrar-si').addEventListener('click', () => {
-        retosDatos = { retos: {}, sellos: {} };
-        try { localStorage.removeItem(RETOS_CLAVE); } catch (e) { /* nada */ }
-        conf.hidden = true;
-        retosReiniciar();
-        document.getElementById('btn-borrar').focus();
-    });
-    document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        if (!document.getElementById('album').hidden) cerrarAlbum();
-        else if (!document.getElementById('panel-retos').hidden) { cerrarRetos(); b.focus(); }
-    });
-});
+// Abrir y cerrar el panel y el álbum, «Borrar lo conseguido» con
+// confirmación y Escape: en js/escena-comun.js
+document.addEventListener('DOMContentLoaded', () => iniciarPanelRetos({
+    pintar: pintarRetos,
+    pintarAlbum,
+    alBorrar: () => { retosDatos = ALMACEN.vacio(); retosReiniciar(); },
+}, ALMACEN));

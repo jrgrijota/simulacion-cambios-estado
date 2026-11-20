@@ -178,17 +178,7 @@ function setupFasesControls() {
     slP.addEventListener('input', () => { fijarPunto(fT, presionDeSlider(slP.value), false); marcarEjemplo(-1); });
 
     // «Cómo leer el diagrama»
-    const leer = document.getElementById('panel-leer'), bLeer = document.getElementById('btn-leer');
-    const cerrarLeer = () => { leer.hidden = true; bLeer.setAttribute('aria-expanded', 'false'); bLeer.classList.remove('active'); };
-    bLeer.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const abrir = leer.hidden;
-        leer.hidden = !abrir;
-        bLeer.setAttribute('aria-expanded', String(abrir)); bLeer.classList.toggle('active', abrir);
-    });
-    document.addEventListener('click', (e) => { if (!leer.hidden && !leer.contains(e.target) && !bLeer.contains(e.target)) cerrarLeer(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !leer.hidden) { cerrarLeer(); bLeer.focus(); } });
-    leer.querySelector('[data-cerrar]').addEventListener('click', cerrarLeer);
+    iniciarPopover('btn-leer', 'panel-leer');
 
     cambiarDiagrama('agua');
 }

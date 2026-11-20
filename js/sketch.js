@@ -114,7 +114,7 @@ let estado;              // resultado de estadoDesdeEnergia()
 let limite = 0;          // +1 / −1: la placa se apagó sola al llegar al tope / al fondo
 
 // --- ESTADO GLOBAL ---
-let THEME = {};
+// THEME (colores del lienzo del tema activo) está en js/escena-comun.js
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ function setup() {
 
     setupCurvaControls();
     setupFasesControls();
-    setupThemeSelector();
+    iniciarSelectorTema();
 
     setupEscenaControles();
     cambiarSustancia('agua');
@@ -483,182 +483,7 @@ function mensajeDidactico() {
     }
 }
 
-// ── Estilo juego: mascota, saltos y chispas ─────────────────────
-const FUENTE_TEXTO = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-// En el estilo juego los textos van en tipo frase («Lo que vemos»), no en mayúsculas.
-function frase(t) {
-    if (!THEME.fun) return t;
-    const l = t.toLocaleLowerCase();
-    return l.charAt(0).toLocaleUpperCase() + l.slice(1);
-}
-const MOV_REDUCIDO = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-let bannerTag = '', bannerDesde = -1e9, chispas = [];
-
-function lanzarChispas(x, y, col, n) {
-    if (MOV_REDUCIDO) return;
-    for (let i = 0; i < n; i++) {
-        const a = random(TWO_PI), v = random(1.5, 4);
-        chispas.push({ x, y, vx: cos(a) * v, vy: sin(a) * v - 1, vida: 1, col, r: random(3, 6), estrella: random() < 0.5 });
-    }
-}
-
-function drawChispas() {
-    for (let i = chispas.length - 1; i >= 0; i--) {
-        const c = chispas[i];
-        c.x += c.vx; c.y += c.vy; c.vy += 0.12; c.vida -= 0.04;
-        if (c.vida <= 0) { chispas.splice(i, 1); continue; }
-        const col = color(c.col); col.setAlpha(255 * c.vida);
-        noStroke(); fill(col);
-        if (c.estrella) estrella(c.x, c.y, c.r * 1.3, c.r * 0.5);
-        else circle(c.x, c.y, c.r * 2 * c.vida);
-    }
-}
-
-function estrella(x, y, r1, r2) {
-    beginShape();
-    for (let i = 0; i < 10; i++) {
-        const a = -HALF_PI + i * PI / 5, r = i % 2 ? r2 : r1;
-        vertex(x + cos(a) * r, y + sin(a) * r);
-    }
-    endShape(CLOSE);
-}
-
-// Escala de un «salto» (pop) que dura ~0,45 s desde t0
-function salto(t0) {
-    if (MOV_REDUCIDO) return 1;
-    const e = (millis() - t0) / 450;
-    if (e >= 1) return 1;
-    return 1 + 0.35 * sin(e * PI) * (1 - e);
-}
-
-// Mascota: una partícula sonriente del color del estado actual.
-function drawMascota(cx, cy, r, col) {
-    const bote = MOV_REDUCIDO ? 0 : sin(millis() / 260) * 1.5;
-    const t = millis() % 4200;
-    const parpadeo = t > 4050;
-    push();
-    translate(cx, cy + bote);
-    const s = salto(bannerDesde);
-    scale(s, 2 - s);
-    noStroke(); fill(0, 0, 0, 45); ellipse(0, r + 3 - bote, r * 1.5, 5);
-    stroke(THEME.ink); strokeWeight(2.5); fill(col);
-    circle(0, 0, r * 2);
-    noStroke(); fill(255, 255, 255, 150);
-    ellipse(-r * 0.42, -r * 0.45, r * 0.55, r * 0.35);
-    // Ojos y sonrisa
-    fill(THEME.ink);
-    if (parpadeo) { stroke(THEME.ink); strokeWeight(2); line(-r * 0.42, -r * 0.05, -r * 0.18, -r * 0.05); line(r * 0.18, -r * 0.05, r * 0.42, -r * 0.05); }
-    else { ellipse(-r * 0.3, -r * 0.08, r * 0.2, r * 0.3); ellipse(r * 0.3, -r * 0.08, r * 0.2, r * 0.3); }
-    noFill(); stroke(THEME.ink); strokeWeight(2.2);
-    arc(0, r * 0.18, r * 0.6, r * 0.45, 0.15 * PI, 0.85 * PI);
-    noStroke(); fill(255, 120, 150, 120);
-    circle(-r * 0.58, r * 0.22, r * 0.3); circle(r * 0.58, r * 0.22, r * 0.3);
-    pop();
-}
-
-function drawBannerJuego(m) {
-    const { x, y, w, h } = BANNER;
-    if (m.tag !== bannerTag) {
-        if (bannerTag) lanzarChispas(x + 24, y + h / 2, m.col, 12);
-        bannerTag = m.tag; bannerDesde = millis();
-    }
-    // En el tema Día los colores de estado son oscuros (para leerse): la mascota, más clara
-    const cm = lightness(color(m.col)) > 55 ? color(m.col) : lerpColor(color(m.col), color(255), 0.45);
-    drawMascota(x + 24, y + h / 2, 21, cm);
-
-    // Bocadillo con pico hacia la mascota
-    const bx = x + 58, my = y + h / 2;
-    noStroke(); fill(THEME.ink); rect(bx, y + 3, w - 58, h, 16);
-    stroke(THEME.border); strokeWeight(2); fill(THEME.panelBg);
-    triangle(bx - 10, my, bx + 4, my - 8, bx + 4, my + 8);      // pico con su borde
-    rect(bx, y, w - 58, h, 16);
-    noStroke(); fill(THEME.panelBg);
-    triangle(bx - 7, my, bx + 3, my - 6, bx + 3, my + 6);        // tapa la junta: una sola forma
-
-    // Etiqueta que da un salto al cambiar
-    textStyle(BOLD); textSize(16);
-    const tw = textWidth(m.tag) + 26;
-    push();
-    translate(bx + 14 + tw / 2, y + h / 2);
-    scale(salto(bannerDesde));
-    noStroke(); fill(THEME.ink); rect(-tw / 2, -14, tw, 30, 15);
-    fill(m.col); rect(-tw / 2, -16, tw, 30, 15);
-    fill(lightness(color(m.col)) > 55 ? THEME.ink : '#ffffff'); textAlign(CENTER, CENTER);
-    text(m.tag, 0, -1);
-    pop();
-    textStyle(NORMAL);
-
-    textFont(FUENTE_TEXTO);
-    fill(THEME.text); textSize(16); textAlign(LEFT, CENTER); textLeading(19);
-    const tx = bx + 14 + tw + 14;
-    text(m.txt, tx, y + 3, x + w - tx - 14, h - 6);
-    textFont('Fredoka');
-}
-
-function drawBanner(m) {
-    anunciar(m);
-    if (THEME.fun) {
-        drawBannerJuego(m);
-        // Las chispas no salen de la franja del mensaje: nunca tapan texto de los tableros
-        drawingContext.save();
-        drawingContext.beginPath();
-        drawingContext.rect(BANNER.x, BANNER.y - 6, 120, BANNER.h + 12);
-        drawingContext.clip();
-        drawChispas();
-        drawingContext.restore();
-        return;
-    }
-    const { x, y, w, h } = BANNER;
-    const borde = color(m.col);
-    const rad = THEME.fun ? 16 : 10;
-    stroke(THEME.border); strokeWeight(THEME.fun ? 2 : 1); fill(THEME.panelBg);
-    rect(x, y, w, h, rad);
-    noStroke(); fill(borde);
-    if (!THEME.fun) rect(x, y, 5, h, 10, 0, 0, 10);
-
-    // Etiqueta del estado o del cambio
-    textStyle(BOLD); textSize(13);
-    const tw = textWidth(m.tag) + 22;
-    const bg = color(m.col); bg.setAlpha(40);
-    fill(bg); stroke(m.col); strokeWeight(1.5);
-    rect(x + 16, y + h / 2 - 13, tw, 26, 13);
-    noStroke(); fill(m.col); textAlign(CENTER, CENTER);
-    text(m.tag, x + 16 + tw / 2, y + h / 2 + 1);
-    textStyle(NORMAL);
-
-    fill(THEME.text); textSize(THEME.fun ? 14 : 13); textAlign(LEFT, CENTER); textLeading(17);
-    const tx = x + 16 + tw + 16;
-    text(m.txt, tx, y + 4, x + w - tx - 14, h - 8);
-}
-
-
-// ═══════════════════════════════════════════════════════════════════
-//  VISTA MACROSCÓPICA: "LO QUE VEMOS"
-// ═══════════════════════════════════════════════════════════════════
-
-function drawPanelFrame(r, titulo, sub) {
-    if (THEME.fun) {
-        // Tablero del juego: borde grueso y una «sombra» sólida debajo
-        noStroke(); fill(THEME.ink); rect(r.x, r.y + 4, r.w, r.h, 18);
-        stroke(THEME.border); strokeWeight(2); fill(THEME.panelBg);
-        rect(r.x, r.y, r.w, r.h, 18);
-        noStroke(); fill(THEME.textDim); circle(r.x + 18, r.y + 18, 8);
-        titulo = frase(titulo);
-        textAlign(LEFT, CENTER); textStyle(BOLD); textSize(15); fill(THEME.title);
-        text(titulo, r.x + 30, r.y + 18);
-        const w = textWidth(titulo);
-        textStyle(NORMAL); textSize(12); fill(THEME.textDim);
-        text('· ' + sub, r.x + 36 + w, r.y + 18);
-        return;
-    }
-    stroke(THEME.border); strokeWeight(1); fill(THEME.panelBg);
-    rect(r.x, r.y, r.w, r.h, 10);
-    noStroke(); textAlign(LEFT, CENTER); textStyle(BOLD); textSize(12); fill(THEME.accent);
-    text(titulo, r.x + 14, r.y + 17);
-    const w = textWidth(titulo);
-    textStyle(NORMAL); textSize(11); fill(THEME.textDim);
-    text('· ' + sub, r.x + 20 + w, r.y + 17);
-}
+// FUENTE_TEXTO, MOV_REDUCIDO, salto() y estrella() están en js/escena-comun.js.
 
 // ═══════════════════════════════════════════════════════════════════
 //  VISTA MICROSCÓPICA: "LO QUE NO VEMOS" (modelo de partículas)
@@ -1169,14 +994,7 @@ function windowResized() {
     fitCanvas();
 }
 
-// Los lectores de pantalla anuncian el mensaje de la franja cuando cambia
-// de estado o de cambio de estado (no en cada fotograma).
-let ultimoAnuncio = '';
-function anunciar(m) {
-    if (m.tag === ultimoAnuncio) return;
-    ultimoAnuncio = m.tag;
-    document.getElementById('anuncio').textContent = `${m.tag}. ${m.txt}`;
-}
+// anunciar() (mensajes para lectores de pantalla) está en js/escena-comun.js.
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1217,205 +1035,31 @@ function setMode(mode) {
 
 
 // ═══════════════════════════════════════════════════════════════════
-//  TEMAS (oscuro · claro · alto contraste)
+//  TEMAS
+//  Los colores comunes (estados, tarjetas, papel, partículas…) y el
+//  selector de temas están en js/escena-comun.js. Aquí solo van los de los
+//  objetos propios de esta simulación: termómetro, vaso y placa.
 // ═══════════════════════════════════════════════════════════════════
-function setupThemeSelector() {
-    const themeBtn   = document.getElementById('theme-btn');
-    const themePanel = document.getElementById('theme-panel');
-    const themeOpts  = document.querySelectorAll('.theme-opt');
-
-    const closePanel = () => {
-        themePanel.classList.remove('open');
-        themePanel.setAttribute('aria-hidden', 'true');
-        themeBtn.classList.remove('active');
-        themeBtn.setAttribute('aria-expanded', 'false');
-    };
-
-    themeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = themePanel.classList.toggle('open');
-        themeBtn.classList.toggle('active', isOpen);
-        themeBtn.setAttribute('aria-expanded', String(isOpen));
-        themePanel.setAttribute('aria-hidden', String(!isOpen));
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!themeBtn.contains(e.target) && !themePanel.contains(e.target)) closePanel();
-    });
-
-    themeOpts.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const theme = btn.dataset.theme;
-            document.body.classList.remove('theme-light', 'theme-contrast', 'theme-marca');
-            // El tema SimulaCiencia parte del claro y cambia sus colores por los de la marca.
-            if (theme === 'marca') document.body.classList.add('theme-light', 'theme-marca');
-            else if (theme !== 'dark') document.body.classList.add('theme-' + theme);
-            themeOpts.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            closePanel();
-        });
-    });
-}
-
-// Colores del canvas. Los colores de estado (sólido, líquido, gas y cambio
-// de estado) son los mismos en toda la simulación para que el alumno los asocie.
-function updateTheme() {
-    const isLight    = document.body.classList.contains('theme-light');
-    const isContrast = document.body.classList.contains('theme-contrast');
-    const isMarca    = document.body.classList.contains('theme-marca');
-
-    if (isMarca) {
-        // Paleta SimulaCiencia (la de simulaciencia.es y la de los vídeos del canal).
-        THEME = {
-            cardBg: '#ffffff', cardEdge: '#e2e8f0', headBg: '#1e293b', headEdge: '#1e293b', headText: '#ffffff',
-            pillBg: '#ffffff', modelBg: '#f1f5f9', hundido: '#e2e8f0', changeInk: '#ffffff',
-            paper: '#eef4fa', paperGrid: '#d5e1ec', paperInk: '#1e293b', paperLine: '#1e293b', paperChange: '#6d28d9',
-            paperSolid: '#0369a1', paperLiquid: '#0f766e', paperGas: '#c2410c', pen: '#dc2626',
-            canvasBg:   '#f8fafc',
-            panelBg:    '#ffffff',
-            border:     '#e2e8f0',
-            text:       '#1e293b',
-            textDim:    '#64748b',
-            accent:     '#0369a1',
-            solid:      '#0369a1',
-            liquid:     '#0f766e',
-            gas:        '#c2410c',
-            change:     '#6d28d9',
-            thermoGlass:'#cbd5e1',
-            thermoTube: '#ffffff',
-            thermoTick: '#64748b',
-            thermoFill: '#dc2626',
-            jarWall:    '#475569',
-            jarLid:     '#cbd5e1',
-            jarShine:   'rgba(255,255,255,0.7)',
-            plateBody:  '#334155',
-            plateTop:   '#64748b',
-            plateText:  '#f8fafc',
-            heat:       '#dc2626',
-            cold:       '#0284c7',
-            lensBg:     '#f1f5f9',
-            grid:       '#e2e8f0',
-            axis:       '#64748b',
-            particle:   '#334155',
-            particleEdge:'#0f172a',
-            bond:       'rgba(3,105,161,0.55)',
-        };
-    } else if (isLight) {
-        // Día: azules de SimulaCiencia con el estilo del juego (piloto).
-        THEME = {
-            cardBg: '#e9f2fa', cardEdge: '#a9c6de', headBg: '#13304a', headEdge: '#13304a', headText: '#ffffff',
-            pillBg: '#f7fbff', modelBg: '#e4eff8', hundido: '#d3e2ef', changeInk: '#ffffff',
-            paper: '#d6e6f3', paperGrid: '#b9cfe2', paperInk: '#24323f', paperLine: '#13304a', paperChange: '#a5281b',
-            paperSolid: '#1a5f99', paperLiquid: '#0a6b4c', paperGas: '#b4500e', pen: '#ff7a59',
-            curveSolid: '#4aa8f0', curveLiquid: '#1fcf8f', curveGas: '#ff9a4a',
-            canvasBg:   '#eef5fb',
-            panelBg:    '#f7fbff',
-            border:     '#a9c6de',
-            text:       '#13304a',
-            textDim:    '#3f5f7a',
-            accent:     '#0369a1',
-            title:      '#0b2236',
-            solid:      '#1f5fbf',
-            liquid:     '#0a7d58',
-            gas:        '#c2410c',
-            change:     '#b45309',
-            thermoGlass:'#3f5f7a',
-            thermoTube: '#ffffff',
-            thermoTick: '#5d5280',
-            thermoFill: '#e53950',
-            jarWall:    '#13304a',
-            jarLid:     '#bfe3f7',
-            jarShine:   'rgba(255,255,255,0.8)',
-            plateBody:  '#13304a',
-            plateTop:   '#6f8ba3',
-            plateText:  '#f7fbff',
-            heat:       '#e0401e',
-            cold:       '#1a72d0',
-            lensBg:     '#e4eff8',
-            grid:       '#d3e2ef',
-            axis:       '#3f5f7a',
-            particle:   '#fffaf0',
-            particleEdge:'#13304a',
-            bond:       'rgba(3,105,161,0.55)',
-            ink:        '#13304a',
-            jarInside:  '#dbe8f3',
-            fun:        true,
-        };
-    } else if (isContrast) {
-        THEME = {
-            cardBg: '#000000', cardEdge: '#ffff00', headBg: '#000000', headEdge: '#ffffff', headText: '#ffffff',
-            pillBg: '#000000', modelBg: '#000000', hundido: '#222222', changeInk: '#000000',
-            paper: '#000000', paperGrid: '#333300', paperInk: '#ffffff', paperLine: '#ffffff', paperChange: '#ffff00',
-            paperSolid: '#88aaff', paperLiquid: '#00ff88', paperGas: '#ffaa00', pen: '#ff5533',
-            canvasBg:   '#000000',
-            panelBg:    '#000000',
-            border:     '#ffff00',
-            text:       '#ffffff',
-            textDim:    '#cccccc',
-            accent:     '#00ffff',
-            solid:      '#88aaff',
-            liquid:     '#00ff88',
-            gas:        '#ffaa00',
-            change:     '#ffff00',
-            thermoGlass:'#ffffff',
-            thermoTube: '#000000',
-            thermoTick: '#ffffff',
-            thermoFill: '#ff3333',
-            jarWall:    '#ffffff',
-            jarLid:     '#333333',
-            jarShine:   'rgba(255,255,255,0.5)',
-            plateBody:  '#222222',
-            plateTop:   '#888888',
-            plateText:  '#ffffff',
-            heat:       '#ff5533',
-            cold:       '#33aaff',
-            lensBg:     '#000000',
-            grid:       '#333300',
-            axis:       '#ffffff',
-            particle:   '#ffffff',
-            particleEdge:'#000000',
-            bond:       '#00ffff',
-        };
-    } else {
-        // Pizarra: azules de SimulaCiencia con el estilo del juego «Carga cero» (piloto).
-        THEME = {
-            cardBg: '#123a5c', cardEdge: '#2b5f88', headBg: '#0e2238', headEdge: '#9fb9cc', headText: '#ffffff',
-            pillBg: '#0f2c45', modelBg: '#111e2a', hundido: '#0e2b45', changeInk: '#061523',
-            paper: '#d6e6f3', paperGrid: '#b9cfe2', paperInk: '#24323f', paperLine: '#061523', paperChange: '#a5281b',
-            paperSolid: '#1a5f99', paperLiquid: '#0a6b4c', paperGas: '#b4500e', pen: '#ff7a59',
-            curveSolid: '#4aa8f0', curveLiquid: '#1fcf8f', curveGas: '#ff9a4a',
-            canvasBg:   '#11314f',
-            panelBg:    '#15395a',
-            border:     '#2d6996',
-            text:       '#eef7ff',
-            textDim:    '#b5d3ec',
-            accent:     '#00c8ff',
-            title:      '#ffffff',
-            solid:      '#9ec9ff',
-            liquid:     '#34e3a8',
-            gas:        '#ffa25a',
-            change:     '#ffd84a',
-            thermoGlass:'#b5d3ec',
-            thermoTube: '#0b2236',
-            thermoTick: '#b5d3ec',
-            thermoFill: '#ff5d73',
-            jarWall:    '#e6f4ff',
-            jarLid:     '#2d6996',
-            jarShine:   'rgba(255,255,255,0.35)',
-            plateBody:  '#071a2b',
-            plateTop:   '#2d6996',
-            plateText:  '#eef7ff',
-            heat:       '#ff7043',
-            cold:       '#4aa8ff',
-            lensBg:     '#0f2d49',
-            grid:       '#1c4366',
-            axis:       '#b5d3ec',
-            particle:   '#f4fbff',
-            particleEdge:'#071a2b',
-            bond:       'rgba(0,200,255,0.6)',
-            ink:        '#071a2b',
-            jarInside:  '#0e2a44',
-            fun:        true,
-        };
-    }
-}
+const TEMA_PROPIO = {
+    pizarra: {
+        thermoGlass: '#b5d3ec', thermoTube: '#0b2236', thermoTick: '#b5d3ec', thermoFill: '#ff5d73',
+        jarWall: '#e6f4ff', jarLid: '#2d6996', jarShine: 'rgba(255,255,255,0.35)', jarInside: '#0e2a44',
+        plateBody: '#071a2b', plateTop: '#2d6996', plateText: '#eef7ff',
+    },
+    dia: {
+        thermoGlass: '#3f5f7a', thermoTube: '#ffffff', thermoTick: '#5d5280', thermoFill: '#e53950',
+        jarWall: '#13304a', jarLid: '#bfe3f7', jarShine: 'rgba(255,255,255,0.8)', jarInside: '#dbe8f3',
+        plateBody: '#13304a', plateTop: '#6f8ba3', plateText: '#f7fbff',
+    },
+    marca: {
+        thermoGlass: '#cbd5e1', thermoTube: '#ffffff', thermoTick: '#64748b', thermoFill: '#dc2626',
+        jarWall: '#475569', jarLid: '#cbd5e1', jarShine: 'rgba(255,255,255,0.7)',
+        plateBody: '#334155', plateTop: '#64748b', plateText: '#f8fafc',
+    },
+    contraste: {
+        thermoGlass: '#ffffff', thermoTube: '#000000', thermoTick: '#ffffff', thermoFill: '#ff3333',
+        jarWall: '#ffffff', jarLid: '#333333', jarShine: 'rgba(255,255,255,0.5)',
+        plateBody: '#222222', plateTop: '#888888', plateText: '#ffffff',
+    },
+};
+function updateTheme() { actualizarTema(TEMA_PROPIO); }

@@ -17,7 +17,7 @@ let burbujasF = [];        // burbujas del líquido al hervir
 let celebraClave = '', celebraDesde = -1e9;
 
 function calcularFases() {
-    const movil = window.matchMedia(`(max-width: ${ANCHO_MOVIL}px)`).matches;
+    const movil = esMovil();
     ESC_MOVIL = movil;
     if (!movil) {
         CV_W = 1330; CV_H = 652;
@@ -59,11 +59,7 @@ function calcularFases() {
 }
 
 function colocarMandosFases() {
-    const el = document.querySelector('.mandos-fases');
-    if (!el || !FX) return;
-    el.style.left  = (100 * FX.mandos.x / CV_W) + '%';
-    el.style.top   = (100 * FX.mandos.y / CV_H) + '%';
-    el.style.width = (100 * FX.mandos.w / CV_W) + '%';
+    if (FX) colocarSobreLienzo(document.querySelector('.mandos-fases'), FX.mandos, CV_W, CV_H);
 }
 
 // ── Colores del papel del diagrama ───────────────────────────────
@@ -124,7 +120,7 @@ function drawFasesEscena() {
     const clave = c ? c.tipo + c.t : '';
     if (clave !== celebraClave) { celebraClave = clave; celebraDesde = millis(); }
 
-    tarjetaF(FX.tarjeta, THEME.cardBg || THEME.panelBg);
+    tarjeta(FX.tarjeta, THEME.cardBg || THEME.panelBg);
     drawCilindro(sit, c);
     drawDiagramaFases(sit, c);
     const m = mensajeFases();
@@ -137,27 +133,9 @@ function drawFasesEscena() {
     }
 }
 
-function tarjetaF(t, relleno) {
-    if (THEME.fun) { noStroke(); fill(THEME.ink); rect(t.x + 4, t.y + 5, t.w, t.h, 24); }
-    stroke(THEME.cardEdge || THEME.border); strokeWeight(1.5); fill(relleno);
-    rect(t.x, t.y, t.w, t.h, 24);
-}
 
-function fuenteJuego() { textFont(THEME.fun ? 'Fredoka' : FUENTE_TEXTO); }
 
-// Parte un texto en líneas que caben en «w» (con la fuente y el tamaño actuales)
-function partirLineas(txt, w) {
-    // El número y su unidad no se separan
-    const palabras = String(txt).replace(/ (°C|atm)/g, '\u00a0$1').split(/[ \t\n]+/);
-    const lineas = [];
-    let l = '';
-    for (const p of palabras) {
-        const prueba = l ? l + ' ' + p : p;
-        if (l && textWidth(prueba) > w) { lineas.push(l); l = p; } else l = prueba;
-    }
-    if (l) lineas.push(l);
-    return lineas;
-}
+// tarjeta(), fuenteJuego() y partirLineas() están en js/escena-comun.js
 
 // ── Cilindro con émbolo (coordenadas del boceto: 400 × 364) ───────
 const CIL = { gx: 80, gy: 40, gw: 180, gh: 272, hMax: 136 };
@@ -577,12 +555,7 @@ function rotuloLinea(txt, curva, u, desplaz, fs, halo) {
     textStyle(NORMAL);
 }
 
-function chispa(x, y, r) {
-    stroke(THEME.ink || '#061523'); strokeWeight(1.8); fill(THEME.change || '#ffd84a');
-    beginShape();
-    for (let i = 0; i < 8; i++) { const a = i * PI / 4, rr = i % 2 ? r * 0.42 : r; vertex(x + cos(a) * rr, y + sin(a) * rr); }
-    endShape(CLOSE);
-}
+// chispa() e insignia() están en js/escena-comun.js
 
 function drawRastroYPuntoF(sit, cel) {
     const { x0, x1, y0, y1 } = DPLOT, m = FX.movil;
@@ -635,8 +608,8 @@ function drawRastroYPuntoF(sit, cel) {
     noStroke(); fill(255, 255, 255, 204); circle(x - 4, y - 4, 7);
 
     // Insignias en los ejes
-    insigniaF(fmtT(fT) + ' °C', x, y1, CENTER, 68);
-    insigniaF(fmtP(fP) + ' atm', X + 6, y, LEFT, pw);
+    insignia(fmtT(fT) + ' °C', x, y1, CENTER, 68, m ? 13 : 14);
+    insignia(fmtP(fP) + ' atm', X + 6, y, LEFT, pw, m ? 13 : 14);
 
     // Sello del cambio
     if (cel) drawSelloF(cel, x, y);
@@ -644,39 +617,18 @@ function drawRastroYPuntoF(sit, cel) {
     cursor(dist(mouseX, mouseY, x, y) < 22 || arrastrando ? 'grab' : (dentroDiagrama(mouseX, mouseY) ? 'crosshair' : ARROW));
 }
 
-function insigniaF(txt, x, y, alin, wMin) {
-    textFont('Fredoka'); textStyle(BOLD); textSize(FX.movil ? 13 : 14);
-    const w = max(wMin, textWidth(txt) + 20);
-    const xr = alin === CENTER ? x - w / 2 : x;
-    stroke(THEME.ink || '#061523'); strokeWeight(2); fill(THEME.accent || '#00c8ff');
-    rect(xr, y - 13, w, 26, 13);
-    noStroke(); fill(THEME.ink || '#061523'); textAlign(CENTER, CENTER); text(txt, xr + w / 2, y + 1);
-    textStyle(NORMAL);
-}
 
 function drawSelloF(cel, px, py) {
     const { x0, x1, y0, y1 } = DPLOT, m = FX.movil;
     const titulo = nombreCambio(cel), sub = fraseCambio(cel);
-    textFont('Fredoka'); textStyle(BOLD); textSize(m ? 18 : 22);
-    const wT = textWidth(titulo);
-    textFont(FUENTE_TEXTO); textStyle(BOLD); textSize(m ? 13 : 15);
-    const sw = max(m ? 160 : 224, wT + 40, textWidth(sub) + 36), sh = m ? 56 : 64;
+    const { w: sw, h: sh } = medirSello(titulo, sub, m);
     // A la derecha y algo por debajo del punto; si no cabe, al otro lado
     let sx = px + 150, sy = py + 44;
     if (sx + sw / 2 > x1 - 6) sx = px - 150;
     sx = constrain(sx, x0 + sw / 2 + 6, x1 - sw / 2 - 6);
     sy = constrain(sy, y0 + sh / 2 + 8, y1 - sh / 2 - 8);
     if (dist(sx, sy, px, py) < 70) sy = py + (py > (y0 + y1) / 2 ? -90 : 90);
-    const k = salto(celebraDesde);
-    push();
-    translate(sx, sy); rotate(radians(-5)); scale(k);
-    stroke('#a5281b'); strokeWeight(3.5); fill('#fff6d6'); rect(-sw / 2, -sh / 2, sw, sh, 10);
-    noStroke(); fill('#a5281b'); textFont('Fredoka'); textStyle(BOLD); textSize(m ? 18 : 22); textAlign(CENTER, BASELINE);
-    text(titulo, 0, m ? 0 : 2);
-    fill('#5a1a10'); textFont(FUENTE_TEXTO); textSize(m ? 13 : 15);
-    text(sub, 0, m ? 20 : 24);
-    pop();
-    textStyle(NORMAL);
+    sello(titulo, sub, sx, sy, celebraDesde, m);
 }
 
 // ── Panel de estado + «A esta presión…» ──────────────────────────
@@ -689,12 +641,8 @@ function drawPanelFases(msg) {
 
     // Rótulo (da un pequeño salto al cambiar)
     if (msg.tag !== rotuloTag) { rotuloTag = msg.tag; rotuloDesde = millis(); }
-    textFont('Fredoka'); textStyle(BOLD); textSize(16);
-    const tw = textWidth(msg.tag) + 34;
-    push(); translate(px + tw / 2, y + 33); scale(salto(rotuloDesde));
-    stroke(ink); strokeWeight(2.5); fill(msg.col); rect(-tw / 2, -15, tw, 30, 15);
-    noStroke(); fill(lightness(color(msg.col)) > 55 ? ink : '#ffffff'); textAlign(CENTER, CENTER); text(msg.tag, 0, 1);
-    pop();
+    textFont('Fredoka');
+    etiquetaRotulo(msg.tag, msg.col, px, y + 18, 16, rotuloDesde);
 
     // Mensaje y «A esta presión…»: se reduce la letra si no cabe
     const rico = trozosRicos(textoAEstaPresion());
@@ -716,44 +664,10 @@ function drawPanelFases(msg) {
     text(i18n.t('A esta presión, la sustancia…'), px, yy);
     yy += 22;
     textSize(fr); fill(THEME.text);
-    linR.forEach(l => {
-        let xx = px;
-        for (const t of l) { textStyle(t.b ? BOLD : NORMAL); text(t.s, xx, yy); xx += textWidth(t.s); }
-        yy += fr * 1.3;
-    });
-    textStyle(NORMAL);
+    textoRico(linR, px, yy, fr * 1.3);
 }
 
-// Texto con <strong> → trozos { s, b }
-function trozosRicos(html) {
-    const out = [];
-    String(html).split(/(<strong>|<\/strong>)/).reduce((neg, parte) => {
-        if (parte === '<strong>') return true;
-        if (parte === '</strong>') return false;
-        if (parte) out.push({ s: parte.replace(/<[^>]+>/g, ''), b: neg });
-        return neg;
-    }, false);
-    return out;
-}
-// Parte los trozos en líneas (palabra a palabra)
-function partirRico(trozos, w) {
-    const palabras = [];
-    trozos.forEach(t => t.s.replace(/ (°C|atm)/g, '\u00a0$1').split(/([ \t\n]+)/).forEach(p => { if (p) palabras.push({ s: p, b: t.b }); }));
-    const lineas = []; let l = [], ancho = 0;
-    for (const p of palabras) {
-        textStyle(p.b ? BOLD : NORMAL);
-        const wp = textWidth(p.s);
-        if (/^[ \t\n]+$/.test(p.s)) { if (l.length) { l.push(p); ancho += wp; } continue; }
-        if (ancho + wp > w && l.length) {
-            while (l.length && /^[ \t\n]+$/.test(l[l.length - 1].s)) l.pop();
-            lineas.push(l); l = []; ancho = 0;
-        }
-        l.push(p); ancho += wp;
-    }
-    if (l.length) lineas.push(l);
-    textStyle(NORMAL);
-    return lineas;
-}
+// trozosRicos(), partirRico() y textoRico() están en js/escena-comun.js
 
 // ── Modelo de moléculas + leyenda ────────────────────────────────
 function drawModeloFases(sit) {
@@ -808,7 +722,7 @@ function drawModeloFases(sit) {
 // ── «Piensa y comprueba» ─────────────────────────────────────────
 function drawPiensa() {
     const { x, y, w, h } = FX.piensa, m = FX.movil;
-    tarjetaF({ x, y, w, h }, THEME.panelBg);
+    tarjeta({ x, y, w, h }, THEME.panelBg);
     textFont('Fredoka'); textStyle(BOLD); textSize(18); noStroke(); fill(THEME.text); textAlign(LEFT, BASELINE);
     text(i18n.t('Piensa y comprueba'), x + 22, y + 30);
     textStyle(NORMAL);
