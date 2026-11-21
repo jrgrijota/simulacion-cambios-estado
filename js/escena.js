@@ -338,7 +338,7 @@ function drawTrozos(ySup, hLiq) {
 
     const ink = THEME.ink || '#000';
     let solCol = color(sus.col.solid);
-    if (hierro) solCol = lerpColor(color('#8a6a5a'), color('#c8402a'), constrain(map(estado.T, sus.tMin, sus.tf, 0, 1), 0, 1));
+    if (hierro) solCol = lerpColor(color('#8a6a5a'), color('#c8402a'), constrain(map(estado.T, sus.tRef, sus.tf, 0, 1), 0, 1));
     let base = -Infinity, techoMin = Infinity;
     for (const t of T) {
         if (!t.vivo) continue;
@@ -473,11 +473,14 @@ function drawTermometro(T) {
     textStyle(NORMAL); textFont(THEME.fun ? 'Fredoka' : FUENTE_TEXTO);
 
     // Lectura digital: la cabeza del termómetro
-    const L = TH.lectura;
+    let L = TH.lectura;
     textSize(L); textStyle(BOLD);
     const txt = fmtT(T) + ' °C';
-    const hw = textWidth(txt) + 34, hh = 70;
     const hx = x + tubo / 2, hy = top - 14;
+    // Si no cabe hasta el borde del lienzo (p. ej. «−273,15 °C» en el móvil), letra más pequeña
+    const wMax = (CV_W - 6 - VASO_T.tx) / VASO_T.s - hx - 34;
+    if (textWidth(txt) > wMax) { L *= wMax / textWidth(txt); textSize(L); }
+    const hw = textWidth(txt) + 34, hh = 70;
     stroke(THEME.headEdge || THEME.border); strokeWeight(2); fill(THEME.headBg || THEME.panelBg);
     rect(hx, hy, hw, hh, 0, 12, 12, 12);
     noStroke(); fill(THEME.headText || THEME.text); textAlign(LEFT, CENTER);
@@ -590,13 +593,16 @@ function drawGrafica() {
     const { x0, x1, y0, y1 } = PLOT;
     const tMax = ejeTiempoMax();
     const xOf = (t) => map(t, 0, tMax, x0, x1);
-    const yOf = (T) => map(T, sus.tMin, sus.tMax, y1, y0);
+    // El eje empieza en el extremo de siempre (tRef); solo baja hasta el cero
+    // absoluto si se ha enfriado por debajo, para no aplastar las mesetas.
+    const tBajo = historial.some(m => m.T < sus.tRef - 0.01) || estado.T < sus.tRef - 0.01 ? sus.tMin : sus.tRef;
+    const yOf = (T) => map(T, tBajo, sus.tMax, y1, y0);
     const tinta = THEME.paperInk;
 
     textFont(FUENTE_TEXTO);
     textSize(compacta ? 12 : 13);
-    const pasoT = escalaPaso(sus.tMax - sus.tMin) * (compacta || G.h < 140 ? 2 : 1);
-    for (let T = Math.ceil(sus.tMin / pasoT) * pasoT; T <= sus.tMax; T += pasoT) {
+    const pasoT = escalaPaso(sus.tMax - tBajo) * (compacta || G.h < 140 ? 2 : 1);
+    for (let T = Math.ceil(tBajo / pasoT) * pasoT; T <= sus.tMax; T += pasoT) {
         stroke(THEME.paperGrid); strokeWeight(1); line(x0, yOf(T), x1, yOf(T));
         noStroke(); fill(tinta); textAlign(RIGHT, CENTER); text(fmtT(T), x0 - 7, yOf(T));
     }

@@ -74,6 +74,14 @@ const SUSTANCIAS = {
     },
 };
 
+// Cero absoluto: con el modelo clásico de la ESO, a −273,15 °C las partículas
+// se quedan quietas y ya no se puede sacar más energía. Todas las sustancias se
+// pueden enfriar hasta ahí (reto: descubrir que es la misma temperatura para
+// todas). tRef es el antiguo extremo inferior del termómetro: con él se reparte
+// la energía, para que el resto de la curva sea igual que antes.
+const CERO_ABS = -273.15;
+Object.values(SUSTANCIAS).forEach(s => { s.tRef = s.tMin; s.tMin = CERO_ABS; });
+
 // --- MODELO DE ENERGÍA (didáctico) ---
 // Energía (unidades escaladas) que absorbe cada tramo de la curva:
 //   calentar sólido · fusión · calentar líquido · vaporización · calentar gas
@@ -84,6 +92,10 @@ const SUSTANCIAS = {
 // (en el agua, 4,18 frente a unos 2 J/g·°C), así que su pendiente es menor.
 const E_FUSION = 14, E_VAPOR = 26, E_CALOR = 50;
 const C_REL = { solido: 1, liquido: 2, gas: 1 };
+// Por debajo del antiguo extremo (tRef), el sólido necesita menos energía por
+// grado: muy cerca del cero absoluto la capacidad calorífica cae (como en la
+// realidad). Así llegar al cero absoluto lleva unos segundos, no un minuto.
+const F_FRIO = 0.3;
 const POT_MAX = 1.0;   // unidades de energía por "minuto" con la placa al 100 %
 
 // Energías de los cinco tramos de una sustancia (se calculan una vez).
@@ -91,11 +103,15 @@ function calcularTramos(s) {
     const pS = C_REL.solido  * (s.tf  - s.tMin);
     const pL = C_REL.liquido * (s.teb - s.tf);
     const pG = C_REL.gas     * (s.tMax - s.teb);
-    const k  = E_CALOR / (pS + pL + pG);
+    // Misma energía por grado que con el termómetro antiguo (de tRef a tMax)
+    const tRef = s.tRef ?? s.tMin;
+    const k  = E_CALOR / (C_REL.solido * (s.tf - tRef) + pL + pG);
+    s.eFrio = k * C_REL.solido * F_FRIO * (tRef - s.tMin);   // de tMin a tRef
     // En la sublimación las partículas se separan del todo de una vez: absorbe
     // la energía de la fusión y la de la vaporización juntas (como en la realidad).
-    s.segE = s.sublima ? [pS * k, E_FUSION + E_VAPOR, 0, 0, pG * k]
-                       : [pS * k, E_FUSION, pL * k, E_VAPOR, pG * k];
+    const eSol = s.eFrio + k * C_REL.solido * (s.tf - tRef);
+    s.segE = s.sublima ? [eSol, E_FUSION + E_VAPOR, 0, 0, pG * k]
+                       : [eSol, E_FUSION, pL * k, E_VAPOR, pG * k];
     s.eTot = s.segE.reduce((a, b) => a + b, 0);
 }
 Object.values(SUSTANCIAS).forEach(calcularTramos);
@@ -215,7 +231,8 @@ function estadoDesdeEnergia(E, s) {
 
     if (E < eS) {
         tramo = 'solido';
-        T = lerp(s.tMin, s.tf, E / eS);
+        T = E < s.eFrio ? lerp(s.tMin, s.tRef, E / s.eFrio)
+                        : lerp(s.tRef, s.tf, (E - s.eFrio) / (eS - s.eFrio));
         fs = 1;
     } else if (E < eS + eF && s.sublima) {
         tramo = 'sublimacion';
@@ -246,7 +263,8 @@ function estadoDesdeEnergia(E, s) {
 
 // Energía que corresponde a un sólido a temperatura T (para el estado inicial).
 function energiaSolido(T, s) {
-    return s.segE[0] * constrain((T - s.tMin) / (s.tf - s.tMin), 0, 1);
+    if (T < s.tRef) return s.eFrio * constrain((T - s.tMin) / (s.tRef - s.tMin), 0, 1);
+    return s.eFrio + (s.segE[0] - s.eFrio) * constrain((T - s.tRef) / (s.tf - s.tRef), 0, 1);
 }
 
 function actualizarModelo() {
@@ -432,8 +450,8 @@ function mensajeDidactico() {
     const tf = fmtT(sus.tf) + ' °C', teb = fmtT(sus.teb) + ' °C';
     const N = { solid: i18n.t(sus.nombres.solid), liquid: i18n.t(sus.nombres.liquid), gas: i18n.t(sus.nombres.gas) };
 
-    if (limite < 0) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
-        txt: i18n.t('El termómetro ha llegado a su mínimo y la placa se ha apagado sola. Sin energía que salga, la temperatura ya no baja. Calienta para seguir.') };
+    if (limite < 0 || energia <= 0) return { tag: i18n.t('CERO ABSOLUTO'), col: THEME.accent,
+        txt: i18n.t('Las partículas se han quedado quietas: ya no se les puede quitar más energía. Es la temperatura más baja posible y la placa se ha apagado sola. Calienta para seguir.') };
     if (limite > 0) return { tag: i18n.t('LÍMITE'), col: THEME.textDim,
         txt: i18n.t('El termómetro ha llegado a su máximo y la placa se ha apagado sola. Sin energía que entre, la temperatura ya no sube. Enfría para seguir.') };
 
@@ -633,7 +651,10 @@ function asignarEstados(est) {
 // sólido y rapidez del líquido y del gas.
 function agitacion(T, tMin, tFus, tEb, tMax) {
     return {
-        ampSol: constrain(map(T, tMin, tFus, 0.8, 3.2), 0.8, 3.2),
+        // Hasta el cero absoluto (modo Calentar y enfriar), la vibración del sólido
+        // baja hasta cero: las partículas se quedan quietas (modelo clásico).
+        ampSol: tMin <= CERO_ABS ? constrain(map(T, tMin, tFus, 0, 3.2), 0, 3.2)
+                                 : constrain(map(T, tMin, tFus, 0.8, 3.2), 0.8, 3.2),
         vLiq:   constrain(map(T, tFus, tEb, 0.9, 1.9), 0.9, 1.9),
         vGas:   constrain(map(T, tEb, tMax, 3.2, 4.6), 3.2, 4.6),
     };
@@ -962,6 +983,7 @@ function escalaPaso(rango) {
 
 // Temperatura redondeada con signo menos tipográfico.
 function fmtT(t) {
+    if (Math.abs(t - CERO_ABS) < 0.005) return '−' + i18n.num(273.15, 2);
     const r = Math.round(t);
     return (r < 0 ? '−' : '') + Math.abs(r);
 }

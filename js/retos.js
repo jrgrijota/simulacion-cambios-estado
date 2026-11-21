@@ -54,12 +54,21 @@ function retosDe(s) {
         i18n.t('Sublima todo el {s} sin que el termómetro pase de {t}', { s: N.solid, t: fmtT(s.tf) + ' °C' }),
         i18n.t('Deja el {g} justo a {t} y apaga la placa', { g: N.gas, t: obj }),
         i18n.t('Sublima el {s} y vuelve a tenerlo todo sólido', { s: N.solid }),
+        retoMinima(s),
     ];
     return [
         i18n.t('Funde todo el {s} sin que el termómetro pase de {t}', { s: N.solid, t: fmtT(s.tf) + ' °C' }),
         i18n.t('Deja el {l} justo a {t} y apaga la placa', { l: N.liquid, t: obj }),
         i18n.t('Haz que el {l} hierva y vuelve a tenerlo todo líquido', { l: N.liquid }),
+        retoMinima(s),
     ];
+}
+
+// 4 · ¿Hasta qué temperatura se puede enfriar? (es la misma para todas: el cero absoluto)
+function retoMinima(s) {
+    const hecho = (retosDatos.retos[s.clave] || [])[3];
+    const txt = i18n.t('Descubre la temperatura más baja a la que se puede enfriar el {s}', { s: i18n.t(s.nombres.solid) });
+    return hecho ? txt + ': ' + fmtT(CERO_ABS) + ' °C' : txt;
 }
 
 function retosReiniciar() {
@@ -72,7 +81,7 @@ function retosComprobar() {
     if (!sus || !estado) return;
     if (!retosSesion) retosReiniciar();
     const clave = sus.clave;
-    const hechos = retosDatos.retos[clave] || [false, false, false];
+    const hechos = retosDatos.retos[clave] || [false, false, false, false];
     let cambio = false;
     const ganar = (i) => { if (!hechos[i]) { hechos[i] = true; cambio = true; } };
     const apagada = potencia === 0;
@@ -82,7 +91,7 @@ function retosComprobar() {
     else if (estado.fl >= 1 && estado.T <= sus.tf + 0.5 && apagada) ganar(0);
     // 2 · Justo a la temperatura objetivo, con la placa apagada
     const tramoObj = sus.sublima ? 'gas' : 'liquido';
-    const tol = Math.max(1, (sus.tMax - sus.tMin) * 0.004);
+    const tol = Math.max(1, (sus.tMax - sus.tRef) * 0.004);
     if (estado.tramo === tramoObj && apagada && Math.abs(estado.T - RETO_OBJETIVO[clave]) <= tol) ganar(1);
     // 3 · Ida y vuelta por un cambio de estado
     if (sus.sublima) {
@@ -92,6 +101,9 @@ function retosComprobar() {
         if (estado.tramo === 'vaporizacion' && potencia > 0) retosSesion.hervido = true;
         if (retosSesion.hervido && estado.fl >= 1) ganar(2);
     }
+
+    // 4 · Llegar a la temperatura más baja posible
+    if (energia <= 0) ganar(3);
 
     // Sellos: al terminar un cambio de estado
     const antes = retosSesion.tramo, ahora = estado.tramo;
