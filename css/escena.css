@@ -1,0 +1,26 @@
+/* ════════════════════════════════════════════════════
+   ESCENA PROPIA DE «CAMBIOS DE ESTADO»
+   Lo común (cabecera, carril, botones, paneles, retos, mandos sobre el
+   lienzo, móvil) está en css/escena-comun.css, que se carga antes.
+════════════════════════════════════════════════════ */
+
+/* Puntos de color de las sustancias */
+.sustancias [data-sus="alcohol"] .punto { background: #d9e4ff; }
+.sustancias [data-sus="nitrogeno"] .punto { background: #c9d4ff; }
+.sustancias [data-sus="hierro"] .punto { background: #ff8a3c; }
+.sustancias [data-sus="hieloSeco"] .punto { background: #f2f6fa; }
+.sustancias [data-fsus="agua"] .punto { background: #3a9be0; }
+.sustancias [data-fsus="co2"] .punto { background: #e8e8f0; }
+.sustancias [data-fsus="yodo"] .punto { background: #8a4fd8; }
+
+/* Interruptor de la placa: cada posición con su color */
+.mandos-placa .seg-hot[aria-checked="true"]  { background: var(--hot); color: #1a0d07; }
+.mandos-placa .seg-cold[aria-checked="true"] { background: var(--cold); color: #06213a; }
+.mandos-placa .seg-off[aria-checked="true"]  { background: var(--muted); color: var(--bg1); }
+
+/* Mandos del diagrama: sin separación general (la llevan sus filas) */
+.mandos-fases { gap: 0; }
+
+@media (max-width: 760px) {
+    #btn-leer { order: 3; }
+}
